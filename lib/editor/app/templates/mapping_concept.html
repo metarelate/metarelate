@@ -1,0 +1,302 @@
+
+{% extends "base.html" %}
+{% load dict_keys %}
+{% load inclusions %}
+<!--
+# (C) British Crown Copyright 2013, Met Office
+#
+# This file is part of metarelate.
+#
+# metarelate is free software: you can redistribute it and/or 
+# modify it under the terms of the GNU Lesser General Public License 
+# as published by the Free Software Foundation, either version 3 of 
+# the License, or (at your option) any later version.
+#
+# metarelate is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with metarelate. If not, see <http://www.gnu.org/licenses/>.
+-->
+
+
+{% block title %}: {{ title }}{% endblock %}
+
+{% block head %}
+<script type="text/javascript" src="{{ STATIC_URL }}jquery-1.7.2.min.js"></script>
+<script src="{{ ADMIN_MEDIA_PREFIX }}js/admin/RelatedObjectLookups.js"></script>
+
+{% endblock %}
+
+
+
+{% block content %}
+
+<p>The time is {% current_time "%Y-%m-%d %I:%M %p" %}.</p>
+
+<table border="1" class="recordtable">
+<tr>
+{% if form %}
+<td>
+<form action="" method="post">
+<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} value="Create this mapping"/>
+
+{% csrf_token %}
+<table border="1" class="recordtable">
+{{ form.as_table }}
+</table>
+</form>
+</td>
+{% endif %}
+<td>
+<table border="1" class="recordtable">
+
+
+{% if mapping %}
+
+<tr>
+{% if amend %}
+<ul>
+<li><a href="{{ amend.url }}">{{ amend.label }}</a></li>
+</ul>
+{% endif %}
+
+
+{% if map_rendering %}
+<img src="{{ STATIC_URL }}tmp_images/{{ map_rendering }}">
+{% endif %}
+
+    <td>
+
+    <h2>Mapping Source</h2>
+
+
+    <table border="1" class="recordtable">
+    <tr>
+    <td>
+    <h4>Format</h4>
+    {{ mapping|prefix_uri:"mr:source,mr:hasFormat" }}
+    </td></tr>
+    {% if mapping|multi_key:"mr:source,dc:requires" %}
+    <tr><td>
+
+
+    {% if mapping|multi_key:"mr:source,dc:requires" %}
+    <tr><td>
+    <h4>Mediators</h4>
+    <ul>
+    {% else %}
+    {% if mapping|multi_key:"mr:source,dc:mediator" %}
+        <tr><td>
+        <h4>Mediators</h4>
+        <ul>
+    {% endif %}
+    {% endif %}
+
+    {% for elem in mapping|multi_key:"mr:source,dc:requires" %}
+      {% if elem.url %}
+        <li> <a href="{{ elem.url }}">{{ elem.label }} </a>
+          </li>
+      {% else %}
+        <li>dc:requires</li>
+        <ul>
+        <li>{{ elem }}</li>
+        </ul>
+      {% endif %}
+    {% endfor %}
+    {% endif %}
+    {% if mapping|multi_key:"mr:source,dc:mediator" %}
+    {% for elem in mapping|multi_key:"mr:source,dc:mediator" %}
+      {% if elem.url %}
+        <li> <a href="{{ elem.url }}">{{ elem.label }} </a>
+          </li>
+      {% else %}
+        <li>dc:mediator</li>
+        <ul>
+        <li>{{ elem }}</li>
+        </ul>
+      {% endif %}
+    {% endfor %}
+    </ul>
+    </td></tr>
+    {% endif %}
+    <tr><td>
+    <h4>Definition</h4>
+
+    {% if mapping|multi_key:"mr:source,component" %}
+    {{ mapping|prefix_uri:"mr:source,component" }}
+    {% endif %}
+
+    <ul>
+    {% for component in  mapping|multi_key:"mr:source,mr:hasComponent" %}
+      {% if component.url %}
+      <li><a href="{{ component.url }}">{{ component.label }}</a></li> 
+      {% else %}
+        {% if component|multi_key:"component" %}
+          <li> {{ component|multi_key:"component" }}:</li>
+        {% else %}
+          <li> component: </li>
+        {% endif %}
+      {% endif %}
+      <ul>
+      {% if component.remove %}
+      <li><a href="{{ component.remove.url }}">{{ component.remove.label }}</a></li> 
+      {% endif %}
+
+      {% for aproperty in  component|multi_key:"mr:hasProperty" %}
+      {% show_property aproperty %}
+      {% endfor %}
+      </ul>
+    {% endfor %}
+
+    {% for aproperty in  mapping|multi_key:"mr:source,mr:hasProperty" %}
+    {% show_property aproperty %}
+    {% endfor %}
+
+    </ul>
+    </tr></td>
+    </table>
+
+    </td>
+
+
+    <td>
+
+    <h2>Mapping Target</h2>
+
+
+    <table border="1" class="recordtable">
+    <tr>
+    <td>
+    <h4>Format</h4>
+    {{ mapping|prefix_uri:"mr:target,mr:hasFormat" }}
+    </td></tr>
+
+    {% if mapping|multi_key:"mr:target,dc:requires" %}
+    <tr><td>
+    <h4>Mediators</h4>
+    <ul>
+    {% else %}
+    {% if mapping|multi_key:"mr:target,dc:mediator" %}
+        <tr><td>
+        <h4>Mediators</h4>
+        <ul>
+    {% endif %}
+    {% endif %}
+
+    {% if mapping|multi_key:"mr:target,dc:requires" %}
+    {% for elem in mapping|multi_key:"mr:target,dc:requires" %}
+      {% if elem.url %}
+        <li> <a href="{{ elem.url }}">{{ elem.label }} </a>
+          </li>
+      {% else %}
+        <li>dc:requires</li>
+        <ul>
+        <li>{{ elem }}</li>
+        </ul>
+      {% endif %}
+    {% endfor %}
+    {% endif %}
+    {% if mapping|multi_key:"mr:target,dc:mediator" %}
+    {% for elem in mapping|multi_key:"mr:target,dc:mediator" %}
+      {% if elem.url %}
+        <li> <a href="{{ elem.url }}">{{ elem.label }} </a>
+          </li>
+      {% else %}
+        <li>dc:mediator</li>
+        <ul>
+        <li>{{ elem }}</li>
+         </ul>
+      {% endif %}
+    {% endfor %}
+    </ul>
+    </td></tr>
+    {% endif %}
+    <tr><td>
+    <h4>Definition</h4>
+
+    {% if mapping|multi_key:"mr:target,component" %}
+    {{ mapping|prefix_uri:"mr:target,component" }}
+    {% endif %}
+
+
+    <ul>
+    {% for component in  mapping|multi_key:"mr:target,mr:hasComponent" %}
+      {% if component.url %}
+      <li><a href="{{ component.url }}">{{ component.label }}</a></li> 
+      {% else %}
+        {% if component|multi_key:"component" %}
+          <li> {{ component|multi_key:"component" }}:</li>
+        {% else %}
+          <li> component: </li>
+        {% endif %}
+      {% endif %}
+      <ul>
+      {% if component.remove %}
+      <li><a href="{{ component.remove.url }}">{{ component.remove.label }}</a></li> 
+      {% endif %}
+
+      {% for aproperty in  component|multi_key:"mr:hasProperty" %}
+      {% show_property aproperty %}
+      {% endfor %}
+      </ul>
+    {% endfor %}
+
+    {% for aproperty in  mapping|multi_key:"mr:target,mr:hasProperty" %}
+    {% show_property aproperty %}
+    {% endfor %}
+
+    </ul>
+
+
+
+    </tr></td>
+    </table>
+
+
+
+{% endif %}
+
+</tr>
+
+{% if mapping|multi_key:"mr:hasValueMap" %}
+<tr>
+<td>
+<h2>Value Mappings</h2>
+</td>
+</tr>
+  {% for valuemap in mapping|multi_key:"mr:hasValueMap" %}
+  <tr><td>
+
+  {% show_value valuemap|multi_key:"mr:source" %}
+
+  </td><td>
+
+  {% show_value valuemap|multi_key:"mr:target" %}
+  
+  </td>
+  </td></tr>
+  {% endfor %}
+
+
+{% endif %}
+
+
+
+{% if mapping|multi_key:"addValueMap,url" %}
+<tr>
+<td>
+<a href="{{ mapping|multi_key:"addValueMap,url" }}"> {{ mapping|multi_key:"addValueMap,label" }}</a>
+</td>
+</tr>
+
+
+{% endif %}
+</table>
+</td>
+</tr>
+</table>
+
+{% endblock %}

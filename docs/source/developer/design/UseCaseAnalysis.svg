@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.0//EN" "http://www.w3.org/TR/2001/PR-SVG-20010719/DTD/svg10.dtd">
+<svg width="64cm" height="44cm" viewBox="25 -32 1276 874" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <g>
+    <rect style="fill: #ffffff" x="26" y="-31" width="1274" height="872"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="26" y="-31" width="1274" height="872"/>
+  </g>
+  <g>
+    <rect style="fill: #ffffff" x="219" y="36" width="881" height="651"/>
+    <rect style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x="219" y="36" width="881" height="651"/>
+  </g>
+  <g>
+    <ellipse style="fill: #ffffff" cx="683" cy="727" rx="6" ry="6"/>
+    <ellipse style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" cx="683" cy="727" rx="6" ry="6"/>
+    <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="659" y1="739" x2="707" y2="739"/>
+    <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="683" y1="733" x2="683" y2="763"/>
+    <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="683" y1="763" x2="659" y2="789"/>
+    <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="683" y1="763" x2="707" y2="789"/>
+    <text style="fill: #000000;text-anchor:middle;font-size:12.8;font-family:sanserif;font-style:normal;font-weight:normal" x="683" y="812.9">
+      <tspan x="683" y="812.9">Investigator</tspan>
+    </text>
+  </g>
+  <g>
+    <ellipse style="fill: #ffffff" cx="140" cy="364" rx="6" ry="6"/>
+    <ellipse style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" cx="140" cy="364" rx="6" ry="6"/>
+    <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="116" y1="376" x2="164" y2="376"/>
+    <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="140" y1="370" x2="140" y2="400"/>
+    <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="140" y1="400" x2="116" y2="426"/>
+    <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="140" y1="400" x2="164" y2="426"/>
+    <text style="fill: #000000;text-anchor:middle;font-size:12.8;font-family:sanserif;font-style:normal;font-weight:normal" x="140" y="449.9">
+      <tspan x="140" y="449.9">Editor</tspan>
+    </text>
+  </g>
+  <g>
+    <ellipse style="fill: #ffffff" cx="1083" cy="729" rx="6" ry="6"/>
+    <ellipse style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" cx="1083" cy="729" rx="6" ry="6"/>
+    <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="1059" y1="741" x2="1107" y2="741"/>
+    <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="1083" y1="735" x2="1083" y2="765"/>
+    <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="1083" y1="765" x2="1059" y2="791"/>
+    <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="1083" y1="765" x2="1107" y2="791"/>
+    <text style="fill: #000000;text-anchor:middle;font-size:12.8;font-family:sanserif;font-style:normal;font-weight:normal" x="1083" y="814.9">
+      <tspan x="1083" y="814.9">Admin</tspan>
+    </text>
+  </g>
+  <g>
+    <ellipse style="fill: #ffffff" cx="1201" cy="455" rx="6" ry="6"/>
+    <ellipse style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" cx="1201" cy="455" rx="6" ry="6"/>
+    <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="1177" y1="467" x2="1225" y2="467"/>
+    <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="1201" y1="461" x2="1201" y2="491"/>
+    <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="1201" y1="491" x2="1177" y2="517"/>
+    <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="1201" y1="491" x2="1225" y2="517"/>
+    <text style="fill: #000000;text-anchor:middle;font-size:12.8;font-family:sanserif;font-style:normal;font-weight:normal" x="1201" y="540.9">
+      <tspan x="1201" y="540.9">Approver</tspan>
+    </text>
+  </g>
+  <g>
+    <ellipse style="fill: #ffffff" cx="579.95" cy="638" rx="38.95" ry="20"/>
+    <ellipse style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" cx="579.95" cy="638" rx="38.95" ry="20"/>
+    <text style="fill: #000000;text-anchor:middle;font-size:12.8;font-family:sanserif;font-style:normal;font-weight:normal" x="579.95" y="641.9">
+      <tspan x="579.95" y="641.9">Query</tspan>
+    </text>
+  </g>
+  <g>
+    <ellipse style="fill: #ffffff" cx="629.8" cy="521" rx="49.8" ry="20"/>
+    <ellipse style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" cx="629.8" cy="521" rx="49.8" ry="20"/>
+    <text style="fill: #000000;text-anchor:middle;font-size:12.8;font-family:sanserif;font-style:normal;font-weight:normal" x="629.8" y="524.9">
+      <tspan x="629.8" y="524.9">Validate</tspan>
+    </text>
+  </g>
+  <g>
+    <ellipse style="fill: #ffffff" cx="461.275" cy="635.517" rx="41.275" ry="27.5167"/>
+    <ellipse style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" cx="461.275" cy="635.517" rx="41.275" ry="27.5167"/>
+    <text style="fill: #000000;text-anchor:middle;font-size:12.8;font-family:sanserif;font-style:normal;font-weight:normal" x="461.275" y="631.417">
+      <tspan x="461.275" y="631.417">Raise</tspan>
+      <tspan x="461.275" y="647.417">Issue</tspan>
+    </text>
+  </g>
+  <g>
+    <ellipse style="fill: #ffffff" cx="389.8" cy="550" rx="49.8" ry="32"/>
+    <ellipse style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" cx="389.8" cy="550" rx="49.8" ry="32"/>
+    <text style="fill: #000000;text-anchor:middle;font-size:12.8;font-family:sanserif;font-style:normal;font-weight:normal" x="389.8" y="545.9">
+      <tspan x="389.8" y="545.9">Resolve</tspan>
+      <tspan x="389.8" y="561.9">Issue</tspan>
+    </text>
+  </g>
+  <g>
+    <ellipse style="fill: #ffffff" cx="672.05" cy="412" rx="52.05" ry="32"/>
+    <ellipse style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" cx="672.05" cy="412" rx="52.05" ry="32"/>
+    <text style="fill: #000000;text-anchor:middle;font-size:12.8;font-family:sanserif;font-style:normal;font-weight:normal" x="672.05" y="407.9">
+      <tspan x="672.05" y="407.9">Pull</tspan>
+      <tspan x="672.05" y="423.9">Request</tspan>
+    </text>
+  </g>
+  <g>
+    <ellipse style="fill: #ffffff" cx="209" cy="720" rx="6" ry="6"/>
+    <ellipse style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" cx="209" cy="720" rx="6" ry="6"/>
+    <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="185" y1="732" x2="233" y2="732"/>
+    <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="209" y1="726" x2="209" y2="756"/>
+    <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="209" y1="756" x2="185" y2="782"/>
+    <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="209" y1="756" x2="233" y2="782"/>
+    <text style="fill: #000000;text-anchor:middle;font-size:12.8;font-family:sanserif;font-style:normal;font-weight:normal" x="209" y="805.9">
+      <tspan x="209" y="805.9">Owner</tspan>
+    </text>
+  </g>
+  <g>
+    <ellipse style="fill: #ffffff" cx="475.5" cy="285" rx="32.5" ry="20"/>
+    <ellipse style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" cx="475.5" cy="285" rx="32.5" ry="20"/>
+    <text style="fill: #000000;text-anchor:middle;font-size:12.8;font-family:sanserif;font-style:normal;font-weight:normal" x="475.5" y="288.9">
+      <tspan x="475.5" y="288.9">Edit</tspan>
+    </text>
+  </g>
+  <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="165" y1="360" x2="443" y2="285"/>
+  <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="165" y1="360" x2="594.586" y2="506.858"/>
+  <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="1058" y1="765" x2="679.6" y2="521"/>
+  <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="1058" y1="765" x2="1003.3" y2="592"/>
+  <g>
+    <ellipse style="fill: #ffffff" cx="951.65" cy="592" rx="51.65" ry="32"/>
+    <ellipse style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" cx="951.65" cy="592" rx="51.65" ry="32"/>
+    <text style="fill: #000000;text-anchor:middle;font-size:12.8;font-family:sanserif;font-style:normal;font-weight:normal" x="951.65" y="587.9">
+      <tspan x="951.65" y="587.9">Merge</tspan>
+      <tspan x="951.65" y="603.9">to Trunk</tspan>
+    </text>
+  </g>
+  <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="165" y1="360" x2="620" y2="412"/>
+  <g>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke-dasharray: 8; stroke: #000000" points="635.245,389.373 635.245,347.186 475.5,347.186 475.5,311.705 "/>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="480.5,324.353 475.5,308.353 470.5,324.353 "/>
+  </g>
+  <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="209" y1="702" x2="389.8" y2="582"/>
+  <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="165" y1="360" x2="354.586" y2="527.372"/>
+  <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="658" y1="763" x2="490.46" y2="654.974"/>
+  <g>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke-dasharray: 8; stroke: #000000" points="425.014,572.627 425.014,590.314 461.275,590.314 461.275,601.295 "/>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="456.275,588.647 461.275,604.647 466.275,588.647 "/>
+  </g>
+  <g>
+    <ellipse style="fill: #ffffff" cx="449.425" cy="120" rx="49.425" ry="20"/>
+    <ellipse style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" cx="449.425" cy="120" rx="49.425" ry="20"/>
+    <text style="fill: #000000;text-anchor:middle;font-size:12.8;font-family:sanserif;font-style:normal;font-weight:normal" x="449.425" y="123.9">
+      <tspan x="449.425" y="123.9">Propose</tspan>
+    </text>
+  </g>
+  <g>
+    <ellipse style="fill: #ffffff" cx="970.675" cy="302" rx="50.675" ry="20"/>
+    <ellipse style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" cx="970.675" cy="302" rx="50.675" ry="20"/>
+    <text style="fill: #000000;text-anchor:middle;font-size:12.8;font-family:sanserif;font-style:normal;font-weight:normal" x="970.675" y="305.9">
+      <tspan x="970.675" y="305.9">Approve</tspan>
+    </text>
+  </g>
+  <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="165" y1="360" x2="400" y2="120"/>
+  <g>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke-dasharray: 8; stroke: #000000" points="920,302 709.425,302 709.425,120 505.555,120 "/>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="518.203,115 502.203,120 518.203,125 "/>
+  </g>
+  <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="1176" y1="491" x2="1021.35" y2="302"/>
+  <g>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke-dasharray: 8; stroke: #000000" points="900,592 812.05,592 812.05,412 730.805,412 "/>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="743.453,407 727.453,412 743.453,417 "/>
+  </g>
+  <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="607.492" y1="652.142" x2="658" y2="709"/>
+  <g>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke-dasharray: 8; stroke: #000000" points="594.586,535.142 594.586,546 579.95,546 579.95,611.295 "/>
+    <polyline style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" points="574.95,598.647 579.95,614.647 584.95,598.647 "/>
+  </g>
+  <g>
+    <ellipse style="fill: #ffffff" cx="1196" cy="92" rx="6" ry="6"/>
+    <ellipse style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" cx="1196" cy="92" rx="6" ry="6"/>
+    <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="1172" y1="104" x2="1220" y2="104"/>
+    <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="1196" y1="98" x2="1196" y2="128"/>
+    <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="1196" y1="128" x2="1172" y2="154"/>
+    <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="1196" y1="128" x2="1220" y2="154"/>
+    <text style="fill: #000000;text-anchor:middle;font-size:12.8;font-family:sanserif;font-style:normal;font-weight:normal" x="1196" y="177.9">
+      <tspan x="1196" y="177.9">Implementer</tspan>
+    </text>
+  </g>
+  <g>
+    <ellipse style="fill: #ffffff" cx="952.9" cy="162" rx="50.9" ry="32"/>
+    <ellipse style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" cx="952.9" cy="162" rx="50.9" ry="32"/>
+    <text style="fill: #000000;text-anchor:middle;font-size:12.8;font-family:sanserif;font-style:normal;font-weight:normal" x="952.9" y="157.9">
+      <tspan x="952.9" y="157.9">Export</tspan>
+      <tspan x="952.9" y="173.9">Content</tspan>
+    </text>
+  </g>
+  <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="1171" y1="128" x2="1003.8" y2="162"/>
+  <g>
+    <ellipse style="fill: #ffffff" cx="1013.05" cy="497" rx="49.05" ry="20"/>
+    <ellipse style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" cx="1013.05" cy="497" rx="49.05" ry="20"/>
+    <text style="fill: #000000;text-anchor:middle;font-size:12.8;font-family:sanserif;font-style:normal;font-weight:normal" x="1013.05" y="500.9">
+      <tspan x="1013.05" y="500.9">Release</tspan>
+    </text>
+  </g>
+  <line style="fill: none; fill-opacity:0; stroke-width: 2; stroke: #000000" x1="1047.73" y1="511.142" x2="1083" y2="711"/>
+</svg>

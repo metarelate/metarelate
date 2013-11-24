@@ -1,0 +1,114 @@
+.errorlist { color:red; 
+display: inline; 
+float: right; 
+margin-top: 0px;
+margin-bottom: 0px;
+}
+
+.recordtable, .recordbutton {
+border: 1px solid black;
+border-radius:5px;
+background-color: cornsilk; 
+padding: 5px;
+margin-left: 5px;
+margin-right: 5px;
+margin-bottom: 5px;
+margin-top: 0px;
+}
+
+.recordbutton {
+border: 2px solid blue;
+}
+.recordbutton:hover {
+background-color: lightblue;
+}
+
+th { text-align: right; float: right; }
+
+a { outline: none; }
+
+a.top
+{
+text-decoration: none;
+color: black;
+}
+
+div.toplistbar
+{
+display: block;
+margin-bottom:25px;
+}
+
+div.format {
+height: 100%;    
+}
+
+h3.listbar , h4.listbar
+{
+display: block;
+padding-right: 2em;
+}
+
+h4.errorbar
+{
+color: red;
+}
+
+a.listbar , div.listbar
+{
+display: inline;
+border:2px solid blue;
+border-radius:5px;
+padding:5px;
+margin:5px;
+width: 25%;
+background: pink;
+text-decoration: none;
+}
+
+a.list , a.format 
+{
+display: block;
+border:2px solid blue;
+border-radius:5px;
+padding:5px;
+margin-top:5px;
+width: 60%;
+background: lightgray;
+text-decoration: none;
+}
+
+
+a.format
+{
+border-radius:25px;
+padding:5px;
+margin-top:5px;
+width: 25%;
+}
+
+a.format:hover , a.list:hover
+{
+background: lightgreen;
+}
+
+div.divright
+{
+display: inline;
+float: right;
+}
+
+div.divleft
+{
+display: inline;
+}
+
+span.display
+{
+cursor:pointer;
+}
+
+input.fname
+{
+height: 20pt;
+}

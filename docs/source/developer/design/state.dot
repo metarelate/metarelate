@@ -1,0 +1,114 @@
+digraph state {
+## basic setup 
+
+   	rankdir = LR;
+        node [
+        fontsize = 32,
+        shape = Mrecord
+        ];
+
+        edge [
+        fontsize = 24
+        ];
+
+## class definitions
+        broken [
+	label = "Broken|+ update(editor)|+ owners:many"
+	];
+
+	deprecated [
+	label = "Deprecated|+ read only|+ owners:many"
+	];
+
+        draft [
+	label = "Draft|+ update(editor)|+ owners:many"
+	];
+
+        proposed [
+	label = "Proposed|+ read only|+ owners:many"
+	];
+
+        approved [
+	label = "Approved|+ read only|+ owners:many"
+	];
+
+
+
+## cluster
+
+	subgraph cluster_1{ 
+	label = "Validated"
+   	draft -> proposed [
+	arrowhead = "normal"
+	label = owners
+	color = blue
+	fontcolor = blue
+	];
+
+   	proposed -> approved [
+	arrowhead = "normal"
+	label = approver
+	color = blue
+	fontcolor = blue
+	];
+#	label = "Relationship State";
+	};
+
+
+## more relationship definitions
+
+   	broken -> draft [
+	arrowhead = "normal"
+	label = owners
+	color = blue
+	fontcolor = blue
+	];
+
+
+
+   	broken -> deprecated [ 
+	arrowhead = "normal"
+	label = owners
+	color = red
+	fontcolor = red
+	];
+
+   	draft -> deprecated [ 
+	arrowhead = "normal"
+	label = owners
+	color = red
+	fontcolor = red
+	];
+
+   	deprecated -> draft [ 
+	arrowhead = "normal"
+	label = owners
+	color = red
+	fontcolor = red
+	];
+
+
+   	approved -> draft [
+	arrowhead = "normal"
+	label = owners
+	color = red
+	fontcolor = red
+	];
+
+   	proposed -> draft [
+	arrowhead = "normal"
+	label = approver
+	color = red
+	fontcolor = red
+	];
+
+   	draft -> broken [
+	arrowhead = "normal"
+	label = owners
+	color = red
+	fontcolor = red
+	];
+
+	
+  
+}

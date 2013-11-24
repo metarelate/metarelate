@@ -1,0 +1,118 @@
+digraph G {
+	graph [bb="0,0,582,270",
+		fontsize=15,
+		label=MetOcean,
+		labeljust=l,
+		labelloc=t,
+		lheight=0.24,
+		lp="40,257.5",
+		lwidth=0.89
+	];
+	node [label="\N"];
+	subgraph cluster_Source {
+		graph [bb="8,8,121,165",
+			color=lightgrey,
+			label="Source Concept",
+			labelloc=b,
+			lheight=0.24,
+			lp="64.5,20.5",
+			lwidth=1.35,
+			style=filled
+		];
+		"\<http//www.metarelate.net/metOcean/mapping/m001_http//www.metarelate.net/metOcean/component/c001\>"		 [colorscheme=dark28,
+			fillcolor=2,
+			fontsize=8,
+			height=0.5,
+			label=um,
+			pos="81,139",
+			shape=box,
+			style=filled,
+			width=0.75];
+		"\<http//www.metarelate.net/metOcean/component/c001_http//www.metarelate.net/metOcean/property/p001\>"		 [colorscheme=dark28,
+			fillcolor=4,
+			fontsize=8,
+			height=0.5,
+			label="stash = m02s32i202",
+			pos="68,59",
+			style=filled,
+			width=1.2335];
+		"\<http//www.metarelate.net/metOcean/mapping/m001_http//www.metarelate.net/metOcean/component/c001\>":s -> "\<http//www.metarelate.net/metOcean/component/c001_http//www.metarelate.net/metOcean/property/p001\>":n		 [fontsize=7,
+			label=Property,
+			lp="89.5,99",
+			pos="e,68,77 81,121 81,104.59 72.582,99.303 69.294,87.239"];
+	}
+	subgraph cluster_Target {
+		graph [bb="129,8,574,165",
+			color=lightgrey,
+			label="Target Concept",
+			labelloc=b,
+			lheight=0.24,
+			lp="184,20.5",
+			lwidth=1.31,
+			style=filled
+		];
+		"\<http//www.metarelate.net/metOcean/mapping/m001_http//www.metarelate.net/metOcean/component/c002\>"		 [colorscheme=dark28,
+			fillcolor=2,
+			fontsize=8,
+			height=0.5,
+			label=cf,
+			pos="203,139",
+			shape=box,
+			style=filled,
+			width=0.75];
+		"\<http//www.metarelate.net/metOcean/component/c002_http//www.metarelate.net/metOcean/property/p003\>"		 [colorscheme=dark28,
+			fillcolor=4,
+			fontsize=8,
+			height=0.5,
+			label="units = m s-1",
+			pos="170,59",
+			style=filled,
+			width=0.92315];
+		"\<http//www.metarelate.net/metOcean/mapping/m001_http//www.metarelate.net/metOcean/component/c002\>":s -> "\<http//www.metarelate.net/metOcean/component/c002_http//www.metarelate.net/metOcean/property/p003\>":n		 [fontsize=7,
+			label=Property,
+			lp="205.5,99",
+			pos="e,170,77 203,121 203,100.57 179.94,100.63 172.37,86.922"];
+		"\<http//www.metarelate.net/metOcean/component/c002_http//www.metarelate.net/metOcean/property/p002\>"		 [colorscheme=dark28,
+			fillcolor=4,
+			fontsize=8,
+			height=0.5,
+			label="type = Field",
+			pos="253,59",
+			style=filled,
+			width=0.87173];
+		"\<http//www.metarelate.net/metOcean/mapping/m001_http//www.metarelate.net/metOcean/component/c002\>":s -> "\<http//www.metarelate.net/metOcean/component/c002_http//www.metarelate.net/metOcean/property/p002\>":n		 [fontsize=7,
+			label=Property,
+			lp="245.5,99",
+			pos="e,253,77 203,121 203,115.28 232.91,96.512 246.46,84.88"];
+		"\<http//www.metarelate.net/metOcean/component/c002_http//www.metarelate.net/metOcean/property/p004\>"		 [colorscheme=dark28,
+			fillcolor=4,
+			fontsize=8,
+			height=0.5,
+			label="standard_name = tendency_of_sea_ice_thickness_due_to_dynamics",
+			pos="434,59",
+			style=filled,
+			width=3.6472];
+		"\<http//www.metarelate.net/metOcean/mapping/m001_http//www.metarelate.net/metOcean/component/c002\>":s -> "\<http//www.metarelate.net/metOcean/component/c002_http//www.metarelate.net/metOcean/property/p004\>":n		 [fontsize=7,
+			label=Property,
+			lp="377.5,99",
+			pos="e,434,77 203,121 203,97.628 387.84,101.77 426.83,84.2"];
+	}
+	"\<http//www.metarelate.net/metOcean/mapping/m001\>"	 [colorscheme=dark28,
+		fillcolor=1,
+		fontsize=8,
+		height=0.61111,
+		label=Mapping,
+		peripheries=2,
+		pos="159,223",
+		shape=box,
+		style=filled,
+		width=0.84722];
+	"\<http//www.metarelate.net/metOcean/mapping/m001\>":s -> "\<http//www.metarelate.net/metOcean/mapping/m001_http//www.metarelate.net/metOcean/component/c001\>":n	 [fontsize=7,
+		label=Concept,
+		lp="142.5,179",
+		pos="e,81,158 159,201 159,184.45 104.49,179.35 86.61,166.56"];
+	"\<http//www.metarelate.net/metOcean/mapping/m001\>":s -> "\<http//www.metarelate.net/metOcean/mapping/m001_http//www.metarelate.net/metOcean/component/c002\>":n	 [fontsize=7,
+		label=Concept,
+		lp="204.5,179",
+		pos="e,203,158 159,201 159,177.72 190.91,182.73 200.38,167.85"];
+}

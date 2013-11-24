@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+
+<!--
+# (C) British Crown Copyright 2013, Met Office
+#
+# This file is part of metarelate.
+#
+# metarelate is free software: you can redistribute it and/or 
+# modify it under the terms of the GNU Lesser General Public License 
+# as published by the Free Software Foundation, either version 3 of 
+# the License, or (at your option) any later version.
+#
+# metarelate is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with metarelate. If not, see <http://www.gnu.org/licenses/>.
+-->
+
+
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<meta name="Description" content="List of formats for Metadata management.">
+<title>Metarelate Editor</title>
+
+<link href="{{ STATIC_URL }}main.css" rel="stylesheet" type="text/css" media="screen" />
+<link href="{{ STATIC_URL }}styles.css" rel="stylesheet" type="text/css" media="screen" />
+
+{% block head %}{% endblock %}
+
+</head>
+<body>
+<h1>Meteorological and Oceanographic Metadata Relationships</h1> 
+<div class="toplistbar">
+<h4 class="listbar">{% block status %}{{ status }}{% endblock %}</h4>
+<h4 class="listbar">{% block count %}{{ count }}{% endblock %}</h4>
+<h4 class="listbar">{% block detail %}{{ detail }}{% endblock %}</h4>
+<h4 class="errorbar">{% block error %}{{ error }}{% endblock %}</h4>
+</div>
+
+<div id="content">
+{% block content %}{% endblock %}
+</div>
+
+</body>
+</html>

@@ -1,0 +1,27 @@
+*.py[co]
+
+tdbdump.*
+settings_local.py
+
+# Sphinx documentation files.
+docs/build
+
+# Apache Jena triple store databases.
+metocean_store
+metocean_tdb
+tdb
+lib/metarelate/tests/tdb
+
+# Created by configuring/running metarelate.
+lib/metarelate/etc/site.cfg
+lib/metarelate/nohup.out
+
+# Created by testing metarelate.
+lib/metarelate/tests/nohup.out
+lib/metarelate/tests/results/dot_actual
+
+# Created by editors.
+*~
+\#*
+\.\#*
+*.swp

@@ -1,0 +1,144 @@
+digraph G {
+	graph [bb="0,0,582,358",
+		fontsize=15,
+		label=MetOcean,
+		labeljust=l,
+		labelloc=t,
+		lheight=0.24,
+		lp="40,345.5",
+		lwidth=0.89
+	];
+	node [label="\N"];
+	subgraph cluster_Source {
+		graph [bb="8,8,121,253",
+			color=lightgrey,
+			label="Source Concept",
+			labelloc=b,
+			lheight=0.24,
+			lp="64.5,20.5",
+			lwidth=1.35,
+			style=filled
+		];
+		"\<http//www.metarelate.net/metOcean/mapping/test_m001_http//www.metarelate.net/metOcean/component/test_c007\>"		 [colorscheme=dark28,
+			fillcolor=2,
+			fontsize=8,
+			height=0.5,
+			label=um,
+			pos="80,227",
+			shape=box,
+			style=filled,
+			width=0.75];
+		"\<http//www.metarelate.net/metOcean/component/test_c007_http//www.metarelate.net/metOcean/component/test_c002\>"		 [colorscheme=dark28,
+			fillcolor=3,
+			fontsize=8,
+			height=0.61111,
+			label=Component,
+			peripheries=2,
+			pos="71,143",
+			style=filled,
+			width=0.94532];
+		"\<http//www.metarelate.net/metOcean/mapping/test_m001_http//www.metarelate.net/metOcean/component/test_c007\>":s -> "\<http//www.metarelate.net/metOcean/component/test_c007_http//www.metarelate.net/metOcean/component/test_c002\>":n		 [fontsize=7,
+			label=Component,
+			lp="94,187",
+			pos="e,71,165 80,209 80,192.94 74.172,187.16 71.896,175.11"];
+		"\<http//www.metarelate.net/metOcean/component/test_c002_http//www.metarelate.net/metOcean/property/test_p004\>"		 [colorscheme=dark28,
+			fillcolor=4,
+			fontsize=8,
+			height=0.5,
+			label="stash = m02s32i202",
+			pos="68,59",
+			style=filled,
+			width=1.2335];
+		"\<http//www.metarelate.net/metOcean/component/test_c007_http//www.metarelate.net/metOcean/component/test_c002\>":s -> "\<http//www.metarelate.net/metOcean/component/test_c002_http//www.metarelate.net/metOcean/property/test_p004\>":n		 [fontsize=7,
+			label=Property,
+			lp="82.5,99",
+			pos="e,68,77 71,121 71,105.23 69.057,99.04 68.299,87.011"];
+	}
+	subgraph cluster_Target {
+		graph [bb="129,8,574,253",
+			color=lightgrey,
+			label="Target Concept",
+			labelloc=b,
+			lheight=0.24,
+			lp="184,20.5",
+			lwidth=1.31,
+			style=filled
+		];
+		"\<http//www.metarelate.net/metOcean/mapping/test_m001_http//www.metarelate.net/metOcean/component/test_c005\>"		 [colorscheme=dark28,
+			fillcolor=2,
+			fontsize=8,
+			height=0.5,
+			label=cf,
+			pos="167,227",
+			shape=box,
+			style=filled,
+			width=0.75];
+		"\<http//www.metarelate.net/metOcean/component/test_c005_http//www.metarelate.net/metOcean/component/test_c001\>"		 [colorscheme=dark28,
+			fillcolor=3,
+			fontsize=8,
+			height=0.61111,
+			label=Component,
+			peripheries=2,
+			pos="194,143",
+			style=filled,
+			width=0.94532];
+		"\<http//www.metarelate.net/metOcean/mapping/test_m001_http//www.metarelate.net/metOcean/component/test_c005\>":s -> "\<http//www.metarelate.net/metOcean/component/test_c005_http//www.metarelate.net/metOcean/component/test_c001\>":n		 [fontsize=7,
+			label=Component,
+			lp="203,187",
+			pos="e,194,165 167,209 167,190 185.52,188.03 191.88,174.88"];
+		"\<http//www.metarelate.net/metOcean/component/test_c001_http//www.metarelate.net/metOcean/property/test_p003\>"		 [colorscheme=dark28,
+			fillcolor=4,
+			fontsize=8,
+			height=0.5,
+			label="units = m s-1",
+			pos="170,59",
+			style=filled,
+			width=0.92315];
+		"\<http//www.metarelate.net/metOcean/component/test_c005_http//www.metarelate.net/metOcean/component/test_c001\>":s -> "\<http//www.metarelate.net/metOcean/component/test_c001_http//www.metarelate.net/metOcean/property/test_p003\>":n		 [fontsize=7,
+			label=Property,
+			lp="199.5,99",
+			pos="e,170,77 194,121 194,102.73 177.85,99.814 172.05,87.062"];
+		"\<http//www.metarelate.net/metOcean/component/test_c001_http//www.metarelate.net/metOcean/property/test_p002\>"		 [colorscheme=dark28,
+			fillcolor=4,
+			fontsize=8,
+			height=0.5,
+			label="type = Field",
+			pos="253,59",
+			style=filled,
+			width=0.87173];
+		"\<http//www.metarelate.net/metOcean/component/test_c005_http//www.metarelate.net/metOcean/component/test_c001\>":s -> "\<http//www.metarelate.net/metOcean/component/test_c001_http//www.metarelate.net/metOcean/property/test_p002\>":n		 [fontsize=7,
+			label=Property,
+			lp="241.5,99",
+			pos="e,253,77 194,121 194,114.55 230.73,95.974 246.23,84.408"];
+		"\<http//www.metarelate.net/metOcean/component/test_c001_http//www.metarelate.net/metOcean/property/test_p001"		 [colorscheme=dark28,
+			fillcolor=4,
+			fontsize=8,
+			height=0.5,
+			label="standard_name = tendency_of_sea_ice_thickness_due_to_dynamics",
+			pos="434,59",
+			style=filled,
+			width=3.6472];
+		"\<http//www.metarelate.net/metOcean/component/test_c005_http//www.metarelate.net/metOcean/component/test_c001\>":s -> "\<http//www.metarelate.net/metOcean/component/test_c001_http//www.metarelate.net/metOcean/property/test_p001":n		 [fontsize=7,
+			label=Property,
+			lp="375.5,99",
+			pos="e,434,77 194,121 194,96.695 386.88,102.39 426.82,84.302"];
+	}
+	"\<http//www.metarelate.net/metOcean/mapping/test_m001\>"	 [colorscheme=dark28,
+		fillcolor=1,
+		fontsize=8,
+		height=0.61111,
+		label=Mapping,
+		peripheries=2,
+		pos="135,311",
+		shape=box,
+		style=filled,
+		width=0.84722];
+	"\<http//www.metarelate.net/metOcean/mapping/test_m001\>":s -> "\<http//www.metarelate.net/metOcean/mapping/test_m001_http//www.metarelate.net/metOcean/component/test_c007\>":n	 [fontsize=7,
+		label=Concept,
+		lp="127.5,267",
+		pos="e,80,246 135,289 135,276.52 99.386,266.33 85.475,254.74"];
+	"\<http//www.metarelate.net/metOcean/mapping/test_m001\>":s -> "\<http//www.metarelate.net/metOcean/mapping/test_m001_http//www.metarelate.net/metOcean/component/test_c005\>":n	 [fontsize=7,
+		label=Concept,
+		lp="170.5,267",
+		pos="e,167,246 135,289 135,269.27 156.95,269.07 164.49,256.05"];
+}

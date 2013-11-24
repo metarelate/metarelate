@@ -1,0 +1,344 @@
+# (C) British Crown Copyright 2013, Met Office
+# 
+# This file is part of metarelate.
+# 
+# metarelate is free software: you can redistribute it and/or 
+# modify it under the terms of the GNU Lesser General Public License 
+# as published by the Free Software Foundation, either version 3 of 
+# the License, or (at your option) any later version.
+# 
+# metarelate is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Lesser General Public License for more details.
+# 
+# You should have received a copy of the GNU Lesser General Public License
+# along with metarelate. If not, see <http://www.gnu.org/licenses/>.
+
+@prefix cfm: <http://def.cfconventions.org/datamodel/> .
+@prefix cfsn: <http://def.cfconventions.org/standard_names/> .
+@prefix component:   <http://www.metarelate.net/test/component/> .
+@prefix metocFormat: <http://www.metarelate.net/test/format/> .
+@prefix moStCon: <http://reference.metoffice.gov.uk/def/um/stash/concept/> .
+@prefix moumdpF3: <http://reference.metoffice.gov.uk/def/um/umdp/F3/> .
+@prefix mr: <http://www.metarelate.net/vocabulary/index.html#> .
+@prefix openmathr1: <http://www.openmath.org/cd/relation1.xhtml#> .
+@prefix property:    <http://www.metarelate.net/test/property/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix dc: <http://purl.org/dc/terms/> .
+@prefix gribapi: <http://def.ecmwf.int/api/grib/keys/> .
+
+
+#
+# Test mapping #001.
+# UM stash code to CF standard_name and units.
+#
+component:c001
+	rdf:type	mr:Component ;
+	mr:hasFormat	metocFormat:um ;
+	mr:hasProperty	property:p001 .
+
+component:c002
+	rdf:type	mr:Component ;
+	mr:hasFormat	metocFormat:cf ;
+	mr:hasProperty	property:p002 ;
+	mr:hasProperty  property:p003 ;
+	mr:hasProperty  property:p004 .
+
+property:p001
+	rdf:type	mr:Property ;
+	mr:name		moumdpF3:stash ;
+	rdf:value	moStCon:m02s32i202 ;
+	mr:operator	openmathr1:eq .
+
+property:p002
+	rdf:type	mr:Property ;
+	mr:name		cfm:type ;
+	rdf:value	cfm:Field ;
+	mr:operator	openmathr1:eq .
+
+property:p003
+	rdf:type	mr:Property ;
+	mr:name		cfm:units ;
+	rdf:value	"m s-1" ;
+	mr:operator	openmathr1:eq .
+
+property:p004
+	rdf:type	mr:Property ;
+	mr:name		cfm:standard_name ;
+	rdf:value	cfsn:tendency_of_sea_ice_thickness_due_to_dynamics ;
+	mr:operator	openmathr1:eq .
+
+
+
+<http://www.metarelate.net/test/scopedProperty/01ece0917be9ee9d8891b7413200d88afca1a6ce>
+      rdf:type      mr:Property ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/f158654a468067cc39de0a7ca44c850c01aee885> ;
+      mr:scope      <http://www.metarelate.net/test/component/e0c3bbdb7d5d97d7ba9dc3799b6309261866e59c> .
+
+<http://www.metarelate.net/test/property/f158654a468067cc39de0a7ca44c850c01aee885>
+      rdf:type      mr:Property ;
+      mr:name       gribapi:Nj ;
+	.
+
+<http://www.metarelate.net/test/value/c3affe408a014889a240de4ebdc0eaba4e1f3c2c>
+      rdf:type      mr:Value ;
+      mr:subject    <http://www.metarelate.net/test/scopedProperty/0222fafba401d784d72ea47b95f0be14b4fca3ee> .
+
+<http://www.metarelate.net/test/component/9c9dc6d30913497e1764181e94127a67633f443a>
+      rdf:type      mr:Component ;
+      mr:hasComponent  <http://www.metarelate.net/test/component/fd7212b2a586c3a8aca336ab7dc1d8432ad5bee4> ;
+      mr:hasComponent  <http://www.metarelate.net/test/component/f846df598a1a42e86558d2e848a0de0335244ed2> ;
+      mr:hasFormat  metocFormat:cf ;
+      dc:requires <http://www.metarelate.net/test/mediates/cf/coordinate_reference_system> ;
+	.
+
+<http://www.metarelate.net/test/component/bd9616cad84e26fb6b6e93003c8e144b7bb4cdc1>
+      rdf:type      mr:Component ;
+      mr:hasFormat  metocFormat:cf ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/0fb179b3d1c94d8b3e63d4a07fb395ef2083a205> ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/1a204ed7abeb29b35f1ec958dcaa74899338a513> ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/b0b665f7939f579029fdc5d28b997200425c979b> ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/7844734392d75895f4a818bee71d607292a677dc> ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/dd05a37e3ebd7445496e3126e711e9cefb021050> ;
+	.
+
+<http://www.metarelate.net/test/value/61cb052c08c8b884d473838adae1a5e60ed8ecd0>
+      rdf:type      mr:Value ;
+      mr:subject    <http://www.metarelate.net/test/scopedProperty/01ece0917be9ee9d8891b7413200d88afca1a6ce> .
+
+<http://www.metarelate.net/test/property/0d1c2aa9501a662f3c341a497e219d030aa01d4d>
+      rdf:type      mr:Property ;
+      rdf:value     cfm:DomainAxis ;
+      mr:name       cfm:type ;
+      mr:operator   openmathr1:eq ;
+	.
+
+<http://www.metarelate.net/test/value/ae0d9404299c605e232064424ca6682de7682ddf>
+      rdf:type      mr:Value ;
+      mr:subject    <http://www.metarelate.net/test/scopedProperty/ef8d31ca341583fda7550fd4c8cb8c221c482518> .
+
+<http://www.metarelate.net/test/component/fd7212b2a586c3a8aca336ab7dc1d8432ad5bee4>
+      rdf:type      mr:Component ;
+      mr:hasFormat  metocFormat:cf ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/0d1c2aa9501a662f3c341a497e219d030aa01d4d> ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/90351a1ae06e5f72eeaa029606ded8a177c3d869> ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/449e4ff1dc9d20bc87d63b9d6dc40bdfe5e7aa83> ;
+	.
+
+<http://www.metarelate.net/test/scopedProperty/80ae2486045db6752595a86db05caffa4bfdf271>
+      rdf:type      mr:Property ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/b0b665f7939f579029fdc5d28b997200425c979b> ;
+      mr:scope      <http://www.metarelate.net/test/component/0a6d1b12be1b4ae966d35b9d9f73851b3b523e22> .
+
+<http://www.metarelate.net/test/mediates/cf/coordinate_reference_system>
+      rdf:type      mr:Mediator ;
+      rdf:label     "coordinate_reference_system" ;
+      mr:hasFormat  metocFormat:cf ;
+	.
+
+<http://www.metarelate.net/test/property/5d0592682fdb308348b85878046496c6b5925e7e>
+      rdf:type      mr:Property ;
+      mr:name       gribapi:longitudeOfFirstGridPointInDegrees ;
+	.
+
+<http://www.metarelate.net/test/valueMap/68cc34ea6b60e68f4c0ed6f5d2e4d17c6a7bb458>
+      rdf:type      mr:ValueMap ;
+      mr:source     <http://www.metarelate.net/test/value/61cb052c08c8b884d473838adae1a5e60ed8ecd0> ;
+      mr:target     <http://www.metarelate.net/test/value/d432dc311f6449ef6d5e5a90c9f7f5617c9e4eb5> .
+
+<http://www.metarelate.net/test/property/76c1e7f809026b2bb8c198983491002e7bcf4478>
+      rdf:type      mr:Property ;
+      mr:name       gribapi:jDirectionIncrementInDegrees ;
+	.
+
+<http://www.metarelate.net/test/property/22263ad7b23b11ac9c44ff5435186322419721fa>
+      rdf:type      mr:Property ;
+      rdf:value     cfsn:latitude ;
+      mr:name       cfm:standard_name ;
+      mr:operator   openmathr1:eq ;
+	.
+
+<http://www.metarelate.net/test/property/5a110f2a75de5a835bc192407e9f2a5e1c64c694>
+      rdf:type      mr:Property ;
+      rdf:value     "regular_ll" ;
+      mr:name       gribapi:gridType ;
+      mr:operator   openmathr1:eq ;
+	.
+
+<http://www.metarelate.net/test/component/e0c3bbdb7d5d97d7ba9dc3799b6309261866e59c>
+      rdf:type      mr:Component ;
+      mr:hasFormat  metocFormat:grib ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/5d0592682fdb308348b85878046496c6b5925e7e> ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/f158654a468067cc39de0a7ca44c850c01aee885> ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/012d5bbf9bab0e5d629b9505f280a0ddb7b91dc1> ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/76c1e7f809026b2bb8c198983491002e7bcf4478> ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/21a2f3d4d2ecd92c5e08b85d7cf3e62b78ec5165> ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/e64794efd21bb226f2a8b179ff370dc592e00e85> ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/5a110f2a75de5a835bc192407e9f2a5e1c64c694> ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/8c398af48fdac739f4459491fd8f079b0b01fbcc> ;
+	.
+
+<http://www.metarelate.net/test/property/c93a6321af941cf4444657cd7c39e91660e41ffc>
+      rdf:type      mr:Property ;
+      rdf:value     cfm:CoordinateReferenceSystem ;
+      mr:name       cfm:type ;
+      mr:operator   openmathr1:eq ;
+	.
+
+<http://www.metarelate.net/test/scopedProperty/ef8d31ca341583fda7550fd4c8cb8c221c482518>
+      rdf:type      mr:Property ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/b0b665f7939f579029fdc5d28b997200425c979b> ;
+      mr:scope      <http://www.metarelate.net/test/component/bd9616cad84e26fb6b6e93003c8e144b7bb4cdc1> .
+
+<http://www.metarelate.net/test/component/0a6d1b12be1b4ae966d35b9d9f73851b3b523e22>
+      rdf:type      mr:Component ;
+      mr:hasFormat  metocFormat:cf ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/22263ad7b23b11ac9c44ff5435186322419721fa> ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/0fb179b3d1c94d8b3e63d4a07fb395ef2083a205> ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/b0b665f7939f579029fdc5d28b997200425c979b> ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/7844734392d75895f4a818bee71d607292a677dc> ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/dd05a37e3ebd7445496e3126e711e9cefb021050> ;
+	.
+
+<http://www.metarelate.net/test/property/031d56b261ebc09a657665482af4fc926f315ec7>
+      rdf:type      mr:Property ;
+      mr:hasComponent  <http://www.metarelate.net/test/component/bd9616cad84e26fb6b6e93003c8e144b7bb4cdc1> ;
+      mr:name       cfm:coordinate ;
+	.
+
+<http://www.metarelate.net/test/property/0fb179b3d1c94d8b3e63d4a07fb395ef2083a205>
+      rdf:type      mr:Property ;
+      rdf:value     "degrees" ;
+      mr:name       cfm:units ;
+      mr:operator   openmathr1:eq ;
+	.
+
+<http://www.metarelate.net/test/component/9bc5c14c847fdefddca873a7bdc6c6f589703ef1>
+      rdf:type      mr:Component ;
+      mr:hasFormat  metocFormat:grib ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/f560f8d395f7aa4bc0d72d54905e3053e04eaaf2> ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/5a110f2a75de5a835bc192407e9f2a5e1c64c694> ;
+	.
+
+<http://www.metarelate.net/test/property/1a204ed7abeb29b35f1ec958dcaa74899338a513>
+      rdf:type      mr:Property ;
+      rdf:value     cfsn:longitude ;
+      mr:name       cfm:standard_name ;
+      mr:operator   openmathr1:eq ;
+	.
+
+<http://www.metarelate.net/test/property/61adf7b86a380251033068a878e2845db78b59c7>
+      rdf:type      mr:Property ;
+      rdf:value     6367470 ;
+      mr:name       <http://def.cfconventions.org/datamodel/attribute_name#semi_major_axis> ;
+      mr:operator   openmathr1:eq ;
+	.
+
+<http://www.metarelate.net/test/component/f846df598a1a42e86558d2e848a0de0335244ed2>
+      rdf:type      mr:Component ;
+      mr:hasFormat  metocFormat:cf ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/031d56b261ebc09a657665482af4fc926f315ec7> ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/0d1c2aa9501a662f3c341a497e219d030aa01d4d> ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/7b4156eb833e8afa3e08383af6e19510c4603074> ;
+	.
+
+<http://www.metarelate.net/test/property/b0b665f7939f579029fdc5d28b997200425c979b>
+      rdf:type      mr:Property ;
+      mr:name       cfm:points ;
+	.
+
+<http://www.metarelate.net/test/property/7b4156eb833e8afa3e08383af6e19510c4603074>
+      rdf:type      mr:Property ;
+      rdf:value     1 ;
+      mr:name       cfm:axis_index ;
+      mr:operator   openmathr1:eq ;
+	.
+
+<http://www.metarelate.net/test/property/449e4ff1dc9d20bc87d63b9d6dc40bdfe5e7aa83>
+      rdf:type      mr:Property ;
+      rdf:value     0 ;
+      mr:name       cfm:axis_index ;
+      mr:operator   openmathr1:eq ;
+	.
+
+<http://www.metarelate.net/test/property/7844734392d75895f4a818bee71d607292a677dc>
+      rdf:type      mr:Property ;
+      rdf:value     cfm:DimensionCoordinate ;
+      mr:name       cfm:type ;
+      mr:operator   openmathr1:eq ;
+	.
+
+<http://www.metarelate.net/test/valueMap/d648fef7ec19c04ce517d2a54a66c7ae2dd3a5bc>
+      rdf:type      mr:ValueMap ;
+      mr:source     <http://www.metarelate.net/test/value/c3affe408a014889a240de4ebdc0eaba4e1f3c2c> ;
+      mr:target     <http://www.metarelate.net/test/value/ae0d9404299c605e232064424ca6682de7682ddf> .
+
+<http://www.metarelate.net/test/property/f560f8d395f7aa4bc0d72d54905e3053e04eaaf2>
+      rdf:type      mr:Property ;
+      rdf:value     0 ;
+      mr:name       gribapi:shapeOfTheEarth ;
+      mr:operator   openmathr1:eq ;
+	.
+
+<http://www.metarelate.net/test/property/012d5bbf9bab0e5d629b9505f280a0ddb7b91dc1>
+      rdf:type      mr:Property ;
+      mr:name       gribapi:iDirectionIncrementInDegrees ;
+	.
+
+<http://www.metarelate.net/test/value/d432dc311f6449ef6d5e5a90c9f7f5617c9e4eb5>
+      rdf:type      mr:Value ;
+      mr:subject    <http://www.metarelate.net/test/scopedProperty/80ae2486045db6752595a86db05caffa4bfdf271> .
+
+<http://www.metarelate.net/test/scopedProperty/0222fafba401d784d72ea47b95f0be14b4fca3ee>
+      rdf:type      mr:Property ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/8c398af48fdac739f4459491fd8f079b0b01fbcc> ;
+      mr:scope      <http://www.metarelate.net/test/component/e0c3bbdb7d5d97d7ba9dc3799b6309261866e59c> .
+
+<http://www.metarelate.net/test/property/f45ff3a6ab839e278c4368db40e7aee95202597f>
+      rdf:type      mr:Property ;
+      rdf:value     "GeogCS" ;
+      mr:name       cfm:crs_name ;
+      mr:operator   openmathr1:eq ;
+	.
+
+<http://www.metarelate.net/test/property/21a2f3d4d2ecd92c5e08b85d7cf3e62b78ec5165>
+      rdf:type      mr:Property ;
+      mr:name       gribapi:latitudeOfFirstGridPointInDegrees ;
+	.
+
+<http://www.metarelate.net/test/property/90351a1ae06e5f72eeaa029606ded8a177c3d869>
+      rdf:type      mr:Property ;
+      mr:hasComponent  <http://www.metarelate.net/test/component/0a6d1b12be1b4ae966d35b9d9f73851b3b523e22> ;
+      mr:name       cfm:coordinate ;
+	.
+
+<http://www.metarelate.net/test/property/e64794efd21bb226f2a8b179ff370dc592e00e85>
+      rdf:type      mr:Property ;
+      rdf:value     0 ;
+      mr:name       gribapi:jPointsAreConsecutive ;
+      mr:operator   openmathr1:eq ;
+	.
+
+<http://www.metarelate.net/test/component/a536ad57631ebff6afa14b6a08ad1d12dffa27db>
+      rdf:type      mr:Component ;
+      dc:mediator   <http://www.metarelate.net/test/mediates/cf/coordinate_reference_system> ;
+      mr:hasFormat  metocFormat:cf ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/f45ff3a6ab839e278c4368db40e7aee95202597f> ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/61adf7b86a380251033068a878e2845db78b59c7> ;
+      mr:hasProperty  <http://www.metarelate.net/test/property/c93a6321af941cf4444657cd7c39e91660e41ffc> ;
+	.
+
+<http://www.metarelate.net/test/property/8c398af48fdac739f4459491fd8f079b0b01fbcc>
+      rdf:type      mr:Property ;
+      mr:name       gribapi:Ni ;
+	.
+
+<http://www.metarelate.net/test/property/dd05a37e3ebd7445496e3126e711e9cefb021050>
+      rdf:type      mr:Property ;
+      rdf:value     "True" ;
+      mr:name       <http://def.cfconventions.org/datamodel/attribute_name#regular> ;
+      mr:operator   openmathr1:eq ;
+	.
+

@@ -1,0 +1,123 @@
+digraph records {
+
+## basic setup 
+
+   	rankdir = LR;
+        node [
+        fontsize = 32,
+        shape = Mrecord
+        ];
+
+        edge [
+        fontsize = 24
+        ];
+
+## class definitions
+
+   	property [
+	label = "<title> mr:Property ID(sha-1) |<comp> mr:hasComponent |<name> mr:name |<op> mr:operator|<pval> rdf:value"
+	];
+
+   	formatconcept [
+	label = "<title> mr:Component ID(sha-1) |<format> mr:hasFormat |<req> dc:requires +|<med> dc:mediator|<component> mr:hasComponent +|<prop> mr:hasProperty +"
+	];
+
+        mediator [
+	label = "<title> mr:Mediator label |<format> mr:hasFormat|<label> rdf:label  "
+	];
+
+	valuemap [
+	label = "<title> mr:ValueMap ID(sha-1) |<source> mr:source |<target> mr:target" 
+	];
+
+	getattr [
+	label = "<title> mr:ScopedProperty | <scope> mr:scope |<val> mr:hasProperty"
+	];
+
+	literal [
+	label = "<title> literal"
+	];
+
+	literal2 [
+	label = "<title> literal"
+	];
+
+	value [
+	label = "<title> mr:Value ID(sha-1) |<o> mr:operator |<sub> mr:subject |<ob> mr:object"
+	];
+
+	mapping [
+	label = "<title> mr:Mapping ID(sha-1) |<source> mr:source |<target> mr:target |mr:invertible | dc:replaces  |<valmap> mr:hasValueMap +|mr:status |skos:note |mr:reason |dc:date |<c> dc:creator |<o> mr:owner + |<w> mr:watcher +"
+	];
+
+
+	release [
+	label = "<title> mr:Release ID(version)|dc:replaces|dc:date|<con>mr:hasComponent + |mr:status +"
+	];
+
+	contact [
+	label = "<title> skos:Concept contact | skos:inScheme| skos:prefLabel |skos:definition |dc:date"
+	];
+
+	um [
+	label = "UM Namespace"
+	];
+
+	grib [
+	label = "GRIB Namespace"
+	];
+
+	cf [
+	label = "CF Namespace"
+	];
+
+	mrnamed [
+	label = "Metarelate name"
+	];
+
+## relations
+
+
+	release:con -> mapping:title
+	
+	mapping:source -> formatconcept:title
+
+	mapping:target -> formatconcept:title
+
+	formatconcept:component -> formatconcept:title
+
+	formatconcept:prop -> property:title
+
+	formatconcept:med -> mediator:title
+	formatconcept:req -> mediator:title
+
+	mapping:valmap -> valuemap:title
+
+	valuemap:source -> value:title
+	valuemap:target -> value:title
+
+	getattr:val -> property:title
+	getattr:scope -> formatconcept:title
+
+        property:comp -> formatconcept:title
+        property:pval -> literal2:title
+	property:name -> um
+	property:name -> grib
+	property:name -> cf
+	property:name -> mrnamed
+
+	mapping:c -> contact
+	mapping:o -> contact
+	mapping:w -> contact
+
+	value:sub -> value:title
+	value:ob -> value:title
+
+	value:sub -> getattr:title
+	value:ob -> getattr:title
+
+	value:sub -> literal:title
+	value:ob -> literal:title
+
+
+}

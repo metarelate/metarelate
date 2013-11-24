@@ -1,0 +1,30 @@
+# (C) British Crown Copyright 2013, Met Office
+# 
+# This file is part of metOcean-mapping.
+# 
+# metOcean-mapping is free software: you can redistribute it and/or 
+# modify it under the terms of the GNU Lesser General Public License 
+# as published by the Free Software Foundation, either version 3 of 
+# the License, or (at your option) any later version.
+# 
+# metOcean-mapping is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Lesser General Public License for more details.
+# 
+# You should have received a copy of the GNU Lesser General Public License
+# along with metOcean-mapping. If not, see <http://www.gnu.org/licenses/>.
+
+@prefix moumdpF3: <http://reference.metoffice.gov.uk/def/um/umdp/F3/> .
+@prefix skos:     <http://www.w3.org/2004/02/skos/core#> .
+
+
+<http://reference.metoffice.gov.uk/def/um/umdpF3> a skos:Collection .
+
+moumdpF3:stash a skos:Concept ;
+        skos:notation "stash" ;
+        skos:member   <http://reference.metoffice.gov.uk/def/um/umdpF3> .
+
+moumdpF3:lbfc a skos:Concept ;
+        skos:notation "lbfc" ;
+        skos:member   <http://reference.metoffice.gov.uk/def/um/umdpF3> .

@@ -1,0 +1,50 @@
+<!--
+# (C) British Crown Copyright 2013, Met Office
+#
+# This file is part of metarelate.
+#
+# metarelate is free software: you can redistribute it and/or 
+# modify it under the terms of the GNU Lesser General Public License 
+# as published by the Free Software Foundation, either version 3 of 
+# the License, or (at your option) any later version.
+#
+# metarelate is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with metarelate. If not, see <http://www.gnu.org/licenses/>.
+-->
+
+{% load dict_keys %}
+{% load inclusions %}
+
+          {% if aproperty.url %}
+            <li> <a href="{{ aproperty.url }}">{{ aproperty.label }} </a>
+            </li>
+          {% endif %}
+          {% if aproperty|multi_key:"mr:name" %}
+            <li>{{ aproperty|prefix_uri:"mr:name" }}</li>
+          {% endif %}
+          <ul>
+          {% if aproperty|multi_key:"rdf:value" %}
+            <li>{{ aproperty|prefix_uri:"rdf:value" }}</li>
+          {% endif %}
+          {% if aproperty|multi_key:"mr:operator" %}
+            <li>{{ aproperty|prefix_uri:"mr:operator" }}</li>
+          {% endif %}
+          {% if aproperty|multi_key:"remove" %}
+            <li><a href="{{ aproperty|multi_key:"remove,url" }}"> {{ aproperty|multi_key:"remove,label" }}</a></li>
+          {% endif %}
+          {% if aproperty|multi_key:"define_component" %}
+            <li><a href="{{ aproperty|multi_key:"define_component,url" }}"> {{ aproperty|multi_key:"define_component,label" }}</a></li>
+          {% endif %}
+          {% if aproperty|multi_key:"mr:hasComponent" %}
+            <ul>
+            {% for bproperty in  aproperty|multi_key:"mr:hasComponent,mr:hasProperty" %}
+            {% show_property bproperty %}
+            {% endfor %}
+            </ul>
+          {% endif %}
+          </ul>

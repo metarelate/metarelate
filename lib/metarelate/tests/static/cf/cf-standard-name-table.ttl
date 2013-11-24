@@ -1,0 +1,28 @@
+# (C) British Crown Copyright 2013, Met Office
+# 
+# This file is part of metOcean-mapping.
+# 
+# metOcean-mapping is free software: you can redistribute it and/or 
+# modify it under the terms of the GNU Lesser General Public License 
+# as published by the Free Software Foundation, either version 3 of 
+# the License, or (at your option) any later version.
+# 
+# metOcean-mapping is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Lesser General Public License for more details.
+# 
+# You should have received a copy of the GNU Lesser General Public License
+# along with metOcean-mapping. If not, see <http://www.gnu.org/licenses/>.
+
+@prefix cfsn: <http://def.cfconventions.org/standard_names/> .
+@prefix dc:   <http://purl.org/dc/terms/> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+
+
+cfsn:tendency_of_sea_ice_thickness_due_to_dynamics a skos:Concept ;
+        dc:source       <http://vocab.nerc.ac.uk/collection/P07/current/CFV8N120/> ;
+        skos:definition "\"tendency_of_X\" means derivative of X with respect to time.  \"Sea ice dynamics\" refers to the motion of sea ice."@en ;
+        skos:notation   "tendency_of_sea_ice_thickness_due_to_dynamics" ;
+        skos:note       "'canonical_units': 'm/s'" ;
+        skos:prefLabel  "tendency_of_sea_ice_thickness_due_to_dynamics"@en .

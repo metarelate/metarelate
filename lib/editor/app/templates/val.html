@@ -1,0 +1,64 @@
+<!--
+# (C) British Crown Copyright 2013, Met Office
+#
+# This file is part of metarelate.
+#
+# metarelate is free software: you can redistribute it and/or 
+# modify it under the terms of the GNU Lesser General Public License 
+# as published by the Free Software Foundation, either version 3 of 
+# the License, or (at your option) any later version.
+#
+# metarelate is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with metarelate. If not, see <http://www.gnu.org/licenses/>.
+-->
+
+
+{% load dict_keys %}
+{% load inclusions %}
+
+{% if aval|multi_key:"mr:subject,mr:subject" %}
+  <ul>
+  {% show_value aval|multi_key:"mr:subject" %}
+  </ul>
+{% else %}
+  <ul>
+  <li>{{ aval|prefix_uri:"mr:subject,mr:scope"  }}</li>
+   <ul>
+    <li> {{ aval|prefix_uri:"mr:subject,mr:hasProperty,mr:name" }}</li>
+   </ul>
+  </ul>
+{% endif %}
+
+{% if aval|multi_key:"mr:operator" %}
+  <ul>
+  <li>  {{ aval|prefix_uri:"mr:operator" }}</li>
+  </ul>
+
+  {% if aval|multi_key:"mr:object,mr:subject" %}
+    <ul>
+    {% show_value aval|multi_key:"mr:object" %}
+    </ul>
+  {% else %}
+    {% if aval|multi_key:"mr:object,mr:scope" %}
+      <ul>
+      <li>{{ aval|prefix_uri:"mr:object,mr:scope"  }}</li>
+      <ul>
+        <li> {{ aval|prefix_uri:"mr:object,mr:hasProperty,mr:name" }}</li>
+      </ul>
+      </ul>
+    {% else %}
+      {% if aval|multi_key:"mr:object" %}
+        <ul>
+          <li>{{ aval|prefix_uri:"mr:object" }}</li>
+        </ul>
+      {% endif %}
+    {% endif %}
+  {% endif %}
+
+{% endif %}
+
