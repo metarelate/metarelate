@@ -25,6 +25,8 @@ Installation
     1. install Python = 2.7
 * Django - https://www.djangoproject.com/
     1. install Django >= 1.3
+* pydot - https://code.google.com/p/pydot/
+    1. install pydot >= 1.0
 * Configure the metarelate metarelate software
     1. lib/metarelate/etc/site.config provides paths to libraries and static data
     2. see lib/metarelate/etc/README.md
