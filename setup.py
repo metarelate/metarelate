@@ -4,7 +4,6 @@ import sys
 
 import nose
 
-
 class TestRunner(Command):
     description = 'Run the metOcean unit tests'
     user_options = []
@@ -45,12 +44,18 @@ class TestRunner(Command):
 
 
 setup(
-    name='metOcean-mapping',
-    version='0.1',
-    description='Python packages for working with MetOcean MetaRelations',
+    name='metarelate',
+    version='0.8',
+    description='Python packages for working with MetaRelate data',
+    url='http://metarelate.net',
     package_dir={'': 'lib'},
-    packages=['metocean'],
+    packages=['metarelate', 'metarelate.editor.app', 'metarelate.tests'],
+    package_data={'metarelate': ['etc/site.cfg'],
+                  'metarelate.editor.app': ['static/*', 'templates/*', 'templatetags/*'],
+                  'metarelate.tests': ['results/*/*', 'static/*/*']},
+    data_files=[('lib/python2.7/site-packages/metarelate', ['COPYING', 'COPYING.LESSER']),
+                ('bin', ['lib/metarelate/editor/metarelate_editor.sh'])],
     author='marqh',
-    author_email='marqh@metarelate.net',
+    author_email='markh@metarelate.net',
     cmdclass={'test': TestRunner},
     )
