@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # (C) British Crown Copyright 2011 - 2012, Met Office
 #
 # This file is part of metarelate.
