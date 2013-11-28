@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # (C) British Crown Copyright 2011 - 2012, Met Office
 #
 # This file is part of metarelate.
@@ -16,22 +15,19 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with metarelate. If not, see <http://www.gnu.org/licenses/>.
 
+import sys
+
+if len(sys.argv) == 1:
+    sys.argv.append('runserver')
+    sys.argv.append('--noreload')
 
 from django.core.management import execute_manager
-import imp
-try:
-    imp.find_module('settings') # Assumed to be in the same directory.
-except ImportError:
-    import sys
-    sys.stderr.write("Error: Can't find the file 'settings.py' in the directory containing %r. It appears you've customized things.\nYou'll have to run django-admin.py, passing it your settings module.\n" % __file__)
-    sys.exit(1)
 
-import settings
+import metarelate.editor.settings as settings
 
 import metarelate.fuseki as fu
 
 if __name__ == "__main__":
-#    with fu.FusekiServer(port=settings.FUSEKI_PORT) as server:
     with fu.FusekiServer() as server:
         settings.fuseki_process = server
         execute_manager(settings)
