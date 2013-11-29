@@ -38,12 +38,12 @@ Local configuration files are required to set up a metarelate environment:
 
 * ./lib/metarelate/etc/site.cfg
  * see ./lib/metarelate/etc/sample.site.cfg
-* ./lib/editor/settings_local.py
- * see ./lib/editor/sample_settings_local.py
+* ./lib/metarelate/editor/settings_local.py
+ * see ./lib/metarelate/editor/sample_settings_local.py
 * environment variables are used by each session to link to a local static data store and triple store:
- * metarelate_static_dir
- * metarelate_tdb_dir
- * metarelate_data_project
+ * METARELATE_STATIC_DIR
+ * METARELATE_TDB_DIR
+ * METARELATE_DATA_PROJECT
 
 Editor
 ------

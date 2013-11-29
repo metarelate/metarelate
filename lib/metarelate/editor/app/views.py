@@ -38,8 +38,8 @@ from django.forms.models import inlineformset_factory
 import forms
 import metarelate
 import metarelate.prefixes as prefixes
-from settings import READ_ONLY
-from settings import fuseki_process
+from metarelate.editor.settings import READ_ONLY
+from metarelate.editor.settings import fuseki_process
 
 
 def home(request):

@@ -9,9 +9,11 @@ The project is hosted on Github, at `MetaRelate <https://github.com/metarelate>`
 
 The primary tool is the Metarelate API, a programmatic interface to the knowledge management software.  The project also provides an editing interface, which can be used locally for managing information.
 
+The API and editor is a Github repository, `MetaRelate <https://github.com/metarelate/metarelate>`_. 
+
 Translation knowledge is held in separate projects.  
 
-The API and editor is a Github repository, `MetaRelate <https://github.com/metarelate/metarelate>`_. The Meteorology and Oceanography translation knowledge base is maintained at `metOcean <https://github.com/metarelate/metocean>`_.
+The Meteorology and Oceanography translation knowledge base is maintained at `metOcean <https://github.com/metarelate/metocean>`_.
 
 The metarelate projects use Python, Django, Jena and Fuseki to provide the capabilities to manage a repository of translation information, an application programming interface and a user interface.
 
@@ -25,6 +27,8 @@ This project provides software to manage the knowledge base and the knowledge ba
 To contribute to the project, the required static data should be used to populate a local triple store which the management software may access. 
 
 See the README.md for installation instructions.
+
+The software can be run from the source, or installed, whichever is preferred.  There are run-time paths which must be managed by each session, this are controlled with user-defined environment variables.
 
 Use
 ===
