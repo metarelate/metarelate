@@ -40,11 +40,22 @@ Local configuration files are required to set up a metarelate environment:
  * see ./lib/metarelate/etc/sample.site.cfg
 * ./lib/editor/settings_local.py
  * see ./lib/editor/sample_settings_local.py
+* environment variables are used by each session to link to a local static data store and triple store:
+ * metarelate_static_dir
+ * metarelate_tdb_dir
+ * metarelate_data_project
 
-Run
----
+Editor
+------
 
-* Run the application:
-    1. ./lib/editor/run.sh
+* To run the editor application:
+    1. ./run_mr_editor.py
 
+
+Application Programming Interface
+----------------------------------
+
+The API provides a Python interface to the knowledge base.  
+
+To use the API, create an instance of the metarelate.fuseki.FusekiServer class, as detailed in the API documentation.
 

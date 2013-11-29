@@ -88,31 +88,40 @@ def update(config):
                 config[option] = result
 
             option = 'static_dir'
-            result = _get_dir_option(parser, _SECTION_RESOURCE, option)
+            result = None
+            if os.environ.has_key('metarelate_' + option):
+                result = os.environ['metarelate_' + option]#_get_dir_option(parser, _SECTION_RESOURCE, option)
             if result is None:
                 msg = 'Metarelate Configuration - Missing static data ' \
                     'directory for the Apache Jena triple store database. ' \
                     'Section {!r}, option {!r}.'
-                warnings.warn(msg.format(_SECTION_RESOURCE, option))
+                #warnings.warn(msg.format(_SECTION_RESOURCE, option))
+                raise ValueError(msg.format(_SECTION_RESOURCE, option))
             else:
                 config[option] = result
 
             option = 'data_project'
-            result = _get_option(parser, _SECTION_RESOURCE, option)
+            result = None
+            if os.environ.has_key('metarelate_' + option):
+                result = os.environ['metarelate_' + option]#result = _get_option(parser, _SECTION_RESOURCE, option)
             if result is None:
                 msg = 'Metarelate Configuration - Missing data project name' \
                     'Section {!r}, option {!r}.'
-                warnings.warn(msg.format(_SECTION_RESOURCE, option))
+                #warnings.warn(msg.format(_SECTION_RESOURCE, option))
+                raise ValueError(msg.format(_SECTION_RESOURCE, option))
             else:
                 config['fuseki_dataset'] = result
 
             option = 'tdb_dir'
-            result = _get_dir_option(parser, _SECTION_RESOURCE, option)
+            result = None
+            if os.environ.has_key('metarelate_' + option):
+                result = os.environ['metarelate_' + option]#result = _get_dir_option(parser, _SECTION_RESOURCE, option)
             if result is None:
                 msg = 'Metarelate Configuration - Missing Apache Jena ' \
                     'triple store database directory. ' \
                     'Section {!r}, option {!r}.'
-                warnings.warn(msg.format(_SECTION_RESOURCE, option))
+                #warnings.warn(msg.format(_SECTION_RESOURCE, option))
+                raise ValueError(msg.format(_SECTION_RESOURCE, option))
             else:
                 config[option] = result
 
