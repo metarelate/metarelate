@@ -35,6 +35,9 @@ _DEFAULT_FUSEKI_TEST_PORT = 3636
 _DEFAULT_FUSEKI_TIMEOUT_ATTEMPTS = 1000
 _DEFAULT_FUSEKI_TIMEOUT_SLEEP = 0.1
 
+# environment variable prefix
+ENV_PREF = 'METARELATE_'
+
 
 def _get_option(parser, section, option, default=None):
     result = default
@@ -88,31 +91,40 @@ def update(config):
                 config[option] = result
 
             option = 'static_dir'
-            result = _get_dir_option(parser, _SECTION_RESOURCE, option)
+            result = None
+            env_var = ENV_PREF + option.upper()
+            if os.environ.has_key(env_var):
+                result = os.environ[env_var]
             if result is None:
-                msg = 'Metarelate Configuration - Missing static data ' \
-                    'directory for the Apache Jena triple store database. ' \
-                    'Section {!r}, option {!r}.'
-                warnings.warn(msg.format(_SECTION_RESOURCE, option))
+                msg = ('Metarelate Configuration - Missing static data '
+                       'directory: environment variable {!r} for the Apache '
+                       'Jena triple store database.')
+                raise ValueError(msg.format(env_var))
             else:
                 config[option] = result
 
             option = 'data_project'
-            result = _get_option(parser, _SECTION_RESOURCE, option)
+            result = None
+            env_var = ENV_PREF + option.upper()
+            if os.environ.has_key(env_var):
+                result = os.environ[env_var]
             if result is None:
-                msg = 'Metarelate Configuration - Missing data project name' \
-                    'Section {!r}, option {!r}.'
-                warnings.warn(msg.format(_SECTION_RESOURCE, option))
+                msg = ('Metarelate Configuration - Missing data project'
+                       'name: environment variable {!r} for the static data.')
+                raise ValueError(msg.format(env_var))
             else:
                 config['fuseki_dataset'] = result
 
             option = 'tdb_dir'
-            result = _get_dir_option(parser, _SECTION_RESOURCE, option)
+            result = None
+            env_var = ENV_PREF + option.upper()
+            if os.environ.has_key(env_var):
+                result = os.environ[env_var]
             if result is None:
-                msg = 'Metarelate Configuration - Missing Apache Jena ' \
-                    'triple store database directory. ' \
-                    'Section {!r}, option {!r}.'
-                warnings.warn(msg.format(_SECTION_RESOURCE, option))
+                msg = ('Metarelate Configuration - Missing triplestore '
+                       'directory: environment variable {!r} for the Apache '
+                       'Jena triple store database.')
+                raise ValueError(msg.format(env_var))
             else:
                 config[option] = result
 

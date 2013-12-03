@@ -29,8 +29,8 @@ from django.utils.safestring import mark_safe
 
 import metarelate
 import metarelate.prefixes as prefixes
-from settings import READ_ONLY
-from settings import fuseki_process
+from metarelate.editor.settings import READ_ONLY
+from metarelate.editor.settings import fuseki_process
 
 DS = metarelate.site_config['fuseki_dataset']
 

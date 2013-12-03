@@ -9,8 +9,7 @@ docs/build
 # Apache Jena triple store databases.
 metocean_store
 metocean_tdb
-tdb
-lib/metarelate/tests/tdb
+lib/metarelate/tests/tdb/*.*
 
 # Created by configuring/running metarelate.
 lib/metarelate/etc/site.cfg
