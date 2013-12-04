@@ -1,7 +1,6 @@
 *.py[co]
 
 tdbdump.*
-settings_local.py
 
 # Sphinx documentation files.
 docs/build
