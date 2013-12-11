@@ -5,7 +5,7 @@ MetaRelate is a project to relate definitions within metadata schemes: it provid
 
 Getting started using the information requires the installation of some software, the project does not yet have a live web interface to the relationships.
 
-The project is hosted on Github, at `MetaRelate <https://github.com/metarelate>`_
+The project is hosted on `Github, at MetaRelate <https://github.com/metarelate>`_
 
 The primary tool is the Metarelate API, a programmatic interface to the knowledge management software.  The project also provides an editing interface, which can be used locally for managing information.
 

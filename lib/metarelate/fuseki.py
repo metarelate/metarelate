@@ -135,7 +135,7 @@ class FusekiServer(object):
         Shutdown the metarelate Apache Fuseki SPARQL server.
 
         Kwargs:
-        * save:
+         * save:
             Save any cache results to the configured Apache Jena triple
             store database.
             
