@@ -11,6 +11,6 @@ This can be done by writing out static files for use by another code base.
 
 For examples of this approach, see:
 
- * `Iris <https://www.scitools.org.uk/iris`_ making use of the metarelate metOcean translation information, from the metOcean-mapping knowledge store, in the `iris-code-generators <https://github.com/SciTools/iris-code-generators>`_ project.
+ * `Iris <https://www.scitools.org.uk/iris>`_ making use of the metarelate metOcean translation information, from the metOcean-mapping knowledge store, in the `iris-code-generators <https://github.com/SciTools/iris-code-generators>`_ project.
 
 This can also be done by using the API as a live service and querying on demand for translations.  This approach has not been implemented yet, to my knowledge.
