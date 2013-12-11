@@ -435,7 +435,7 @@ class Component(_ComponentMixin, _DotMixin, MutableMapping):
             ec = ec.format(preds, allowed_prefixes)
             raise ValueError(ec)
         subj_pref = 'http://www.metarelate.net/{}/component'
-        subj_pref += subj_pref.format(site_config['fuseki_dataset'])
+        subj_pref = subj_pref.format(site_config['fuseki_dataset'])
         search_string = ''
         n_propertys = 0
         n_components = 0
