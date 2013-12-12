@@ -105,9 +105,10 @@ class FusekiServer(object):
         
         """
         if not self.alive():
-            nohup_dir = metarelate.site_config['root_dir']
-            if self.test:
-                nohup_dir = metarelate.site_config['test_dir']
+            nohup_dir = metarelate.site_config['log_dir']
+            if self.test and \
+                os.access(metarelate.site_config['test_dir'], os.W_OK):
+                    nohup_dir = metarelate.site_config['test_dir']
             nohup_file = os.path.join(nohup_dir, 'nohup.out')
             if os.path.exists(nohup_file):
                 os.remove(nohup_file)

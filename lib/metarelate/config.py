@@ -126,8 +126,14 @@ def update(config):
                        'Jena triple store database.')
                 raise ValueError(msg.format(env_var))
             else:
-                config[option] = result
-
+                if not os.path.exists(result):
+                    os.mkdir(result)
+                config['tdb_dir'] = os.path.join(result, 'tdb')
+                config['log_dir'] = os.path.join(result, 'logs')
+                if not os.path.exists(config['tdb_dir']):
+                    os.mkdir(config['tdb_dir'])
+                if not os.path.exists(config['log_dir']):
+                    os.mkdir(config['log_dir'])
             option = 'test_static_dir'
             result = _get_dir_option(parser, _SECTION_RESOURCE, option)
             if result is None:
