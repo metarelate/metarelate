@@ -378,13 +378,13 @@ class Component(_ComponentMixin, _DotMixin, MutableMapping):
         Generate a Dot digraph representation of this mapping component.
 
         Args:
-        * graph:
+         * graph:
             The containing Dot graph.
-        * parent:
+         * parent:
             The parent Dot node of this property.
 
         Kwargs:
-        * name:
+         * name:
             Name of the relationship between the nodes.
 
         """
@@ -569,13 +569,13 @@ class Concept(Component):
         Generate a Dot digraph representation of this mapping concept.
 
         Args:
-        * graph:
+         * graph:
             The containing Dot graph.
-        * parent:
+         * parent:
             The parent Dot node of this property.
 
         Kwargs:
-        * name:
+         * name:
             Name of the relationship between the nodes.
 
         """
@@ -704,13 +704,13 @@ class PropertyComponent(_ComponentMixin, _DotMixin, MutableMapping):
         Generate a Dot digraph representation of this mapping component.
 
         Args:
-        * graph:
+         * graph:
             The containing Dot graph.
-        * parent:
+         * parent:
             The parent Dot node of this componet.
 
         Kwargs:
-        * name:
+         * name:
             Name of the relationship between the nodes.
 
         """
@@ -840,13 +840,13 @@ class Property(_DotMixin, namedtuple('Property', 'uri name value operator')):
         Generate a Dot digraph representation of this mapping property.
 
         Args:
-        * graph:
+         * graph:
             The containing Dot graph.
-        * parent:
+         * parent:
             The parent Dot node of this property.
 
         Kwargs:
-        * name:
+         * name:
             Name of the relationship between the nodes.
 
         """

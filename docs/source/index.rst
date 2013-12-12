@@ -16,7 +16,7 @@ Contents:
    :maxdepth: 1
 
    gettingStarted/index
-   forum/index
+   discussion/index
    developer/index
    api/index
    exporting/index
