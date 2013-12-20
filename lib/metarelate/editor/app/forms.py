@@ -356,11 +356,11 @@ class MappingMeta(forms.Form):
     #invertible = forms.BooleanField(required=False)
     invertible = forms.ChoiceField(choices=[('"True"', 'True'),
                                             ('"False"', 'False')])
-    mapping = forms.CharField(max_length=200, required=False,
+    mapping = forms.CharField(required=False,
                               widget=forms.TextInput(attrs={'readonly':True}))
-    last_edit = forms.CharField(max_length=50, required=False,
+    last_edit = forms.CharField(required=False,
                                 widget=forms.TextInput(attrs={'readonly':True}))
-    last_editor = forms.CharField(max_length=50, required=False,
+    last_editor = forms.CharField(required=False,
                                   widget=forms.TextInput(
                                       attrs={'readonly':True}))
     editor = forms.ChoiceField([(r['s'],r['prefLabel'].split('/')[-1]) for
@@ -369,11 +369,11 @@ class MappingMeta(forms.Form):
 #    editor = forms.ChoiceField([(r['s'],r['s'].split('/')[-1]) for
                                 # r in moq.get_contacts('people')],
                                 # widget=SelectWithPopUp)
-    note = forms.CharField(max_length=200, required=False,
+    note = forms.CharField(required=False,
                            widget=forms.Textarea(attrs={'readonly':True}))
-    comment = forms.CharField(max_length=200,required=False,
+    comment = forms.CharField(required=False,
                               widget=forms.Textarea)
-    reason = forms.CharField(max_length=50, required=False,
+    reason = forms.CharField(required=False,
                              widget=forms.TextInput(attrs={'readonly':True}))
     next_reason = forms.ChoiceField(choices=[(x,x) for x in get_reasons()],
                                     required=False)
@@ -385,17 +385,15 @@ class MappingMeta(forms.Form):
     #                            widget=forms.TextInput(attrs={'readonly':True}))
     # add_watchers = forms.CharField(max_length=200, required=False)
     # remove_watchers = forms.CharField(max_length=200, required=False)
-    replaces = forms.CharField(max_length=128, required=False,
+    replaces = forms.CharField(required=False,
                                widget=forms.TextInput(attrs={'readonly':True}))
-    status = forms.CharField(max_length=15, required=False,
+    status = forms.CharField(required=False,
                              widget=forms.TextInput(attrs={'readonly':True}))
     next_status = forms.ChoiceField(choices=[(x,x) for x in get_states()],
                                     required=False)
-    source = forms.CharField(max_length=200, 
-                              widget=forms.TextInput(attrs={'hidden':True}))
-    target = forms.CharField(max_length=200, 
-                              widget=forms.TextInput(attrs={'hidden':True}))
-    valueMaps = forms.CharField(max_length=1000, required=False, widget=forms.TextInput(attrs={'hidden':True}))
+    source = forms.CharField(widget=forms.TextInput(attrs={'hidden':True}))
+    target = forms.CharField(widget=forms.TextInput(attrs={'hidden':True}))
+    valueMaps = forms.CharField(required=False, widget=forms.TextInput(attrs={'hidden':True}))
 
     def clean(self):
         """process the form"""

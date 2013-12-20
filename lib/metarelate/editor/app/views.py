@@ -950,8 +950,8 @@ def mapping_edit(request):
             initial['target'] =  requestor.get('mr:target').get('component')
             initial['valueMaps'] = '&'.join([vm.get('valueMap') for vm in
                                          requestor.get('mr:hasValueMap', [])])
-            if mapping.get('valueMaps'):
-                initial['valueMaps'] = '&'.join(mapping['valueMaps'])
+            # if mapping.get('valueMaps'):
+            #     initial['valueMaps'] = '&'.join(mapping['valueMaps'])
             if mapping.get('note'):
                 initial['comment'] = mapping['note'].strip('"')
             if mapping.get('reason'):
