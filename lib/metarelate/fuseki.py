@@ -767,6 +767,21 @@ def multiple_mappings(test_source=None):
     ?btarget mr:hasFormat ?btargetformat .
     }
     filter (?btargetformat = ?atargetformat)
+
+    OPTIONAL { GRAPH <http://metarelate.net/formats.ttl> {
+    ?atargetformat <http://www.metarelate.net/vocabulary/index.html#subFormat> ?asubtargetpref .
+    ?btargetformat <http://www.metarelate.net/vocabulary/index.html#subFormat> ?bsubtargetpref .
+    } 
+    GRAPH <http://metarelate.net/concepts.ttl> {
+    ?atarget mr:hasProperty ?asubprop .
+    ?asubprop mr:name ?asubtargetpref ;
+          rdf:value ?asubswitch .
+    ?btarget mr:hasProperty ?bsubprop .
+    ?bsubprop mr:name ?bsubtargetpref ;
+          rdf:value ?bsubswitch .
+    } }
+    filter (?asubswitch = ?bsubswitch)
+
     GRAPH <http://metarelate.net/concepts.ttl> { {
     ?asource mr:hasProperty ?prop . }
     UNION {
@@ -816,7 +831,8 @@ def valid_vocab():
     ?prop mr:operator ?vocab . }
     UNION {
     ?prop rdf:value ?vocab . }
-    FILTER(ISURI(?vocab))  }
+    FILTER(ISURI(?vocab))
+    FILTER(!regex(str(?vocab), "computed_value#"))}
     OPTIONAL {GRAPH ?g{?vocab ?p ?o .} }
     FILTER(!BOUND(?g))      }
     GROUP BY ?amap
