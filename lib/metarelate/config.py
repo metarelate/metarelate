@@ -127,7 +127,14 @@ def update(config):
                 raise ValueError(msg.format(env_var))
             else:
                 if not os.path.exists(result):
-                    os.mkdir(result)
+                    try:
+                        os.makedirs(result)
+                    except OSError:
+                        msg = ('Metarelate Configuration - triplestore '
+                       'directory: environment variable {!r} for the Apache '
+                       'Jena triple store database is not writeable.')
+                        msg = msg.format(env_var)
+                        raise OSError(msg)
                 config['tdb_dir'] = os.path.join(result, 'tdb')
                 config['log_dir'] = os.path.join(result, 'logs')
                 if not os.path.exists(config['tdb_dir']):

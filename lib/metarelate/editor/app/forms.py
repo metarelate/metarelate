@@ -145,12 +145,12 @@ class Value(forms.Form):
     #only one may be used, validated in clean()
     name = forms.ChoiceField(required=False)
     _name = forms.CharField(required=False)
-    value = forms.CharField(required=False)
     operator = forms.CharField(required=False)
     ops = fuseki_process.subject_and_plabel('http://openmath/tests.ttl')
     ops = [(op['subject'], op['notation']) for op in ops]
     ops = [('','')] + ops
     operator = forms.ChoiceField(required=False, choices=ops)
+    value = forms.CharField(required=False)
     
     def __init__(self, *args, **kwargs):
         self.fformat = kwargs.pop('fformat')
@@ -410,6 +410,8 @@ class MappingMeta(forms.Form):
             mapping = fuseki_process.retrieve(qstr)
             if not mapping:
                 raise forms.ValidationError('the mapping Id is not valid')
+            if self.data.get('next_status') == '"new mapping"':
+                raise forms.ValidationError('This mapping is not new')
             changed = False
             changes = []
             change_keys = [('source','source'), ('target','target'),

@@ -76,6 +76,7 @@ def home(request):
                 response = HttpResponseRedirect(url)
             else:
                 url = url_qstr(reverse('home'))
+                reload(forms)
                 response = HttpResponseRedirect(url)
     else:
         form = forms.HomeForm(initial={'cache_status':cache_status,
@@ -1149,10 +1150,23 @@ def search_maps(request):
     for amap in mappings:
         qstr = metarelate.Mapping.sparql_retriever(amap)
         mapping = fuseki_process.retrieve(qstr)
-        referrer = fuseki_process.structured_mapping(mapping).json_referrer()
+        sm = fuseki_process.structured_mapping(mapping)
+        referrer = sm.json_referrer()
         map_json = json.dumps(referrer)
         url = url_qstr(reverse('mapping_edit'), ref=map_json)
         label = 'mapping'
+        label = '{source} -> {target} mapping'
+        label = label.format(source=sm.source.scheme.notation,
+                             target=sm.target.scheme.notation)
+        if isinstance(sm.source.components[0], metarelate.PropertyComponent):
+            sps = ''
+            for prop in sm.source.components[0].values():
+                pname = prop.name.notation
+                pval = ''
+                if hasattr(prop, 'value'):
+                    pval = prop.value.notation
+                sps += '{pn}:{pv}; '.format(pn=pname, pv=pval)
+            label += '({})'.format(sps)
         mapurls['mappings'].append({'url':url, 'label':label})
     context_dict = {'invalid': [mapurls]}  
     context = RequestContext(request, context_dict)
