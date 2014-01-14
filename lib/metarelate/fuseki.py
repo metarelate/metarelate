@@ -216,10 +216,7 @@ class FusekiServer(object):
             with open(subgraph, 'a') as sg:
                 for line in save_string.splitlines():
                     if not line.startswith('@prefix'):
-                        sg.write(line)
-                        sg.write('\n')
-
-
+                        sg.write(line + '\n')
 
     def save_cache(self, graph, debug=False):
         """
@@ -229,6 +226,17 @@ class FusekiServer(object):
         with the fact that changes have been persisted to ttl
 
         """
+        nstr = '''
+        SELECT ?s ?p ?o
+        WHERE {
+        GRAPH <%s>
+        {
+        ?s ?p ?o ;
+            mr:saveCache "True" .
+        }
+        } 
+        ''' % graph
+        n_res = self.run_query(nstr)
         qstr = '''
         CONSTRUCT
         {
@@ -261,13 +269,15 @@ class FusekiServer(object):
         ''' % (graph,graph)
         delete_results = self.run_query(qstr, update=True, debug=debug)
         save_string = ''
-        for line in results.split('\n'):
-            if not line.strip().startswith('mr:saveCache'):
-                save_string += line
-                save_string += '\n'
-            else:
-                if line.endswith('.'):
-                    save_string += '\t.\n'
+        if n_res:
+            for line in results.split('\n'):
+                if not line.strip().startswith('mr:saveCache'):
+                    save_string += line
+                    save_string += '\n'
+                else:
+                    if line.endswith('.'):
+                        save_string += '\t.\n'
+            save_string += '\n'
         return save_string
 
 
@@ -846,8 +856,8 @@ def mapping_by_properties(prop_list):
     in the list of property dictionaries
     
     """
+    fstr = ''
     for prop_dict in prop_list:
-        fstr = ''
         name = prop_dict.get('mr:name')
         op = prop_dict.get('mr:operator')
         value = prop_dict.get('rdf:value')
@@ -858,42 +868,42 @@ def mapping_by_properties(prop_list):
         if value:
             fstr += '\tFILTER(?value = {})\n'.format(value)
             
-        qstr = '''SELECT DISTINCT ?mapping 
-        WHERE {
-        GRAPH <http://metarelate.net/mappings.ttl> {    
-        ?mapping rdf:type mr:Mapping ;
-                 mr:source ?source ;
-                 mr:target ?target ;
-                 mr:status ?status ;
+    qstr = '''SELECT DISTINCT ?mapping 
+    WHERE {
+    GRAPH <http://metarelate.net/mappings.ttl> {    
+    ?mapping rdf:type mr:Mapping ;
+             mr:source ?source ;
+             mr:target ?target ;
+             mr:status ?status ;
 
-        FILTER (?status NOT IN ("Deprecated", "Broken"))
-        MINUS {?mapping ^dc:replaces+ ?anothermap}
-        }
-        GRAPH <http://metarelate.net/concepts.ttl> { {
-        ?source mr:hasProperty ?property
-        }
-        UNION {
-        ?target mr:hasProperty ?property
-        }
-        UNION {
-        ?source mr:hasComponent/mr:hasProperty ?property
-        }
-        UNION {
-        ?target mr:hasComponent/mr:hasProperty ?property
-        }
-        UNION {
-        ?source mr:hasProperty/mr:hasComponent/mr:hasProperty ?property
-        }
-        UNION {
-        ?target mr:hasProperty/mr:hasComponent/mr:hasProperty ?property
-        }
-        ?property mr:name ?name .
-        OPTIONAL{?property rdf:value ?value . }
-        OPTIONAL{?property mr:operator ?operator . }
-        %s
-        }
-        }
-        ''' % fstr
+    FILTER (?status NOT IN ("Deprecated", "Broken"))
+    MINUS {?mapping ^dc:replaces+ ?anothermap}
+    }
+    GRAPH <http://metarelate.net/concepts.ttl> { {
+    ?source mr:hasProperty ?property
+    }
+    UNION {
+    ?target mr:hasProperty ?property
+    }
+    UNION {
+    ?source mr:hasComponent/mr:hasProperty ?property
+    }
+    UNION {
+    ?target mr:hasComponent/mr:hasProperty ?property
+    }
+    UNION {
+    ?source mr:hasProperty/mr:hasComponent/mr:hasProperty ?property
+    }
+    UNION {
+    ?target mr:hasProperty/mr:hasComponent/mr:hasProperty ?property
+    }
+    ?property mr:name ?name .
+    OPTIONAL{?property rdf:value ?value . }
+    OPTIONAL{?property mr:operator ?operator . }
+    %s
+    }
+    }
+    ''' % fstr
     return qstr
 
 
