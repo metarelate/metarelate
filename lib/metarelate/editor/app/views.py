@@ -23,6 +23,7 @@ import itertools
 import json
 import os
 import re
+import subprocess
 import sys
 import urllib
 
@@ -1134,20 +1135,10 @@ def search_property(request, fformat):
         response = render_to_response('simpleform.html', context)
     return response
 
-
-def search_maps(request):
-    """
-    returns a view of the mappings containing the search pattern properties
-    """
-    requestor_path = request.GET.get('ref', '')
-    requestor_path = urllib.unquote(requestor_path).decode('utf8')
-    if requestor_path == '':
-        requestor_path = '[]'
-    prop_list = json.loads(requestor_path)
-    mappings = fuseki_process.mapping_by_properties(prop_list)
-    mapurls = {'label': 'These mappings contain the search properties',
+def _process_mapping_list(map_ids, label):
+    mapurls = {'label': label,
                'mappings':[]}
-    for amap in mappings:
+    for amap in map_ids:
         qstr = metarelate.Mapping.sparql_retriever(amap)
         mapping = fuseki_process.retrieve(qstr)
         sm = fuseki_process.structured_mapping(mapping)
@@ -1163,15 +1154,66 @@ def search_maps(request):
             for prop in sm.source.components[0].values():
                 pname = prop.name.notation
                 pval = ''
-                if hasattr(prop, 'value'):
+                # if hasattr(prop, 'value'):
+                if prop.value:
                     pval = prop.value.notation
                 sps += '{pn}:{pv}; '.format(pn=pname, pv=pval)
             label += '({})'.format(sps)
         mapurls['mappings'].append({'url':url, 'label':label})
     context_dict = {'invalid': [mapurls]}  
-    context = RequestContext(request, context_dict)
+    return context_dict
+    
+
+def search_maps(request):
+    """
+    returns a view of the mappings containing the search pattern properties
+    """
+    requestor_path = request.GET.get('ref', '')
+    requestor_path = urllib.unquote(requestor_path).decode('utf8')
+    if requestor_path == '':
+        requestor_path = '[]'
+    prop_list = json.loads(requestor_path)
+    mappings = fuseki_process.mapping_by_properties(prop_list)
+    con_dict = _process_mapping_list(mappings,
+                                     'Mappings containing search properties')
+    context = RequestContext(request, con_dict)
     response = render_to_response('select_list.html', context)
     return response
 
 
-              
+def review(request):
+    """
+    returns a view of a list of mapping links
+    which are different from upstream/master
+
+    """
+    if metarelate.site_config.get('static_dir'):
+        cwd = os.path.join(metarelate.site_config.get('static_dir'),
+                           'metarelate.net')
+    data = subprocess.check_output(['git', 'diff', 'upstream/master',
+                                    'mappings.ttl'],
+                                    cwd=cwd,
+                                    stderr=subprocess.STDOUT)
+
+    pattern = re.compile('http://metarelate.net/metOcean/mapping/*')
+
+    pattern1 = re.compile(r'\+<http://www.metarelate.net/metOcean/mapping/(?P<map_sha>\w+)>')
+    pattern2 = re.compile(r'\+map:(?P<map_sha>\w+)')
+
+    datalines = data.split('\n')
+
+    map_ids = []
+    map_str = '<http://www.metarelate.net/metOcean/mapping/{}>'
+
+    for line in datalines:
+        m1 = pattern1.match(line)
+        m2 = pattern2.match(line)
+        if m1:
+            map_ids.append(map_str.format(m1.group(1)))
+        elif m2:
+            map_ids.append(map_str.format(m2.group(1)))
+    label = 'Mappings in this branch but not on upstream master'
+    con_dict = _process_mapping_list(map_ids, label)
+    context = RequestContext(request, con_dict)
+    response = render_to_response('select_list.html', context)
+    return response

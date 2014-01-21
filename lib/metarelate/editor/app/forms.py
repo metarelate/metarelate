@@ -363,9 +363,10 @@ class MappingMeta(forms.Form):
     last_editor = forms.CharField(required=False,
                                   widget=forms.TextInput(
                                       attrs={'readonly':True}))
+    people = [{'s':'', 'prefLabel':''}] + fuseki_process.get_contacts('people')
     editor = forms.ChoiceField([(r['s'],r['prefLabel'].split('/')[-1]) for
-                                r in fuseki_process.get_contacts('people')]
-                                , required=False)
+                                r in people])
+#                                 , required=False)
 #    editor = forms.ChoiceField([(r['s'],r['s'].split('/')[-1]) for
                                 # r in moq.get_contacts('people')],
                                 # widget=SelectWithPopUp)
