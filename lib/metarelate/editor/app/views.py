@@ -31,6 +31,7 @@ from django.shortcuts import get_object_or_404, render_to_response
 from django.http import HttpResponseRedirect, HttpResponse, Http404
 from django.core.urlresolvers import reverse
 from django.template import RequestContext
+from django.utils.html import escape 
 from django.utils.safestring import mark_safe
 from django.forms.formsets import formset_factory
 from django.forms.models import inlineformset_factory
@@ -1216,4 +1217,50 @@ def review(request):
     con_dict = _process_mapping_list(map_ids, label)
     context = RequestContext(request, con_dict)
     response = render_to_response('select_list.html', context)
+    return response
+
+def add_contact(request):
+    """
+    returns a form to add a new contact
+    """
+    if request.method == 'POST':
+        form = forms.ContactForm(request.POST)
+        if form.is_valid():
+            new_contact = {}
+            if form.cleaned_data.get('name'):
+                new_contact['skos:prefLabel'] = '"{}"'.format(form.cleaned_data['name'])
+            if form.cleaned_data.get('github_id'):
+                ghid = 'github:{}'.format(form.cleaned_data['github_id'])
+                new_contact['skos:definition'] =  ghid
+            if form.cleaned_data.get('scheme'):
+                new_contact['skos:inScheme'] = '<{}>'.format(form.cleaned_data['scheme'])
+            globalDateTime = datetime.datetime.now().isoformat()
+            new_contact['dc:valid'] = '"%s"^^xsd:dateTime' % globalDateTime
+            qstr, instr = metarelate.Contact.sparql_creator(new_contact)
+            contact = fuseki_process.create(qstr, instr)
+            # try:
+            #     newObject = form.save()
+            # except forms.ValidationError, error:
+            #     newObject = None
+            # if newObject:
+            #     rstr = '<script type="text/javascript">opener'
+            #     rstr = rstr + '.dismissAddAnotherPopup(window, "{}", "{}");'
+            #     rstr = rstr + '</script>'.format((escape(newObject._get_pk_val()),
+            #                                       escape(newObject)))
+            # rstr = '<script type="text/javascript">opener.dismissAddAnotherPopup(window)</script>'
+            rstr = '<script type="text/javascript">window.close()</script>'
+            reload(forms)
+            return HttpResponse(rstr)
+
+        #     requestor_path = json.dumps(requestor)
+        #     response = HttpResponseRedirect(url)
+        # else:
+        # con_dict = {'form':form}
+        # context = RequestContext(request, con_dict)
+        # response = render_to_response('simpleform.html', context)
+    else:
+        form = forms.ContactForm()
+        con_dict = {'form':form}
+        context = RequestContext(request, con_dict)
+        response = render_to_response('simpleform.html', context)
     return response

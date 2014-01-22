@@ -1308,8 +1308,7 @@ class Mediator(object):
         { GRAPH <http://metarelate.net/concepts.ttl> {
         %s a mr:Mediator ;
              rdf:label "%s" ;
-             mr:hasFormat <http://www.metarelate.net/%s/format/%s> ;
-             mr:saveCache "True" .
+             mr:hasFormat <http://www.metarelate.net/%s/format/%s> .
              } }
         ''' % (med, label, site_config['fuseki_dataset'], fformat)
         instr = '''
@@ -1366,3 +1365,73 @@ def make_hash(pred_obj, omitted=None):
     sha1_hex = str(sha1.hexdigest())
     return sha1_hex
     
+
+class Contact(object):
+    """a named contact in the knowledgebase"""
+    @staticmethod
+    def sparql_retriever(uri=None, contact_type=None):
+        tfilter = ''
+        urifilter = ''
+        if contact_type is not None:
+            tfilter = 'FILTER(?contact skos:inScheme metoc:{})'
+            tfilter = tfilter.format(contact_type)
+        if uri is not None:
+            urifilter = 'FILTER(?contact = <{}>)'.format(uri)
+        qstr ='''SELECT ?contact ?prefLabel ?def
+        WHERE
+        { GRAPH <http://metarelate.net/contacts.ttl> {
+            ?s skos:inScheme <http://www.metarelate.net/%s/%s> ;
+               skos:prefLabel ?prefLabel ;
+               skos:definition ?def ;
+               dc:valid ?valid .
+        %s
+        %s
+        } }''' % (urifilter, ffilter)
+        return qstr
+
+    @staticmethod
+    def sparql_creator(po_dict):
+        allowed_preds = set(('skos:inScheme', 'skos:prefLabel',
+                             'skos:definition', 'dc:valid'))
+        preds = set(po_dict)
+        if not preds == allowed_preds:
+            ec = '''{} is not the same as the allowed predicates set
+                    for a scopedProperty record
+                    {}'''
+            ec = ec.format(preds, allowed_preds)
+            raise ValueError(ec)
+        scheme = po_dict['skos:inScheme'].split('/')[-1].rstrip('>')
+        print scheme
+        search_string = ''
+        for pred in po_dict:
+            if isinstance(po_dict[pred], list):
+                if len(po_dict[pred]) != 1:
+                    ec = 'contacts only accepts 1 statement per predicate {}'
+                    ec = ec.format(po_dict)
+                    raise ValueError(ec)
+                else:
+                    for obj in po_dict[pred]:
+                        search_string += '''
+                        %s %s ;''' % (pred, obj)
+            else:
+                search_string += '%s %s ;\n' % (pred, po_dict[pred])
+        po_hash = make_hash(po_dict)
+        qstr = '''
+        SELECT ?contact
+        WHERE
+        { GRAPH <http://metarelate.net/contacts.ttl> {
+        ?contact a skos:Concept ;
+           %s
+           .
+             } }
+        ''' % search_string
+        instr = '''
+        INSERT DATA
+        { GRAPH <http://metarelate.net/contacts.ttl> {
+        <http://www.metarelate.net/metOcean/%s/%s> a skos:Concept ;
+           %s
+             mr:saveCache "True" .
+             } }
+        ''' % (scheme, po_hash, search_string)
+        print scheme, po_hash, search_string
+        return qstr, instr

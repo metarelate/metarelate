@@ -24,6 +24,7 @@ import urllib
 
 from django import forms
 from django.core.urlresolvers import reverse
+from django.template.loader import render_to_string
 from django.utils import formats
 from django.utils.safestring import mark_safe
 
@@ -344,6 +345,11 @@ class DerivedValue(forms.Form):
                 raise forms.ValidationError('object_literal must be a number')
         return self.cleaned_data
             
+class SelectWithPop(forms.Select):
+    def render(self, name, *args, **kwargs):
+        html = super(SelectWithPop, self).render(name, *args, **kwargs)
+        popupplus = render_to_string("popupplus.html", {'field': name})
+        return html+popupplus
         
     
 class MappingMeta(forms.Form):
@@ -364,8 +370,10 @@ class MappingMeta(forms.Form):
                                   widget=forms.TextInput(
                                       attrs={'readonly':True}))
     people = [{'s':'', 'prefLabel':''}] + fuseki_process.get_contacts('people')
+    # editor = forms.ChoiceField([(r['s'],r['prefLabel'].split('/')[-1]) for
+    #                             r in people])
     editor = forms.ChoiceField([(r['s'],r['prefLabel'].split('/')[-1]) for
-                                r in people])
+                                r in people], widget=SelectWithPop) 
 #                                 , required=False)
 #    editor = forms.ChoiceField([(r['s'],r['s'].split('/')[-1]) for
                                 # r in moq.get_contacts('people')],
@@ -427,8 +435,8 @@ class MappingMeta(forms.Form):
                                           mapping.get(mkey, ''))))
             if not changed:
                 raise forms.ValidationError('No update: mapping not changed')
-            else:
-                print 'changes:', changes
+            # else:
+            #     print 'changes:', changes
         return self.cleaned_data
         # if False:
         #     return self.cleaned_Data
@@ -481,28 +489,13 @@ class HomeForm(forms.Form):
         return self.cleaned_data
 
 
-
-
-
 class ContactForm(forms.Form):
-    required_css_class = 'required'
-    error_css_class = 'error'
-    isoformat = ("%Y-%m-%dT%H:%M:%S.%f",)
-    github_name = forms.CharField(max_length=50)
-    types = (('http://www.metarelate.net/{}/people'.format(DS),'people'),
+    name = forms.CharField()
+    github_id = forms.CharField()
+    scheme_list = (('http://www.metarelate.net/{}/people'.format(DS),'people'),
              ('http://www.metarelate.net/{}/organisations'.format(DS),
               'organisations'))
-    register = forms.ChoiceField(choices=types)
-
-
-    def clean(self):
-        if READ_ONLY:
-            raise ValidationError('System in Read-Only mode') 
-        else:
-            return self.cleaned_data
-
-
-
+    scheme = forms.ChoiceField(scheme_list)
 
 
 class MappingForm(forms.Form):

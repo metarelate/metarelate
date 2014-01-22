@@ -31,5 +31,6 @@ urlpatterns = patterns('',
         name='define_valuemaps'),
     url(r'^derivedvalue/(?P<role>[^/]+)/$', 'editor.app.views.derived_value', 
         name='derived_value'),
-    url(r'^mappingedit/$', 'editor.app.views.mapping_edit', name='mapping_edit')
+    url(r'^mappingedit/$', 'editor.app.views.mapping_edit', name='mapping_edit'),
+    url(r'^add_contact/$', 'editor.app.views.add_contact', name='add_contact')
 )
