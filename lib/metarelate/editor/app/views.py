@@ -1142,25 +1142,26 @@ def _process_mapping_list(map_ids, label):
     for amap in map_ids:
         qstr = metarelate.Mapping.sparql_retriever(amap)
         mapping = fuseki_process.retrieve(qstr)
-        sm = fuseki_process.structured_mapping(mapping)
-        referrer = sm.json_referrer()
-        map_json = json.dumps(referrer)
-        url = url_qstr(reverse('mapping_edit'), ref=map_json)
-        label = 'mapping'
-        label = '{source} -> {target} mapping'
-        label = label.format(source=sm.source.scheme.notation,
-                             target=sm.target.scheme.notation)
-        if isinstance(sm.source.components[0], metarelate.PropertyComponent):
-            sps = ''
-            for prop in sm.source.components[0].values():
-                pname = prop.name.notation
-                pval = ''
-                # if hasattr(prop, 'value'):
-                if prop.value:
-                    pval = prop.value.notation
-                sps += '{pn}:{pv}; '.format(pn=pname, pv=pval)
-            label += '({})'.format(sps)
-        mapurls['mappings'].append({'url':url, 'label':label})
+        if mapping is not None:
+            sm = fuseki_process.structured_mapping(mapping)
+            referrer = sm.json_referrer()
+            map_json = json.dumps(referrer)
+            url = url_qstr(reverse('mapping_edit'), ref=map_json)
+            label = 'mapping'
+            label = '{source} -> {target} mapping'
+            label = label.format(source=sm.source.scheme.notation,
+                                 target=sm.target.scheme.notation)
+            if isinstance(sm.source.components[0], metarelate.PropertyComponent):
+                sps = ''
+                for prop in sm.source.components[0].values():
+                    pname = prop.name.notation
+                    pval = ''
+                    # if hasattr(prop, 'value'):
+                    if prop.value:
+                        pval = prop.value.notation
+                    sps += '{pn}:{pv}; '.format(pn=pname, pv=pval)
+                label += '({})'.format(sps)
+            mapurls['mappings'].append({'url':url, 'label':label})
     context_dict = {'invalid': [mapurls]}  
     return context_dict
     
@@ -1238,26 +1239,9 @@ def add_contact(request):
             new_contact['dc:valid'] = '"%s"^^xsd:dateTime' % globalDateTime
             qstr, instr = metarelate.Contact.sparql_creator(new_contact)
             contact = fuseki_process.create(qstr, instr)
-            # try:
-            #     newObject = form.save()
-            # except forms.ValidationError, error:
-            #     newObject = None
-            # if newObject:
-            #     rstr = '<script type="text/javascript">opener'
-            #     rstr = rstr + '.dismissAddAnotherPopup(window, "{}", "{}");'
-            #     rstr = rstr + '</script>'.format((escape(newObject._get_pk_val()),
-            #                                       escape(newObject)))
-            # rstr = '<script type="text/javascript">opener.dismissAddAnotherPopup(window)</script>'
             rstr = '<script type="text/javascript">window.close()</script>'
             reload(forms)
             return HttpResponse(rstr)
-
-        #     requestor_path = json.dumps(requestor)
-        #     response = HttpResponseRedirect(url)
-        # else:
-        # con_dict = {'form':form}
-        # context = RequestContext(request, con_dict)
-        # response = render_to_response('simpleform.html', context)
     else:
         form = forms.ContactForm()
         con_dict = {'form':form}
