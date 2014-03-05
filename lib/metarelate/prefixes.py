@@ -52,22 +52,16 @@ class Prefixes(dict):
         'metoc'    : 'http://www.metarelate.net/{}/'.format(DS) ,
         'metocFormat' : 'http://www.metarelate.net/{}/format/'.format(DS) ,
         'metocMed' : 'http://www.metarelate.net/{}/mediator/'.format(DS) ,
-        'moStCon'  : 'http://reference.metoffice.gov.uk/def/um/stash/concept/' ,
-        'moStND'   : 'http://reference.metoffice.gov.uk/def/um/stash/new_dynamics/' ,
-        'moStEG'   : 'http://reference.metoffice.gov.uk/def/um/stash/endgame/' ,
-        'mofc'     : 'http://reference.metoffice.gov.uk/def/um/fieldcode/',
-        'moumdpF3' : 'http://reference.metoffice.gov.uk/def/um/umdp/F3/',
-        'moumdpC4' : 'http://reference.metoffice.gov.uk/def/um/umdp/c4/',
-        'moumdpC4Pseud' : 'http://reference.metoffice.gov.uk/def/um/umdp/c4/pseudo/',
-        'momet08'  : 'http://reference.metoffice.gov.uk/def/um/met08/',
+        'moStCon'  : 'http://reference.metoffice.gov.uk/um/stash/' ,
+        'mofc'     : 'http://reference.metoffice.gov.uk/um/fieldcode/',
+        'moumdpF3' : 'http://reference.metoffice.gov.uk/um/f3/',
+        'moumdpC4' : 'http://reference.metoffice.gov.uk/um/c4/',
+        'moumdpC4Pseud' : 'http://reference.metoffice.gov.uk/um/c4/pseudo/',
         'cfsn'     : 'http://def.cfconventions.org/standard_names/' ,
         'cfm'      : 'http://def.cfconventions.org/datamodel/' ,
         'gribapi'  : 'http://def.ecmwf.int/api/grib/keys/',
         'openmathr1' : 'http://www.openmath.org/cd/relation1.xhtml#',
         'openmatha1' : 'http://www.openmath.org/cd/arith1.xhtml#',
-        'meta'     : 'http://reference.metoffice.gov.uk/data/wmo/def/met#',
-        'metamap'  : 'http://reference.metoffice.gov.uk/data/wmo/meta/mapping#',
-        
         }
         self.update(prefixd)
 
