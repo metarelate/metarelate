@@ -30,6 +30,26 @@ import metarelate
 import metarelate.prefixes as prefixes
 
 
+HEADER = '''#(C) British Crown Copyright 2012 - 2014 , Met Office 
+#
+# This file is part of metOcean.
+#
+# metOcean is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# metOcean distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with metOcean.  If not, see <http://www.gnu.org/licenses/>.
+'''
+
+PRE = prefixes.Prefixes()
+
 # Configure the Apache Jena environment.
 if metarelate.site_config.get('jena_dir') is not None:
     os.environ['JENAROOT'] = metarelate.site_config['jena_dir']
@@ -213,9 +233,10 @@ class FusekiServer(object):
         for subgraph in glob.glob(files):
             graph = 'http://%s/%s' % (main_graph, subgraph.split('/')[-1])
             save_string = self.save_cache(graph)
-            with open(subgraph, 'a') as sg:
-                for line in save_string.splitlines():
-                    if not line.startswith('@prefix'):
+            if save_string:
+                with open(subgraph, 'w') as sg:
+                    sg.write(HEADER)
+                    for line in save_string.splitlines():
                         sg.write(line + '\n')
 
     def save_cache(self, graph, debug=False):
@@ -237,22 +258,7 @@ class FusekiServer(object):
         } 
         ''' % graph
         n_res = self.run_query(nstr)
-        qstr = '''
-        CONSTRUCT
-        {
-            ?s ?p ?o .
-        }
-        WHERE
-        {
-        GRAPH <%s>
-        {
-        ?s ?p ?o ;
-            mr:saveCache "True" .
-        }
-        } 
-        ''' % graph
-        results = self.run_query(qstr, output="text", debug=debug)
-        qstr = '''
+        delstr = '''
         DELETE
         {  GRAPH <%s>
             {
@@ -267,17 +273,38 @@ class FusekiServer(object):
             }
         } 
         ''' % (graph,graph)
-        delete_results = self.run_query(qstr, update=True, debug=debug)
+        delete_results = self.run_query(delstr, update=True, debug=debug)
+        qstr = '''
+        SELECT
+            ?s ?p ?o
+        WHERE
+        {
+        GRAPH <%s>
+        {
+        ?s ?p ?o .
+        }
+        }
+        order by ?s ?p ?o
+        ''' % graph
+        results = self.run_query(qstr, debug=debug)
         save_string = ''
+        save_out = []
         if n_res:
-            for line in results.split('\n'):
-                if not line.strip().startswith('mr:saveCache'):
-                    save_string += line
-                    save_string += '\n'
+            subj = ''
+            for res in results:
+                if res['s'] == subj:
+                    save_out.append('\t{} {} ;'.format(res['p'], res['o']))
+                elif subj == '':
+                    subj = res['s']
+                    save_out.append('\n{}\n\t{} {} ;'.format(res['s'],
+                                                               res['p'],
+                                                               res['o']))
                 else:
-                    if line.endswith('.'):
-                        save_string += '\t.\n'
-            save_string += '\n'
+                    subj = res['s']
+                    save_out.append('\t.\n\n{}\n\t{} {} ;'.format(res['s'],
+                                                               res['p'],
+                                                               res['o']))
+            save_string = '\n'.join(save_out)
         return save_string
 
 
@@ -348,6 +375,8 @@ class FusekiServer(object):
         graphs = os.path.join(self._static_dir, '*')
         for ingraph in glob.glob(graphs):
             graph = ingraph.split('/')[-1]
+            if os.path.exists(os.path.join(ingraph, 'getCodes.py')):
+                subprocess.check_call(['python', os.path.join(ingraph, 'getCodes.py')])
             subgraphs = os.path.join(ingraph, '*.ttl')
             for insubgraph in glob.glob(subgraphs):
                 subgraph = insubgraph.split('/')[-1]
