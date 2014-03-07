@@ -29,14 +29,23 @@ import urllib2
 import metarelate
 import metarelate.prefixes as prefixes
 
-HEADER = '''#(C) British Crown Copyright 2011 - 2012, Met Office This file is part of metOcean.
-#metOcean is free software: you can redistribute it and/or modify it under the terms of the
-#GNU Lesser General Public License as published by the Free Software Foundation, either version 3 of the License,
-#or (at your option) any later version. metOcean is distributed in the hope that it will be useful,
-#but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-#See the GNU Lesser General Public License for more details. You should have received a copy of the
-#GNU Lesser General Public License along with metOcean. If not, see http://www.gnu.org/licenses/."
 
+HEADER = '''#(C) British Crown Copyright 2012 - 2014 , Met Office 
+#
+# This file is part of metOcean.
+#
+# metOcean is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# metOcean distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with metOcean.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
 PRE = prefixes.Prefixes()
@@ -366,6 +375,8 @@ class FusekiServer(object):
         graphs = os.path.join(self._static_dir, '*')
         for ingraph in glob.glob(graphs):
             graph = ingraph.split('/')[-1]
+            if os.path.exists(os.path.join(ingraph, 'getCodes.py')):
+                subprocess.check_call(['python', os.path.join(ingraph, 'getCodes.py')])
             subgraphs = os.path.join(ingraph, '*.ttl')
             for insubgraph in glob.glob(subgraphs):
                 subgraph = insubgraph.split('/')[-1]
