@@ -91,7 +91,10 @@ class TestItem(tests.MetarelateTestCase):
 class TestProperty(tests.MetarelateTestCase):
     def setUp(self):
         self.prop = stock.property_cf_standard_name()
-        self.uri, self.name, self.value, self.operator = self.prop
+        self.uri = self.prop.uri
+        self.name = self.prop.name
+        self.value = self.prop.value
+        self.operator = self.prop.operator
         self.cprop = metarelate.Property('uri', 'name',
                                        stock.property_component_cf(),
                                        'operator')
@@ -149,12 +152,6 @@ class TestProperty(tests.MetarelateTestCase):
         self.assertFalse(prop.complete)
         self.assertFalse(self.cprop.complete)
 
-    def test_immuatable(self):
-        with self.assertRaises(TypeError):
-            self.prop.wibble = 'wobble'
-        with self.assertRaises(TypeError):
-            self.prop.uri = 'uri'
-
 
 class TestPropertyComponent(tests.MetarelateTestCase):
     def setUp(self):
@@ -191,7 +188,11 @@ class TestPropertyComponent(tests.MetarelateTestCase):
         pcomp = metarelate.PropertyComponent(self.pcomp.uri, properties)
         self.assertNotEqual(self.pcomp, pcomp)
 
-        uri, name, value, operator = stock.property_cf_standard_name()
+        prop = stock.property_cf_standard_name()
+        uri = prop.uri
+        name = prop.name
+        value = prop.value
+        operator = prop.operator
         properties = [metarelate.Property(uri, name.data, value, operator),
                       stock.property_cf_units(),
                       stock.property_cf_type()]
@@ -236,16 +237,6 @@ class TestPropertyComponent(tests.MetarelateTestCase):
     def test_compound(self):
         self.assertTrue(self.cpcomp.compound)
         self.assertFalse(self.pcomp.compound)
-
-    def test_immutable(self):
-        with self.assertRaises(TypeError):
-            self.pcomp.wibble = 'wobble'
-        with self.assertRaises(TypeError):
-            self.pcomp.uri = 'uri'
-        with self.assertRaises(TypeError):
-            self.pcomp['standard_name'] = 'wibble'
-        with self.assertRaises(TypeError):
-            del self.pcomp['standard_name']
 
 
 class TestComponent(tests.MetarelateTestCase):
@@ -343,18 +334,6 @@ class TestComponent(tests.MetarelateTestCase):
         self.assertTrue(self.ccomp.compound)
         self.assertFalse(self.comp.compound)
 
-    def test_immutable(self):
-        with self.assertRaises(TypeError):
-            self.comp.wibble = 'wobble'
-        with self.assertRaises(TypeError):
-            self.comp.uri = 'uri'
-        with self.assertRaises(TypeError):
-            self.comp['standard_name'] = 'wibble'
-        with self.assertRaises(TypeError):
-            del self.comp['standard_name']
-        with self.assertRaises(TypeError):
-            del self.comp[0]
-
 
 class TestConcept(tests.MetarelateTestCase):
     def setUp(self):
@@ -379,8 +358,8 @@ class TestMapping(tests.MetarelateTestCase):
         self.assertEqual(self.mapping, stock.simple_mapping_um_cf())
 
     def test_eq_fail(self):
-        mapping = metarelate.Mapping('uri', stock.simple_concept_um(),
-                                   stock.simple_concept_cf())
+        mapping = metarelate.Mapping('uri', stock.simple_concept_cf(),
+                                     stock.simple_concept_um())
         self.assertNotEqual(self.mapping, mapping)
 
     def test_dot(self):

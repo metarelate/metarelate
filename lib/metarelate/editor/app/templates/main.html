@@ -67,6 +67,22 @@
 <input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="validate" value="Validate the state of the Triplestore"/>
 
 
+{% if invalid %}
+
+{% for inv in invalid %}
+
+  <h3>{{ inv.label }}</h3>
+
+  {% for mapping in inv.mappings %}
+    <ul>
+    <li><a href="{{ mapping.url }}">{{ mapping.label }}</a></li>
+    </ul>
+  {% endfor %}
+
+{% endfor %}
+{% endif %}
+
+
 {% csrf_token %}
 
 {{ form.as_p }}
@@ -75,6 +91,9 @@
 
 </form>
 {% endif %}
+
+
+
 
 {% if itemlist %}
 <h2>Define Search Criteria</h2>

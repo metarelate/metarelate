@@ -16,6 +16,7 @@
 # along with metarelate. If not, see <http://www.gnu.org/licenses/>.
 
 from collections import Iterable, MutableMapping, namedtuple
+from datetime import datetime
 import hashlib
 import os
 from urlparse import urlparse
@@ -48,9 +49,6 @@ class _ComponentMixin(object):
 
     def __getattr__(self, name):
         return self.__getitem__(name)
-
-    def __setattr__(self, name, value):
-        self._immutable_exception()
 
     def __iter__(self):
         return iter(self._data)
@@ -92,13 +90,15 @@ class _DotMixin(object):
         return label
 
 
-class Mapping(_DotMixin, namedtuple('Mapping', 'uri source target')):
+class Mapping(_DotMixin):
     """
-    Represents an immutable mapping relationship between a source
+    Represents an mapping relationship between a source
     :class:`Concept` and a target :class:`Concept`.
 
     """
-    def __new__(cls, uri, source, target):
+    def __init__(self, uri, source, target, invertible='"False"',
+                 editor=None, note=None, reason=None, replaces=None, 
+                 valuemaps=None, owners=None, watchers=None, status=None):
         uri = Item(uri)
         if not isinstance(source, Concept):
             msg = 'Expected source {!r} object, got {!r}.'
@@ -108,13 +108,35 @@ class Mapping(_DotMixin, namedtuple('Mapping', 'uri source target')):
             msg = 'Expected target {!r} object, got {!r}.'
             raise TypeError(msg.format(Concept.__name__,
                                        type(target).__name__))
-        return super(Mapping, cls).__new__(cls, uri, source, target)
+        if owners and not isinstance(owners, list):
+            msg = 'Expected target {!r} object, got {!r}.'
+            raise TypeError(msg.format(list.__name__,
+                                       type(owners).__name__))
+        if valuemaps and not isinstance(valuemaps, list):
+            msg = 'Expected target {!r} object, got {!r}.'
+            raise TypeError(msg.format(list.__name__,
+                                       type(valuemaps).__name__))
+        if watchers and not isinstance(watchers, list):
+            msg = 'Expected target {!r} object, got {!r}.'
+            raise TypeError(msg.format(list.__name__,
+                                       type(watchers).__name__))
+        self.uri = uri
+        self.source = source
+        self.target = target
+        self.invertible = invertible
+        self.editor = editor
+        self.note = note
+        self.reason = reason
+        self.replaces = replaces
+        self.valuemaps = valuemaps
+        self.owners = owners
+        self.watchers = watchers
+        self.status = status
 
     def __eq__(self, other):
         result = NotImplemented
         if isinstance(other, Mapping):
-            result = self.uri == other.uri and \
-                self.source == other.source and \
+            result = self.source == other.source and \
                 self.target == other.target
         return result
 
@@ -164,6 +186,57 @@ class Mapping(_DotMixin, namedtuple('Mapping', 'uri source target')):
         graph.add_subgraph(tgraph)
         return graph
 
+    def _check_status(self):
+        status = False
+        allowed = ['"Draft"', '"Proposed"', '"Approved"',
+                   '"Broken"', '"Deprecated"']
+        if self.status:
+            if self.status not in allowed:
+                msg = ('{} is not an allowed value'.format(self.status),
+                       ' for status please use one of {}'.format(allowed))
+                raise ValueError(msg)
+            status = True
+        return status
+
+    def _podict(self):
+        """
+        Return a dictionary of predicates and objects for a rdf representation
+
+        """
+        podict = {}
+        podict['mr:source'] = self.source.uri.data
+        podict['mr:target']  = self.target.uri.data
+        podict['mr:invertible'] = self.invertible
+        podict['dc:date'] = ['"{}"^^xsd:dateTime'.format(datetime.now().isoformat())]
+        podict['dc:creator'] = self.editor
+        if self.replaces:
+            podict['dc:replaces'] = self.replaces
+        if self.valuemaps:
+            podict['mr:hasValueMap'] = [vmap.uri.data for vmap in self.valuemaps]
+        if self._check_status():
+            podict['mr:status'] = self.status
+        if self.note:
+            podict['skos:note'] = self.note
+        if self.reason:
+            podict['mr:reason'] = self.reason
+        # if self.owners:
+        #     podict['mr:owner'] = [owner for owner in self.owners]
+        # if self.watchers:
+        #     podict['mr:watcher'] = self.watchers
+        return podict
+
+
+
+    def create_rdf(self, fuseki_process):
+        """
+        create the rdf representation using the provided fuseki process
+
+        """
+        qstr, instr = self.sparql_creator(self._podict())
+        result = fuseki_process.create(qstr, instr)
+        self.uri = Item(result['mapping'])
+
+
     def json_referrer(self):
         """
         return the data contents of the mapping instance ready for encoding
@@ -173,6 +246,7 @@ class Mapping(_DotMixin, namedtuple('Mapping', 'uri source target')):
         referrer = {'mapping': self.uri.data, 'mr:hasValueMap': []}
         referrer['mr:source'] = self.source.json_referrer()
         referrer['mr:target'] = self.target.json_referrer()
+        ## what about other attributes?? not implemented yet
         return referrer
 
     @staticmethod
@@ -538,9 +612,14 @@ class Concept(Component):
     indexing i.e. *component = concept[0]*
 
     """
-    def __init__(self, uri, scheme, components):
+    def __init__(self, uri, scheme, components, requires=None, mediator=None):
         super(Concept, self).__init__(uri, components)
         self.__dict__['scheme'] = Item(scheme)
+        # nb requires should allow list
+        if requires:
+            self.__dict__['requires'] = Item(requires)
+        if mediator:
+            self.__dict__['mediator'] = Item(mediator)
 
     def __eq__(self, other):
         result = NotImplemented
@@ -609,6 +688,47 @@ class Concept(Component):
                 prop_ref['mr:hasFormat'] = self.scheme.data
                 referrer['mr:hasComponent'].append(prop_ref)
         return referrer
+
+    def _podict(self):
+        """
+        Return a dictionary of predicates and objects for a rdf representation
+
+        """
+        podict = {}
+        if self.scheme:
+            podict['mr:hasFormat'] = self.scheme.data
+        if len(self) == 1:
+            podict['mr:hasProperty'] = []
+            for aproperty in self.components[0].values():
+                podict['mr:hasProperty'].append(aproperty.uri.data)
+        elif len(self) > 1:
+            podict['mr:hasComponent'] = []
+            for comp in self.components:
+                podict['mr:hasComponent'].append(comp.uri.data)
+        if self.__dict__.has_key('requires'):
+            podict['dc:requires'] = self.requires.data ## list
+        if self.__dict__.has_key('mediator'):
+            podict['dc:mediator'] = self.mediator.data
+        return podict
+
+    def creation_sparql(self):
+        """
+        return SPARQL string for creation of a Concept
+
+        """
+        return self.sparql_creator(self._podict())
+
+    def create_rdf(self, fuseki_process):
+        """
+        create rdf representation using the provided fuseki process
+
+        """
+        qstr, instr = self.creation_sparql()
+        result = fuseki_process.create(qstr, instr)
+        self.uri = Item(result['component'])
+        if len(self) == 1 and isinstance(self.components[0], PropertyComponent):
+            self.components[0].uri = Item(self.uri)
+
 
 
 class PropertyComponent(_ComponentMixin, _DotMixin, MutableMapping):
@@ -749,7 +869,7 @@ class PropertyComponent(_ComponentMixin, _DotMixin, MutableMapping):
         return referrer
 
 
-class Property(_DotMixin, namedtuple('Property', 'uri name value operator')):
+class Property(_DotMixin):
     """
     Represents a named tuple property participating in a :class:`Mapping`
     relationship.
@@ -769,15 +889,16 @@ class Property(_DotMixin, namedtuple('Property', 'uri name value operator')):
        :class:`PropertyComponent`.
 
     """
-    def __new__(cls, uri, name, value=None, operator=None):
+    def __init__(self, uri, name, value=None, operator=None, component=None):
         new_uri = Item(uri)
         new_name = Item(name)
         if (value is None and operator is not None) or \
                 (value is not None and operator is None):
-            msg = 'The {!r} and {!r} of a {!r} must be both set or unset.'
-            raise ValueError(msg.format('value', 'operator', cls.__name__))
+            msg = 'The {!r} and {!r} of a Property must be both set or unset.'
+            raise ValueError(msg.format('value', 'operator'))
         new_value = None
         new_operator = None
+        new_comp = None
         if value is not None:
             if isinstance(value, (Item, basestring)):
                 new_value = Item(value)
@@ -789,8 +910,13 @@ class Property(_DotMixin, namedtuple('Property', 'uri name value operator')):
                                            type(value).__name__))
         if operator is not None:
             new_operator = Item(operator)
-        return super(Property, cls).__new__(cls, new_uri, new_name,
-                                            new_value, new_operator)
+        if component is not None:
+            new_comp = Item(component)
+        self.uri = new_uri
+        self.name = new_name
+        self.operator = new_operator
+        self.value = new_value
+        self.component = new_comp
 
     def __eq__(self, other):
         result = NotImplemented
@@ -808,10 +934,6 @@ class Property(_DotMixin, namedtuple('Property', 'uri name value operator')):
         if result is not NotImplemented:
             result = not result
         return result
-
-    def __setattr__(self, name, value):
-        msg = '{!r} instance is immutable.'
-        raise TypeError(msg.format(type(self).__name__))
 
     def __repr__(self):
         fmt = '{cls}(uri={self.uri!r}, name={self.name!r}{value}{operator})'
@@ -834,6 +956,39 @@ class Property(_DotMixin, namedtuple('Property', 'uri name value operator')):
     @property
     def complete(self):
         return self.simple and self.value is not None and self.value.complete
+
+    def _podict(self):
+        """
+        Return a dictionary of predicates and objects for a rdf representation
+
+        """
+        podict = {}
+        if self.name:
+            podict['mr:name'] = self.name.data
+        if self.value:
+            if isinstance(self.value, PropertyComponent):
+                podict['mr:hasComponent'] = self.value.data
+            else:
+                podict['rdf:value'] = self.value.data
+        if self.operator:
+            podict['mr:operator'] = self.operator.data
+        return podict
+
+    def creation_sparql(self):
+        """
+        return SPARQL string for creation of a Property
+
+        """
+        return self.sparql_creator(self._podict())
+
+    def create_rdf(self, fuseki_process):
+        """
+        create the rdf representation using the provided fuseki process
+
+        """
+        qstr, instr = self.creation_sparql()
+        result = fuseki_process.create(qstr, instr)
+        self.uri = Item(result['property'])
 
     def dot(self, graph, parent, name=None):
         """

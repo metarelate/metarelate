@@ -34,6 +34,7 @@
 
 </head>
 <body>
+<a href="{% url 'home' %}">home</a>
 <h1>Meteorological and Oceanographic Metadata Relationships</h1> 
 <div class="toplistbar">
 <h4 class="listbar">{% block status %}{{ status }}{% endblock %}</h4>
@@ -41,6 +42,8 @@
 <h4 class="listbar">{% block detail %}{{ detail }}{% endblock %}</h4>
 <h4 class="errorbar">{% block error %}{{ error }}{% endblock %}</h4>
 </div>
+
+
 
 <div id="content">
 {% block content %}{% endblock %}

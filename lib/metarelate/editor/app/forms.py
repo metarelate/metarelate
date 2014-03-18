@@ -435,13 +435,7 @@ class MappingMeta(forms.Form):
                                           mapping.get(mkey, ''))))
             if not changed:
                 raise forms.ValidationError('No update: mapping not changed')
-            # else:
-            #     print 'changes:', changes
         return self.cleaned_data
-        # if False:
-        #     return self.cleaned_Data
-        # else:
-        #     raise forms.ValidationError('well, I would have returned')
         
 
 class URLwidget(forms.TextInput):
