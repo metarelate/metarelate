@@ -41,6 +41,27 @@ Editor
 * To run the editor application:
     1. ./run_mr_editor.py
 
+Translation Retrieval
+---------------------
+
+The metarelate :class:`metarelate.fuseki.FusekiServer` provides programmatic access to a running server process accessing the local data set.
+
+:class:`metarelate.fuseki.FusekiServer` is a context manager, which handles the underlying Jena processes; it is always better to call this as a context manager, to enable this process handling to work effectively; so:
+
+.. code-block:: python
+
+    with metarelate.fuseki.FusekiServer() as fu_p:
+        ## do something useful with fu_p
+	## once this indented block is exited the process will exit cleanly
+
+To retrieve a set of ordered translations, for example from a data set with formats 'um' and 'cf' defined, :meth:`metarelate.fuseki.FusekiServer.retrieve_mapping` can be used.
+
+.. code-block:: python
+
+    import metarelate.fuseki
+    with metarelate.fuseki.FusekiServer() as fu_p:
+        mappings = fu_p.retrieve_mappings('um', 'cf')
+
 
 Application Programming Interface
 ----------------------------------
