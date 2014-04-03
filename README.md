@@ -24,7 +24,7 @@ Installation
 * Python - http://python.org/
     1. install Python = 2.7
 * Django - https://www.djangoproject.com/
-    1. install Django >= 1.3
+    1. install Django >= 1.5
 * pydot - https://code.google.com/p/pydot/
     1. install pydot >= 1.0
 * Configure the metarelate metarelate software

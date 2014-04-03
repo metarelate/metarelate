@@ -26,9 +26,9 @@ This project provides software to manage the knowledge base and the knowledge ba
 
 To contribute to the project, the required static data should be used to populate a local triple store which the management software may access. 
 
-See the README.md for installation instructions.
-
 The software can be run from the source, or installed, whichever is preferred.  There are run-time paths which must be managed by each session, this are controlled with user-defined environment variables.
+
+See the README.md for installation instructions.  In particular note the use of environment variables such as METARELATE_STATIC_DIR.  These enable many users to share the same installation of the metarelate software but each access their own local triplestore and static data, linked to a particular knowledge base.
 
 Use
 ===
