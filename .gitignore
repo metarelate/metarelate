@@ -19,7 +19,7 @@ lib/metarelate/tests/nohup.out
 lib/metarelate/tests/results/dot_actual
 
 # editor images
-lib/metarelate/editor/app/static/tmp_images/*
+lib/metarelate/editor/app/static/tmp_images/*.*
 
 # Created by editors.
 *~

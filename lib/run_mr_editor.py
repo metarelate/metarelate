@@ -16,13 +16,14 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with metarelate. If not, see <http://www.gnu.org/licenses/>.
 
+import os
 import sys
 
 if len(sys.argv) == 1:
     sys.argv.append('runserver')
     sys.argv.append('--noreload')
 
-from django.core.management import execute_manager
+from django.core.management import execute_from_command_line
 
 import metarelate.editor.settings as settings
 
@@ -31,5 +32,7 @@ import metarelate.fuseki as fu
 if __name__ == "__main__":
     with fu.FusekiServer() as server:
         settings.fuseki_process = server
-        execute_manager(settings)
+        # execute_from_command_line(settings)
+        os.environ.setdefault("DJANGO_SETTINGS_MODULE", "metarelate.editor.settings")
+        execute_from_command_line(sys.argv)
 

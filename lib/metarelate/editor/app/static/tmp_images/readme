@@ -1,0 +1,5 @@
+the tmp_images folder is required for the application
+
+it must be readable to users
+
+this still causes an issue for distributed installation.  really the user's specified working forlde METARELATE_TDB_DIR should be used
