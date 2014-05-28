@@ -149,8 +149,8 @@ def _prop_id(members, fformat=None):
                 #validation error please
                 raise ValueError('If a property has a component that component'
                                  'must itself reference properties')
-            mrcomp = metarelate.Concept(None, fformat, 
-                                        metarelate.PropertyComponent(None, subprops))
+            mrcomp = metarelate.Component(None, scheme=fformat, 
+                                        components=metarelate.PropertyComponent(None, subprops))
             mrcomp.create_rdf(fuseki_process)
             new_mem['mr:hasComponent']['component'] = mrcomp.uri.data
         # remove old property id
@@ -191,12 +191,12 @@ def _create_components(key, requestor, new_map):#, components):
         if mem.get('mr:hasProperty'):
             mrprops = _prop_id(mem.get('mr:hasProperty'),
                                requestor[key].get('mr:hasFormat'))
-            mrcomp = metarelate.Concept(None, requestor[key]['mr:hasFormat'],
-                                        metarelate.PropertyComponent(None, mrprops))
+            mrcomp = metarelate.Component(None, scheme=requestor[key]['mr:hasFormat'],
+                                        components=metarelate.PropertyComponent(None, mrprops))
             mrcomp.create_rdf(fuseki_process)
             mrcomps.append(mrcomp)
-    mrcomp = metarelate.Concept(None, requestor[key]['mr:hasFormat'],
-                                mrcomps)
+    mrcomp = metarelate.Component(None, scheme=requestor[key]['mr:hasFormat'],
+                                components=mrcomps)
 
     mrcomp.create_rdf(fuseki_process)
     new_map[key]['component'] = mrcomp.uri.data
@@ -210,8 +210,8 @@ def _create_properties(key, requestor, new_map):
     """
     props = requestor[key]['mr:hasProperty']
     mrprops = _prop_id(props)
-    mrcomp = metarelate.Concept(None, requestor[key]['mr:hasFormat'],
-                                metarelate.PropertyComponent(None, mrprops))
+    mrcomp = metarelate.Component(None, scheme=requestor[key]['mr:hasFormat'],
+                                components=metarelate.PropertyComponent(None, mrprops))
     if requestor[key].get('dc:mediator'):
         mrcomp.mediator = requestor[key]['dc:mediator']
     if requestor[key].get('dc:requires'):

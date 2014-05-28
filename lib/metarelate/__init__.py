@@ -93,20 +93,20 @@ class _DotMixin(object):
 class Mapping(_DotMixin):
     """
     Represents an mapping relationship between a source
-    :class:`Concept` and a target :class:`Concept`.
+    :class:`Component` and a target :class:`Component`.
 
     """
     def __init__(self, uri, source, target, invertible='"False"',
                  editor=None, note=None, reason=None, replaces=None, 
                  valuemaps=None, owners=None, watchers=None, status=None):
         uri = Item(uri)
-        if not isinstance(source, Concept):
+        if not isinstance(source, Component):
             msg = 'Expected source {!r} object, got {!r}.'
-            raise TypeError(msg.format(Concept.__name__,
+            raise TypeError(msg.format(Component.__name__,
                                        type(source).__name__))
-        if not isinstance(target, Concept):
+        if not isinstance(target, Component):
             msg = 'Expected target {!r} object, got {!r}.'
-            raise TypeError(msg.format(Concept.__name__,
+            raise TypeError(msg.format(Component.__name__,
                                        type(target).__name__))
         if owners and not isinstance(owners, list):
             msg = 'Expected target {!r} object, got {!r}.'
@@ -369,8 +369,13 @@ class Component(_ComponentMixin, _DotMixin, MutableMapping):
     indexing i.e. *component = concept[0]*
 
     """
-    def __init__(self, uri, components):
-        self.__dict__['uri'] = Item(uri)
+    def __init__(self, uri, scheme=None, com_type=None, components=None, requires=None, mediator=None):
+        # self.__dict__['uri'] = Item(uri)
+        self.uri = Item(uri)
+        if scheme is not None:
+            self.scheme = Item(scheme)
+        if com_type is not None:
+            self.com_type = Item(com_type)
         if isinstance(components, Component) or \
                 isinstance(components, PropertyComponent) or \
                 not isinstance(components, Iterable):
@@ -386,8 +391,16 @@ class Component(_ComponentMixin, _DotMixin, MutableMapping):
                                            PropertyComponent.__name__,
                                            type(comp).__name__))
             temp.append(comp)
-        self.__dict__['_data'] = tuple(sorted(temp, key=lambda c: c.uri.data))
-        self.__dict__['components'] = self._data
+        # self.__dict__['_data'] = tuple(sorted(temp, key=lambda c: c.uri.data))
+        # self.__dict__['components'] = self._data
+        self._data = tuple(sorted(temp, key=lambda c: c.uri.data))
+        self.components = self._data
+        # nb requires should allow list
+        if requires:
+            self.requires = Item(requires)
+        if mediator:
+            self.mediator = Item(mediator)
+
 
     def __eq__(self, other):
         result = NotImplemented
@@ -427,7 +440,7 @@ class Component(_ComponentMixin, _DotMixin, MutableMapping):
         return key in self.components[0]
 
     def __repr__(self):
-        fmt = '{cls}({self.uri!r}, {components!r})'
+        fmt = '{cls}({self.uri!r}, {self.com_type!r}, {components!r})'
         components = self.components
         if len(components) == 1:
             components, = components
@@ -463,7 +476,13 @@ class Component(_ComponentMixin, _DotMixin, MutableMapping):
 
         """
         label = self.dot_escape('{}_{}'.format(parent.uri, self.uri.data))
-        node = pydot.Node(label, label='Component',
+        if self.com_type:
+            nlabel = self.com_type.dot()
+        elif self.scheme:
+            nlabel = self.scheme.dot()
+        else:
+            nlabel = 'Component'
+        node = pydot.Node(label, label=nlabel,
                           style='filled', peripheries='2',
                           colorscheme='dark28', fillcolor='3',
                           fontsize=8)
@@ -477,16 +496,19 @@ class Component(_ComponentMixin, _DotMixin, MutableMapping):
         graph.add_edge(edge)
         for comp in self.components:
             comp.dot(graph, node, 'Component')
+        return node
 
     @staticmethod
     def sparql_retriever(uri):
-        qstr = '''SELECT ?component ?format ?mediates 
+        qstr = '''SELECT ?component ?format ?mediates ?com_type
         (GROUP_CONCAT(?acomponent; SEPARATOR='&') AS ?subComponent)
         (GROUP_CONCAT(?aproperty; SEPARATOR='&') AS ?property)
         (GROUP_CONCAT(?arequires; SEPARATOR='&') AS ?requires)
         WHERE {
         GRAPH <http://metarelate.net/concepts.ttl> {
-            ?component mr:hasFormat ?format .
+            OPTIONAL{?component rdf:type ?com_type .}
+            FILTER(?com_type != skos:Concept)
+            OPTIONAL{?component mr:hasFormat ?format .}
             OPTIONAL{?component mr:hasComponent ?acomponent .}
             OPTIONAL{?component mr:hasProperty ?aproperty .}
             OPTIONAL{?component dc:requires ?arequires .}
@@ -494,14 +516,14 @@ class Component(_ComponentMixin, _DotMixin, MutableMapping):
             FILTER(?component = %s)
             }
         }
-        GROUP BY ?component ?format ?mediates
+        GROUP BY ?component ?format ?mediates ?com_type
         ''' % uri
         return qstr
 
     @staticmethod
     def sparql_creator(po_dict):
-        allowed_prefixes = set(('mr:hasFormat','mr:hasComponent', 'mr:hasProperty',
-                                'dc:requires', 'dc:mediator'))
+        allowed_prefixes = set(('rdf:type', 'mr:hasFormat','mr:hasComponent',
+                                'mr:hasProperty', 'dc:requires', 'dc:mediator'))
         preds = set(po_dict)
         if not preds.issubset(allowed_prefixes):
             ec = '{} is not a subset of the allowed predicates set for '\
@@ -584,91 +606,6 @@ class Component(_ComponentMixin, _DotMixin, MutableMapping):
             ''' % (subj_pref, sha1, search_string)
         return qstr, instr
 
-
-class Concept(Component):
-    """
-    A concept is the root component in a :class:`Property` hierarchy,
-    which defines the *domain* or *range* of a particular :class:`Mapping`
-    relationship.
-
-    A concept represents a specific :data:`scheme` or format such
-    as *UM* or *CF*. It is immutable and contains one or more
-    :class:`Component` or :class:`PropertyComponent` members.
-
-    A concept is deemed as either *simple* or *compound*:
-
-     * A concept is *simple* iff it contains exactly one member,
-       which is a :class:`PropertyComponent`.
-     * A concept is *compound* iff:
-       * It is not *simple*, or
-       * It contains two or more members.
-
-    If a concept is *simple* then each :class:`Property` that participates
-    in its hierarchy may be accessed via the :class:`Property` *name* attribute
-    for convenience i.e. *property = concept.standard_name*, or indexed via
-    the associated :class:`Property` *name* i.e. *concept['standard_name']*.
-
-    If a concept is *compound* then each component member is accessed via
-    indexing i.e. *component = concept[0]*
-
-    """
-    def __init__(self, uri, scheme, components, requires=None, mediator=None):
-        super(Concept, self).__init__(uri, components)
-        self.__dict__['scheme'] = Item(scheme)
-        # nb requires should allow list
-        if requires:
-            self.__dict__['requires'] = Item(requires)
-        if mediator:
-            self.__dict__['mediator'] = Item(mediator)
-
-    def __eq__(self, other):
-        result = NotImplemented
-        if isinstance(other, Concept):
-            result = False
-            if self.scheme == other.scheme:
-                result = super(Concept, self).__eq__(other)
-        return result
-
-    def __ne__(self, other):
-        result = self.__eq__(other)
-        if result is not NotImplemented:
-            result = not result
-        return result
-
-    def __repr__(self):
-        fmt = '{cls}({self.uri!r}, {self.scheme!r}, {components!r})'
-        components = self.components
-        if len(components) == 1:
-            components, = components
-        return fmt.format(self=self, cls=type(self).__name__,
-                          components=components)
-
-    def dot(self, graph, parent, name=None):
-        """
-        Generate a Dot digraph representation of this mapping concept.
-
-        Args:
-         * graph:
-            The containing Dot graph.
-         * parent:
-            The parent Dot node of this property.
-
-        Kwargs:
-         * name:
-            Name of the relationship between the nodes.
-
-        """
-        label = self.dot_escape('{}_{}'.format(parent.uri, self.uri.data))
-        node = pydot.Node(label, label=self.scheme.dot(),
-                          shape='box', style='filled',
-                          colorscheme='dark28', fillcolor='2',
-                          fontsize=8)
-        node.uri = self.uri.data
-        graph.add_node(node)
-        for comp in self.components:
-            comp.dot(graph, node, 'Component')
-        return node
-
     def json_referrer(self):
         """
         return the data contents of the component instance ready for encoding
@@ -678,10 +615,12 @@ class Concept(Component):
         if len(self) == 1 and self.uri.data == self.components[0].uri.data:
             prop_ref = self.components[0].json_referrer()
             prop_ref['mr:hasFormat'] = self.scheme.data
+            prop_ref['rdf:type'] = self.com_type.data
             referrer = prop_ref
         else:
             referrer = {'component': self.uri.data,
                         'mr:hasFormat': self.scheme.data,
+                        prop_ref['rdf:type'] : self.com_type.data,
                         'mr:hasComponent': []}
             for comp in self.components:
                 prop_ref = comp.json_referrer()
@@ -697,6 +636,8 @@ class Concept(Component):
         podict = {}
         if self.scheme:
             podict['mr:hasFormat'] = self.scheme.data
+        if self.com_type:
+            podict['rdf:type'] = self.com_type.data
         if len(self) == 1:
             podict['mr:hasProperty'] = []
             for aproperty in self.components[0].values():
@@ -731,6 +672,153 @@ class Concept(Component):
 
 
 
+
+# class Concept(Component):
+#     """
+#     A concept is the root component in a :class:`Property` hierarchy,
+#     which defines the *domain* or *range* of a particular :class:`Mapping`
+#     relationship.
+
+#     A concept represents a specific :data:`scheme` or format such
+#     as *UM* or *CF*. It is immutable and contains one or more
+#     :class:`Component` or :class:`PropertyComponent` members.
+
+#     A concept is deemed as either *simple* or *compound*:
+
+#      * A concept is *simple* iff it contains exactly one member,
+#        which is a :class:`PropertyComponent`.
+#      * A concept is *compound* iff:
+#        * It is not *simple*, or
+#        * It contains two or more members.
+
+#     If a concept is *simple* then each :class:`Property` that participates
+#     in its hierarchy may be accessed via the :class:`Property` *name* attribute
+#     for convenience i.e. *property = concept.standard_name*, or indexed via
+#     the associated :class:`Property` *name* i.e. *concept['standard_name']*.
+
+#     If a concept is *compound* then each component member is accessed via
+#     indexing i.e. *component = concept[0]*
+
+#     """
+#     def __init__(self, uri, scheme, components, requires=None, mediator=None):
+#         super(Concept, self).__init__(uri, components)
+#         self.__dict__['scheme'] = Item(scheme)
+#         # nb requires should allow list
+#         if requires:
+#             self.__dict__['requires'] = Item(requires)
+#         if mediator:
+#             self.__dict__['mediator'] = Item(mediator)
+
+#     def __eq__(self, other):
+#         result = NotImplemented
+#         if isinstance(other, Concept):
+#             result = False
+#             if self.scheme == other.scheme:
+#                 result = super(Concept, self).__eq__(other)
+#         return result
+
+#     def __ne__(self, other):
+#         result = self.__eq__(other)
+#         if result is not NotImplemented:
+#             result = not result
+#         return result
+
+#     def __repr__(self):
+#         fmt = '{cls}({self.uri!r}, {self.scheme!r}, {components!r})'
+#         components = self.components
+#         if len(components) == 1:
+#             components, = components
+#         return fmt.format(self=self, cls=type(self).__name__,
+#                           components=components)
+
+    # def dot(self, graph, parent, name=None):
+    #     """
+    #     Generate a Dot digraph representation of this mapping concept.
+
+    #     Args:
+    #      * graph:
+    #         The containing Dot graph.
+    #      * parent:
+    #         The parent Dot node of this property.
+
+    #     Kwargs:
+    #      * name:
+    #         Name of the relationship between the nodes.
+
+    #     """
+    #     label = self.dot_escape('{}_{}'.format(parent.uri, self.uri.data))
+    #     node = pydot.Node(label, label=self.scheme.dot(),
+    #                       shape='box', style='filled',
+    #                       colorscheme='dark28', fillcolor='2',
+    #                       fontsize=8)
+    #     node.uri = self.uri.data
+    #     graph.add_node(node)
+    #     for comp in self.components:
+    #         comp.dot(graph, node, 'Component')
+    #     return node
+
+    # def json_referrer(self):
+    #     """
+    #     return the data contents of the component instance ready for encoding
+    #     as a json string
+
+    #     """
+    #     if len(self) == 1 and self.uri.data == self.components[0].uri.data:
+    #         prop_ref = self.components[0].json_referrer()
+    #         prop_ref['mr:hasFormat'] = self.scheme.data
+    #         referrer = prop_ref
+    #     else:
+    #         referrer = {'component': self.uri.data,
+    #                     'mr:hasFormat': self.scheme.data,
+    #                     'mr:hasComponent': []}
+    #         for comp in self.components:
+    #             prop_ref = comp.json_referrer()
+    #             prop_ref['mr:hasFormat'] = self.scheme.data
+    #             referrer['mr:hasComponent'].append(prop_ref)
+    #     return referrer
+
+    # def _podict(self):
+    #     """
+    #     Return a dictionary of predicates and objects for a rdf representation
+
+    #     """
+    #     podict = {}
+    #     if self.scheme:
+    #         podict['mr:hasFormat'] = self.scheme.data
+    #     if len(self) == 1:
+    #         podict['mr:hasProperty'] = []
+    #         for aproperty in self.components[0].values():
+    #             podict['mr:hasProperty'].append(aproperty.uri.data)
+    #     elif len(self) > 1:
+    #         podict['mr:hasComponent'] = []
+    #         for comp in self.components:
+    #             podict['mr:hasComponent'].append(comp.uri.data)
+    #     if self.__dict__.has_key('requires'):
+    #         podict['dc:requires'] = self.requires.data ## list
+    #     if self.__dict__.has_key('mediator'):
+    #         podict['dc:mediator'] = self.mediator.data
+    #     return podict
+
+    # def creation_sparql(self):
+    #     """
+    #     return SPARQL string for creation of a Concept
+
+    #     """
+    #     return self.sparql_creator(self._podict())
+
+    # def create_rdf(self, fuseki_process):
+    #     """
+    #     create rdf representation using the provided fuseki process
+
+    #     """
+    #     qstr, instr = self.creation_sparql()
+    #     result = fuseki_process.create(qstr, instr)
+    #     self.uri = Item(result['component'])
+    #     if len(self) == 1 and isinstance(self.components[0], PropertyComponent):
+    #         self.components[0].uri = Item(self.uri)
+
+
+
 class PropertyComponent(_ComponentMixin, _DotMixin, MutableMapping):
     """
     A property component must be contained within a parent
@@ -753,8 +841,10 @@ class PropertyComponent(_ComponentMixin, _DotMixin, MutableMapping):
 
     """
     def __init__(self, uri, properties):
-        self.__dict__['uri'] = Item(uri)
-        self.__dict__['_data'] = {}
+        # self.__dict__['uri'] = Item(uri)
+        # self.__dict__['_data'] = {}
+        self.uri = Item(uri)
+        self._data = {}
         if isinstance(properties, Property) or \
                 not isinstance(properties, Iterable):
             properties = [properties]
@@ -767,7 +857,8 @@ class PropertyComponent(_ComponentMixin, _DotMixin, MutableMapping):
                 msg = 'Expected a {!r} object, got {!r}.'
                 raise TypeError(msg.format(Property.__name__,
                                            type(prop).__name__))
-            self.__dict__['_data'][prop.name] = prop
+            # self.__dict__['_data'][prop.name] = prop
+            self._data[prop.name] = prop
 
     def __eq__(self, other):
         result = NotImplemented

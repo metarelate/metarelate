@@ -606,7 +606,7 @@ class FusekiServer(object):
         if base:
             scheme = qcomp['format']
             scheme = metarelate.Item(scheme, self.get_label(scheme))
-            result = metarelate.Concept(uri, scheme, result)
+            result = metarelate.Component(uri, scheme=scheme, components=result)
         return result
 
     def _retrieve_value_map(self, valmap_id, inv):
