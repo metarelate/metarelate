@@ -595,6 +595,7 @@ class FusekiServer(object):
                         op = metarelate.Item(op, self.get_label(op))
                 properties.append(metarelate.Property(puri, name, value, op))
             result = metarelate.PropertyComponent(uri, properties)
+        ## this bit needs fixing
         if qcomp['subComponent']:
             components = []
             for curi in qcomp['subComponent']:
