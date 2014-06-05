@@ -347,9 +347,7 @@ class Mapping(_DotMixin):
 
 class Component(_ComponentMixin, _DotMixin, MutableMapping):
     """
-    A component participates in a :class:`Property` hierarchy.
-    It contains one or more :class`Component` or :class:`PropertyComponent`
-    members.
+    A component is an identified source or target for a mapping
 
     A component is deemed as either *simple* or *compound*:
 
@@ -369,35 +367,38 @@ class Component(_ComponentMixin, _DotMixin, MutableMapping):
     indexing i.e. *component = concept[0]*
 
     """
-    def __init__(self, uri, com_type=None, components=None, requires=None, mediator=None):
+    def __init__(self, uri, com_type=None, components=[], properties=[],
+                 requires=None, mediator=None):
         # self.__dict__['uri'] = Item(uri)
         self.uri = Item(uri)
         if com_type is not None:
             self.com_type = Item(com_type)
-        if isinstance(components, Component) or \
-                isinstance(components, PropertyComponent) or \
-                not isinstance(components, Iterable):
-            components = [components]
-        if not len(components):
-            msg = '{!r} object must contain at least one component.'
-            raise ValueError(msg.format(type(self).__name__))
-        temp = []
-        for comp in components:
-            if not isinstance(comp, (Component, PropertyComponent)):
-                msg = 'Expected a {!r} or {!r} object, got {!r}.'
-                raise TypeError(msg.format(Component.__name__,
-                                           PropertyComponent.__name__,
-                                           type(comp).__name__))
-            temp.append(comp)
-        # self.__dict__['_data'] = tuple(sorted(temp, key=lambda c: c.uri.data))
-        # self.__dict__['components'] = self._data
-        self._data = tuple(sorted(temp, key=lambda c: c.uri.data))
-        self.components = self._data
+        # if isinstance(components, Component) or \
+        #         isinstance(components, PropertyComponent) or \
+        #         not isinstance(components, Iterable):
+        #     components = [components]
+        # if not len(components):
+        #     msg = '{!r} object must contain at least one component.'
+        #     raise ValueError(msg.format(type(self).__name__))
+        # temp = []
+        # for comp in components:
+        #     if not isinstance(comp, (Component, PropertyComponent)):
+        #         msg = 'Expected a {!r} or {!r} object, got {!r}.'
+        #         raise TypeError(msg.format(Component.__name__,
+        #                                    PropertyComponent.__name__,
+        #                                    type(comp).__name__))
+        #     temp.append(comp)
+        # # self.__dict__['_data'] = tuple(sorted(temp, key=lambda c: c.uri.data))
+        # # self.__dict__['components'] = self._data
+        # self._data = tuple(sorted(temp, key=lambda c: c.uri.data))
+        # self.components = self._data
         # nb requires should allow list
         #if requires:
         self.requires = Item(requires)
         #if mediator:
         self.mediator = Item(mediator)
+        self.components = components
+        self.properties = properties
 
 
     def __eq__(self, other):
@@ -645,18 +646,20 @@ class Component(_ComponentMixin, _DotMixin, MutableMapping):
         # podict['mr:hasComponent'] = []
         # for comp in self.components:
         #     podict['mr:hasComponent'].append(comp.uri.data)
-        if self.__dict__.has_key('requires'):
+        if self.requires:#__dict__.has_key('requires'):
             podict['dc:requires'] = self.requires.data ## list
-        if self.__dict__.has_key('mediator'):
+        if self.mediator:#__dict__.has_key('mediator'):
             podict['dc:mediator'] = self.mediator.data
         podict = self._podict_elems(podict)
         return podict
 
     def _podict_elems(self, podict):
-        if len(self) > 0:
-            podict['mr:hasComponent'] = []
-            for comp in self.components:
-                podict['mr:hasComponent'].append(comp.uri.data)
+        podict['mr:hasComponent'] = []
+        for comp in self.components:
+            podict['mr:hasComponent'].append(comp.uri.data)
+        podict['mr:hasProperty'] = []
+        for aprop in self.properties:
+            podict['mr:hasProperty'].append(aprop.uri.data)
         return podict
 
     def creation_sparql(self):
@@ -674,8 +677,6 @@ class Component(_ComponentMixin, _DotMixin, MutableMapping):
         qstr, instr = self.creation_sparql()
         result = fuseki_process.create(qstr, instr)
         self.uri = Item(result['component'])
-        # if len(self) == 1 and isinstance(self.components[0], PropertyComponent):
-        #     self.components[0].uri = Item(self.uri)
 
 
 
