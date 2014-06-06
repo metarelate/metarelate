@@ -638,17 +638,9 @@ class Component(_ComponentMixin, _DotMixin, MutableMapping):
         podict = {}
         if self.com_type:
             podict['rdf:type'] = self.com_type.data
-        # if len(self) == 1:
-        #     podict['mr:hasProperty'] = []
-        #     for aproperty in self.components[0].values():
-        #         podict['mr:hasProperty'].append(aproperty.uri.data)
-        # elif len(self) > 1:
-        # podict['mr:hasComponent'] = []
-        # for comp in self.components:
-        #     podict['mr:hasComponent'].append(comp.uri.data)
-        if self.requires:#__dict__.has_key('requires'):
+        if self.requires:
             podict['dc:requires'] = self.requires.data ## list
-        if self.mediator:#__dict__.has_key('mediator'):
+        if self.mediator:
             podict['dc:mediator'] = self.mediator.data
         podict = self._podict_elems(podict)
         return podict
@@ -861,10 +853,6 @@ class Property(_DotMixin):
             raise ValueError('A name a ptype may not both be defined for'
                                  'a Property')
         self.name = Item(name)
-        # if (value is None and operator is not None) or \
-        #         (value is not None and operator is None):
-        #     msg = 'The {!r} and {!r} of a Property must be both set or unset.'
-        #     raise ValueError(msg.format('value', 'operator'))
         if isinstance(value, (Item, basestring)):
             new_value = Item(value)
         elif isinstance(value, PropertyComponent):
