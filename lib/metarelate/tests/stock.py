@@ -27,51 +27,37 @@ import metarelate
 def property_cf_standard_name():
     data = '<http://def.cfconventions.org/datamodel/standard_name>'
     notation = 'standard_name'
-    name = metarelate.Item(data, notation)
+    ptype = metarelate.Item(data, notation)
 
     data = '<http://def.cfconventions.org/standard_names/' \
         'tendency_of_sea_ice_thickness_due_to_dynamics>'
     notation = 'tendency_of_sea_ice_thickness_due_to_dynamics'
     value = metarelate.Item(data, notation)
 
-    data = '<http://www.openmath.org/cd/relation1.xhtml#eq>'
-    notation = '='
-    operator = metarelate.Item(data, notation)
-
     uri = '<http://www.metarelate.net/test/property/test_p001'
-    return metarelate.Property(uri, name, value, operator)
+    return metarelate.Property(uri, ptype=ptype, closematch=value)
 
+def property2_cf_standard_name():
+    data = '<http://def.cfconventions.org/datamodel/standard_name>'
+    notation = 'standard_name'
+    ptype = metarelate.Item(data, notation)
 
-def property_cf_type():
-    data = '<http://def.cfconventions.org/datamodel/type>'
-    notation = 'type'
-    name = metarelate.Item(data, notation)
-
-    data = '<http://def.cfconventions.org/datamodel/Field>'
-    notation = 'Field'
+    data = '<http://def.cfconventions.org/standard_names/x_wind'
+    notation = 'x_wind'
     value = metarelate.Item(data, notation)
 
-    data = '<http://www.openmath.org/cd/relation1.xhtml#eq>'
-    notation = '='
-    operator = metarelate.Item(data, notation)
-
-    uri = '<http://www.metarelate.net/test/property/test_p002>'
-    return metarelate.Property(uri, name, value, operator)
-
+    uri = '<http://www.metarelate.net/test/property/test_p002'
+    return metarelate.Property(uri, ptype=ptype, closematch=value)
 
 def property_cf_units():
     data = '<http://def.cfconventions.org/datamodel/units>'
     notation = 'units'
     name = metarelate.Item(data, notation)
 
-    value = metarelate.Item(data='"m s-1"', notation='m s-1')
-
-    data = '<http://www.openmath.org/cd/relation1.xhtml#eq>'
-    notation = '='
-    operator = metarelate.Item(data, notation)
+    value = 'm s-1'#metarelate.Item(data='"m s-1"', notation='m s-1')
 
     uri = '<http://www.metarelate.net/test/property/test_p003>'
-    return metarelate.Property(uri, name, value, operator)
+    return metarelate.Property(uri, ptype=name, value=value)
 
 
 def property_um_stash():
@@ -82,66 +68,45 @@ def property_um_stash():
     data = '<http://reference.metoffice.gov.uk/def/um/stash/concept/' \
         'm02s32i202>'
     notation = 'm02s32i202'
-    value = metarelate.Item(data, notation)
-
-    data = '<http://www.openmath.org/cd/relation1.xhtml#eq>'
-    notation = '='
-    operator = metarelate.Item(data, notation)
+    closematch = metarelate.Item(data, notation)
 
     uri = '<http://www.metarelate.net/test/property/test_p004>'
-    return metarelate.Property(uri, name, value, operator)
-
-
-def property_component_cf():
-    properties = [property_cf_standard_name(),
-                  property_cf_units(),
-                  property_cf_type()]
-    uri = '<http://www.metarelate.net/test/component/test_c001>'
-    return metarelate.PropertyComponent(uri, properties)
-
-
-def property_component_um():
-    uri = '<http://www.metarelate.net/test/component/test_c002>'
-    return metarelate.PropertyComponent(uri, property_um_stash())
+    return metarelate.Property(uri, ptype=name, closematch=closematch)
 
 
 def simple_component_cf():
-    uri = '<http://www.metarelate.net/test/component/test_c003>'
-    return metarelate.Component(uri, property_component_cf())
+    properties = [property_cf_standard_name(),
+                  property_cf_units()]
+    uri = '<http://www.metarelate.net/test/component/test_c001>'
+    ctype = '<http://def.cfconventions.org/datamodel/Field>'
+    return metarelate.Component(uri, com_type=ctype,
+                                properties=properties)
+
+def simple_component2_cf():
+    properties = [property2_cf_standard_name(),
+                  property_cf_units()]
+    uri = '<http://www.metarelate.net/test/component/test_c002>'
+    ctype = '<http://def.cfconventions.org/datamodel/Field>'
+    return metarelate.Component(uri, com_type=ctype,
+                                properties=properties)
 
 
 def compound_component_cf():
-    uri = '<http://www.metarelate.net/test/component/test_c004>'
-    return metarelate.Component(uri, simple_component_cf())
+    uri = '<http://www.metarelate.net/test/component/test_c003>'
+    ctype = '<http://def.cfconventions.org/datamodel/Field>'
+    return metarelate.Component(uri, com_type=ctype,
+                                components=[simple_component_cf(),
+                                            simple_component2_cf()])
 
+def simple_component_um():
+    uri = '<http://www.metarelate.net/test/component/test_c002>'
+    ctype='<http://reference.metoffice.gov.uk/um/f3/stash>'
+    return metarelate.Component(uri, com_type=ctype,
+                                properties=[property_um_stash()])
 
-def simple_concept_cf():
-    data = '<http://www.metarelate.net/test/format/cf>'
-    notation = 'cf'
-    scheme = metarelate.Item(data, notation)
-
-    uri = '<http://www.metarelate.net/test/component/test_c005>'
-    return metarelate.Concept(uri, scheme, property_component_cf())
-
-
-def compound_concept_cf():
-    data = '<http://www.metarelate.net/test/format/cf>'
-    notation = 'cf'
-    scheme = metarelate.Item(data, notation)
-
-    uri = '<http://www.metarelate.net/test/component/test_c006>'
-    return metarelate.Concept(uri, scheme, simple_component_cf())
-
-
-def simple_concept_um():
-    data = '<http://www.metarelate.net/test/format/um>'
-    notation = 'um'
-    scheme = metarelate.Item(data, notation)
-
-    uri = '<http://www.metarelate.net/test/component/test_c007>'
-    return metarelate.Concept(uri, scheme, property_component_um())
 
 
 def simple_mapping_um_cf():
     uri = '<http://www.metarelate.net/test/mapping/test_m001>'
-    return metarelate.Mapping(uri, simple_concept_um(), simple_concept_cf())
+    return metarelate.Mapping(uri, source=simple_component_um(),
+                              target=simple_component_cf())

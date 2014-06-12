@@ -36,29 +36,29 @@ site_config = {
 update(site_config)
 
 
-class _ComponentMixin(object):
-    """
-    Mixin class for common mapping component behaviour.
+# class _ComponentMixin(object):
+#     """
+#     Mixin class for common mapping component behaviour.
 
-    """
-    def __setitem__(self, key, value):
-        self._immutable_exception()
+#     """
+#     # def __setitem__(self, key, value):
+#     #     self._immutable_exception()
 
-    def __delitem__(self, key):
-        self._immutable_exception()
+#     # def __delitem__(self, key):
+#     #     self._immutable_exception()
 
-    def __getattr__(self, name):
-        return self.__getitem__(name)
+#     # def __getattr__(self, name):
+#     #     return self.__getitem__(name)
 
-    def __iter__(self):
-        return iter(self._data)
+#     # def __iter__(self):
+#     #     return iter(self._data)
 
-    def __len__(self):
-        return len(self._data)
+#     # def __len__(self):
+#     #     return len(self._data)
 
-    def _immutable_exception(self):
-        msg = '{!r} object is immutable.'
-        raise TypeError(msg.format(type(self).__name__))
+#     def _immutable_exception(self):
+#         msg = '{!r} object is immutable.'
+#         raise TypeError(msg.format(type(self).__name__))
 
 
 class _DotMixin(object):
@@ -345,72 +345,55 @@ class Mapping(_DotMixin):
         return qstr, instr
 
 
-class Component(_ComponentMixin, _DotMixin, MutableMapping):
+# class Component(_ComponentMixin, _DotMixin, MutableMapping):
+class Component(_DotMixin):
     """
     A component is an identified source or target for a mapping
 
     A component is deemed as either *simple* or *compound*:
 
-     * A component is *simple* iff it contains exactly one member,
-       which is a :class:`PropertyComponent`.
-     * A component is *compound* iff:
-       * It is not *simple*, or
-       * It contains two or more members.
-
-    If a component is *simple* then each :class:`Property` that participates
-    in its underlying hierarchy may be accessed via the :class:`Property`
-    *name* attribute for convenience i.e. *property = component.standard_name*,
-    or indexed via the associated :class:`Property` *name*
-    i.e. *concept['standard_name']*.
-
-    If a concept is *compound* then each component member is accessed by
-    indexing i.e. *component = concept[0]*
+    * A component is *simple* if it contains properties but no
+    component members
 
     """
     def __init__(self, uri, com_type=None, components=[], properties=[],
-                 requires=None, mediator=None):
+                 requires=[], mediator=None):
         # self.__dict__['uri'] = Item(uri)
         self.uri = Item(uri)
         if com_type is not None:
             self.com_type = Item(com_type)
-        # if isinstance(components, Component) or \
-        #         isinstance(components, PropertyComponent) or \
-        #         not isinstance(components, Iterable):
-        #     components = [components]
-        # if not len(components):
-        #     msg = '{!r} object must contain at least one component.'
-        #     raise ValueError(msg.format(type(self).__name__))
-        # temp = []
-        # for comp in components:
-        #     if not isinstance(comp, (Component, PropertyComponent)):
-        #         msg = 'Expected a {!r} or {!r} object, got {!r}.'
-        #         raise TypeError(msg.format(Component.__name__,
-        #                                    PropertyComponent.__name__,
-        #                                    type(comp).__name__))
-        #     temp.append(comp)
-        # # self.__dict__['_data'] = tuple(sorted(temp, key=lambda c: c.uri.data))
-        # # self.__dict__['components'] = self._data
-        # self._data = tuple(sorted(temp, key=lambda c: c.uri.data))
-        # self.components = self._data
-        # nb requires should allow list
-        #if requires:
-        self.requires = Item(requires)
-        #if mediator:
-        self.mediator = Item(mediator)
+        # self.requires = [Item(req) for req in requires]
+        # self.mediator = Item(mediator)
+        for comp in components:
+            if not isinstance(comp, Component):
+                raise TypeError('one of the components is a {}, not '
+                                'a metarelate Component'.format(type(comp)))
         self.components = components
+        for prop in properties:
+            if not isinstance(prop, Property):
+                raise TypeError('one of the properties is a {}, not '
+                                'a metarelate Property'.format(type(prop)))
         self.properties = properties
 
+    def _retrieve(self, fuseki_process):
+        if self.uri:
+            qstr = self.sparql_retriever(uri)
+            response = fuseki_process.run_query(qstr)
+            # populate attrs
+            # not yet done
 
     def __eq__(self, other):
         result = NotImplemented
         if isinstance(other, type(self)):
             result = False
             if self.uri == other.uri and len(self) == len(other):
-                for i, comp in enumerate(self):
-                    if comp != other[i]:
-                        break
-                else:
-                    result = True
+                result=True
+                if not self.components.sort() == other.components.sort():
+                    res = False
+                if not self.properties.sort() == other.properties.sort():
+                    res = False
+                if not self.com_type == other.com_type:
+                    result = False
         return result
 
     def __ne__(self, other):
@@ -419,41 +402,72 @@ class Component(_ComponentMixin, _DotMixin, MutableMapping):
             result = not result
         return result
 
-    def __getitem__(self, key):
-        if isinstance(key, int):
-            result = self.components[key]
+    def __len__(self):
+        if self.simple:
+            res = len(self.properties)
         else:
-            if self.compound:
-                self._compound_exception()
-            result = None
-            simple, = self.components
-            for name in simple:
-                if name == key:
-                    result = simple[name]
-                    break
+            res = len(self.properties) + len(self.components)
+        return res
+
+    def _props(self):
+        if self.__dict__.has_key('properties'):
+            uniquekeys = len(set([p.notation for p in self.__dict__['properties']]))
+            if len(self.__dict__['properties']) != uniquekeys:
+                raise ValueError('this component has non-unique property types')
+            props = dict([(prop.notation, prop) for prop in self.properties])
+        else:
+            props = {}
+        return props
+
+    def _okeys(self):
+        return ['uri', 'com_type', 'requires',
+                'mediator', 'components', 'properties']
+        
+    def __getattr__(self, key):
+        if key in self._props().keys():
+            result = self._props()[key]
+        elif key in self._okeys():
+            result = self.__dict__[key]
+        else:
+            msg = '{} object has no attribute "{}"'
+            msg = msg.format(type(self).__name__, key)
+            raise AttributeError(msg)
         return result
 
     def __contains__(self, key):
-        if self.compound:
-            self._compound_exception()
-        return key in self.components[0]
+        if key in self._props().keys():
+            res = True
+        elif key in self._okeys():
+            res = True
+        else:
+            res = False
+        return res
 
+    def __setattr__(self, key, value):
+        if key in self._props().keys():
+            raise ValueError('A property named {} already exists'.format(key))
+        elif key in self._okeys():
+            self.__dict__[key] = value
+        else:
+            if isinstance(value, Property):
+                self.properties.append(value)
+            else:
+                msg = '{} is not a metarelate Property'
+                msg = msg.format(type(value).__name__)
+                raise TypeError(msg)
+        
     def __repr__(self):
-        fmt = '{cls}({self.uri!r}, {self.com_type!r}, {components!r})'
-        components = self.components
-        if len(components) == 1:
-            components, = components
+        fmt = '{cls}({self.uri!r}, {self.com_type!r}\n'
+        fmt += '{properties!r}\n'
+        fmt += '{components!r})'
         return fmt.format(self=self, cls=type(self).__name__,
-                          components=components)
-
-    def _compound_exception(self):
-        msg = '{!r} object is compound.'
-        raise TypeError(msg.format(type(self).__name__))
+                          properties=self.properties,
+                          components=self.components)
 
     @property
     def simple(self):
-        return len(self) == 1 and \
-            isinstance(self.components[0], PropertyComponent)
+        return len(self.components) == 0 and \
+            len(self.properties) != 0
 
     @property
     def compound(self):
@@ -672,155 +686,152 @@ class Component(_ComponentMixin, _DotMixin, MutableMapping):
 
 
 
-class PropertyComponent(Component):
-    """
-    A property component contains one or more uniquely named/typed
-    :class:`Property` members.
+# class PropertyComponent(Component):
+#     """
+#     A property component contains one or more uniquely named/typed
+#     :class:`Property` members.
 
-    The property component provides dictionary style access to its
-    :class:`Property` members, keyed on the :data:`Property.name`.
-    Alternatively, attribute access via the member *name* is supported
-    as a convenience.
+#     The property component provides dictionary style access to its
+#     :class:`Property` members, keyed on the :data:`Property.name`.
+#     Alternatively, attribute access via the member *name* is supported
+#     as a convenience.
 
-    Note that, each :class:`Property` member must have a unique *name*/*type*.
+#     Note that, each :class:`Property` member must have a unique *name*/*type*.
 
-    A property component is deemed as either *simple* or *compound*:
+#     A property component is deemed as either *simple* or *compound*:
 
-     * A property component is *simple* iff all its :class:`Property`
-       members are *simple*.
-     * A property component is *compound* iff it contains at least
-       one :class:`Property` member that is *compound*.
+#      * A property component is *simple* iff all its :class:`Property`
+#        members are *simple*.
+#      * A property component is *compound* iff it contains at least
+#        one :class:`Property` member that is *compound*.
 
-    """
-    def __init__(self, uri, com_type, properties, requires=None, mediator=None):
-        # self.__dict__['uri'] = Item(uri)
-        # self.__dict__['_data'] = {}
-        self.uri = Item(uri)
-        self.com_type = Item(com_type)
-        self._data = {}
-        if isinstance(properties, Property) or \
-                not isinstance(properties, Iterable):
-            properties = [properties]
-        if not len(properties):
-            msg = '{!r} object must contain at least one {!r}.'
-            raise ValueError(msg.format(type(self).__name__,
-                                        Property.__name__))
-        for prop in properties:
-            if not isinstance(prop, Property):
-                msg = 'Expected a {!r} object, got {!r}.'
-                raise TypeError(msg.format(Property.__name__,
-                                           type(prop).__name__))
-            # self.__dict__['_data'][prop.name] = prop
-            if prop.ptype:
-                self._data[prop.ptype] = prop
-            elif prop.name:
-                self._data[prop.name] = prop
+#     """
+#     def __init__(self, uri, com_type, properties, requires=None, mediator=None):
+#         self.uri = Item(uri)
+#         self.com_type = Item(com_type)
+#         self._data = {}
+#         if isinstance(properties, Property) or \
+#                 not isinstance(properties, Iterable):
+#             properties = [properties]
+#         if not len(properties):
+#             msg = '{!r} object must contain at least one {!r}.'
+#             raise ValueError(msg.format(type(self).__name__,
+#                                         Property.__name__))
+#         for prop in properties:
+#             if not isinstance(prop, Property):
+#                 msg = 'Expected a {!r} object, got {!r}.'
+#                 raise TypeError(msg.format(Property.__name__,
+#                                            type(prop).__name__))
+#             if prop.ptype:
+#                 self._data[prop.ptype] = prop
+#             elif prop.name:
+#                 self._data[prop.name] = prop
 
-    def __eq__(self, other):
-        result = NotImplemented
-        if isinstance(other, PropertyComponent):
-            result = False
-            if self.uri == other.uri and set(self.keys()) == set(other.keys()):
-                for key in self.keys():
-                    if self[key] != other[key]:
-                        break
-                else:
-                    result = True
-        return result
+#     def __eq__(self, other):
+#         result = NotImplemented
+#         if isinstance(other, PropertyComponent):
+#             result = False
+#             if self.uri == other.uri and set(self.keys()) == set(other.keys()):
+#                 for key in self.keys():
+#                     if self[key] != other[key]:
+#                         break
+#                 else:
+#                     result = True
+#         return result
 
-    def __ne__(self, other):
-        result = self.__eq__(other)
-        if result is not NotImplemented:
-            result = not result
-        return result
+#     def __ne__(self, other):
+#         result = self.__eq__(other)
+#         if result is not NotImplemented:
+#             result = not result
+#         return result
 
-    def __getitem__(self, key):
-        result = None
-        for item in self._data.iterkeys():
-            if item == key:
-                result = self._data[item]
-                break
-        return result
+#     def __getitem__(self, key):
+#         result = None
+#         for item in self._data.iterkeys():
+#             if item == key:
+#                 result = self._data[item]
+#                 break
+#         return result
 
-    def __contains__(self, key):
-        result = False
-        if isinstance(key, (Item, basestring)):
-            result = self[key] is not None
-        elif isinstance(key, Property):
-            result = key == self[key.name]
-        return result
+#     def __contains__(self, key):
+#         result = False
+#         if isinstance(key, (Item, basestring)):
+#             result = self[key] is not None
+#         elif isinstance(key, Property):
+#             result = key == self[key.name]
+#         return result
 
-    def __repr__(self):
-        fmt = '{cls}({self.uri!r}, {self.com_type!r}, {properties!r})'
-        properties = sorted(self._data.values())
-        if len(properties) == 1:
-            properties, = properties
-        return fmt.format(self=self, cls=type(self).__name__,
-                          properties=properties)
+#     def __repr__(self):
+#         fmt = '{cls}({self.uri!r}, {self.com_type!r}, {properties!r})'
+#         properties = sorted(self._data.values())
+#         if len(properties) == 1:
+#             properties, = properties
+#         return fmt.format(self=self, cls=type(self).__name__,
+#                           properties=properties)
 
-    @property
-    def simple(self):
-        return all([prop.simple for prop in self.itervalues()])
+#     @property
+#     def simple(self):
+#         return all([prop.simple for prop in self.itervalues()])
 
-    @property
-    def compound(self):
-        return not self.simple
+#     @property
+#     def compound(self):
+#         return not self.simple
 
-    def dot(self, graph, parent, name=None):
-        """
-        Generate a Dot digraph representation of this mapping component.
+#     def dot(self, graph, parent, name=None):
+#         """
+#         Generate a Dot digraph representation of this mapping component.
 
-        Args:
-         * graph:
-            The containing Dot graph.
-         * parent:
-            The parent Dot node of this componet.
+#         Args:
+#          * graph:
+#             The containing Dot graph.
+#          * parent:
+#             The parent Dot node of this componet.
 
-        Kwargs:
-         * name:
-            Name of the relationship between the nodes.
+#         Kwargs:
+#          * name:
+#             Name of the relationship between the nodes.
 
-        """
-        if parent.uri == self.uri.data:
-            # This component references one or more properties.
-            for prop in self.values():
-                prop.dot(graph, parent, 'Property')
-        else:
-            # This component references another component.
-            label = self.dot_escape('{}_{}'.format(parent.uri, self.uri.data))
-            node = pydot.Node(label, label='Component',
-                              style='filled', peripheries='2',
-                              colorscheme='dark28', fillcolor='3',
-                              fontsize=8)
-            node.uri = self.uri.data
-            graph.add_node(node)
-            edge = pydot.Edge(parent, node,
-                              tailport='s', headport='n')
-            if name is not None:
-                edge.set_label(self.dot_escape(name))
-                edge.set_fontsize(7)
-            graph.add_edge(edge)
-            for prop in self.values():
-                prop.dot(graph, node, 'Property')
+#         """
+#         if parent.uri == self.uri.data:
+#             # This component references one or more properties.
+#             for prop in self.values():
+#                 prop.dot(graph, parent, 'Property')
+#         else:
+#             # This component references another component.
+#             label = self.dot_escape('{}_{}'.format(parent.uri, self.uri.data))
+#             node = pydot.Node(label, label='Component',
+#                               style='filled', peripheries='2',
+#                               colorscheme='dark28', fillcolor='3',
+#                               fontsize=8)
+#             node.uri = self.uri.data
+#             graph.add_node(node)
+#             edge = pydot.Edge(parent, node,
+#                               tailport='s', headport='n')
+#             if name is not None:
+#                 edge.set_label(self.dot_escape(name))
+#                 edge.set_fontsize(7)
+#             graph.add_edge(edge)
+#             for prop in self.values():
+#                 prop.dot(graph, node, 'Property')
 
-    def json_referrer(self):
-        """
-        return the data contents of the propertyComponent instance
-        ready for encoding as a json string
+#     def json_referrer(self):
+#         """
+#         return the data contents of the propertyComponent instance
+#         ready for encoding as a json string
 
-        """
-        referrer = {'component': self.uri.data,
-                    'mr:hasProperty': []}
-        for item in self.itervalues():
-            referrer['mr:hasProperty'].append(item.json_referrer())
-        return referrer
+#         """
+#         referrer = {'component': self.uri.data,
+#                     'mr:hasProperty': []}
+#         for item in self.itervalues():
+#             referrer['mr:hasProperty'].append(item.json_referrer())
+#         return referrer
 
-    def _podict_elems(self, podict):
-        if len(self) > 0:
-            podict['mr:hasProperty'] = []
-            for aproperty in self.values():
-                podict['mr:hasProperty'].append(aproperty.uri.data)
-        return podict
+#     def _podict_elems(self, podict):
+#         if len(self) > 0:
+#             podict['mr:hasProperty'] = []
+#             for aproperty in self.values():
+#                 podict['mr:hasProperty'].append(aproperty.uri.data)
+#         return podict
 
 
 class Property(_DotMixin):
@@ -844,7 +855,7 @@ class Property(_DotMixin):
 
     """
     def __init__(self, uri=None, ptype=None, closematch=None, defby=None,
-                 value=None, name=None, operator=None):#, component=None):
+                 value=None, name=None, operator=None, component=None):
         self.uri = Item(uri)
         self.ptype = Item(ptype)
         self.closematch = Item(closematch)
@@ -853,19 +864,25 @@ class Property(_DotMixin):
             raise ValueError('A name a ptype may not both be defined for'
                                  'a Property')
         self.name = Item(name)
-        if isinstance(value, (Item, basestring)):
-            new_value = Item(value)
-        elif isinstance(value, PropertyComponent):
+        # if isinstance(value, (Item, basestring)):
+        #     new_value = Item(value)
+        # el
+        if value is None:
             new_value = value
-        elif value is None:
+        elif isinstance(value, str):
+            new_value = '""'.format(value)
+        elif isinstance(value, int) or isinstance(value, float):
             new_value = value
         else:
-            msg = 'Invalid {!r} value, got {!r}.'
-            raise TypeError(msg.format(cls.__name__,
-                                        type(value).__name__))
+            msg = 'Invalid value, got {!r}.'
+            raise TypeError(msg.format(type(value).__name__))
         self.value = new_value
         self.operator = Item(operator)
-        # self.component = Item(component)
+        self.component = Item(component)
+
+    @property
+    def notation(self):
+        return self.ptype.notation
 
     def __eq__(self, other):
         result = NotImplemented
@@ -876,8 +893,8 @@ class Property(_DotMixin):
                 self.operator == other.operator and \
                 self.ptype == other.ptype and \
                 self.closematch == other.closematch and \
-                self.defby == other.defby #and \
-                #self.component = other.component
+                self.definedby == other.definedby and \
+                self.component == other.component
         elif self.simple and isinstance(other, (Item, basestring)):
             result = self.value == other
         return result
@@ -929,10 +946,9 @@ class Property(_DotMixin):
         if self.name:
             podict['mr:name'] = self.name.data
         if self.value:
-            if isinstance(self.value, PropertyComponent):
-                podict['mr:hasComponent'] = self.value.data
-            else:
-                podict['rdf:value'] = self.value.data
+            podict['rdf:value'] = self.value.data
+        if self.component:
+            podict['mr:hasComponent'] = self.component.data
         if self.operator:
             podict['mr:operator'] = self.operator.data
         if self.ptype:
