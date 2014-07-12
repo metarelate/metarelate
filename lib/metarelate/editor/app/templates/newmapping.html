@@ -27,9 +27,23 @@
 {% block head %}
 <script type="text/javascript" src="/static/js/jquery.min.js"></script>
 <script type="text/javascript" src="/static/js/RelatedObjectLookups.js"></script> 
+<script type="text/javascript" src="/static/js/dynamic-formset.js"></script> 
+
+
 {% endblock %}
 
+   <script type="text/javascript">
 
+    $(function () {
+        $('.add-row').click(function() {
+    	    return addForm(this, 'form');
+        });
+        $('.delete-row').click(function() {
+    	    return deleteForm(this, 'form');
+        })
+    })
+
+    </script>
 
 {% block content %}
 
@@ -51,17 +65,25 @@
 
 <tr>
 <td>
-{% for sform in sourceformset %}
+{{ sourceformset.as_p }}
+
+{% for sform in sourceformset.forms %}
 
 {{ sform.as_p }}
 
 {% endfor %}
+<!-- non-functional -->
+<!-- https://djangosnippets.org/snippets/1389/ -->
+<a href="javascript:void(0)" class="add-row">add property</a>
 </td>
 <td>
-{% for tform in targetformset %}
+{{ targetformset.as_p }}
+
+{% for tform in targetformset.forms %}
 
 {{ tform.as_p }}
 {% endfor %}
+<a href="javascript:void(0)" class="add-row">add property</a>
 </td>
 </tr>
 

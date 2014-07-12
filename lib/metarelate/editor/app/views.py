@@ -1213,13 +1213,12 @@ def add_contact(request):
     return response
 
 def newmapping(request):
-    CForm = forms.Concept
-    SFormset = formset_factory(CForm)
-    TFormset = formset_factory(CForm)
+    PForm = forms.ConceptProperty
+    CFormset = formset_factory(PForm, formset=forms.Concept, extra=0)
     if request.method == 'POST':
         # create a form instance and populate it with data from the request:
-        sourceformset = SFormset(request.POST, prefix='source')
-        targetformset = TFormset(request.POST, prefix='target')
+        sourceformset = CFormset(request.POST, prefix='source')
+        targetformset = CFormset(request.POST, prefix='target')
         # check whether it's valid:
         if formset.is_valid():
             # process the data in form.cleaned_data as required
@@ -1229,8 +1228,8 @@ def newmapping(request):
 
     # if a GET (or any other method) we'll create a blank form
     else:
-        sourceformset = SFormset(prefix='source')
-        targetformset = TFormset(prefix='target')
+        sourceformset = CFormset(prefix='source')
+        targetformset = CFormset(prefix='target')
 
     return render_to_response('newmapping.html', {'sourceformset': sourceformset,
                                                   'targetformset': targetformset,
