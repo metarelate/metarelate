@@ -519,5 +519,5 @@ class Concept(forms.Form):
     concept_type = forms.ChoiceField(choices=choices)
 
 
-class TypedConceptProperty(forms.Form):
-    propthingy = forms.CharField(max_length=200)
+class ConceptProperty(forms.Form):
+    property = forms.CharField(widget=forms.TextInput(attrs={'readonly':True}))
