@@ -27,6 +27,7 @@ from django.core.urlresolvers import reverse
 from django.template.loader import render_to_string
 from django.utils import formats
 from django.utils.safestring import mark_safe
+from django.forms.formsets import BaseFormSet
 
 import metarelate
 import metarelate.prefixes as prefixes
@@ -505,4 +506,18 @@ class MappingForm(forms.Form):
        self.fields['target'].widget.attrs['readonly'] = True
 #       self.fields['mapping'].widget = forms.HiddenInput()
 
-    
+
+
+class Concept(forms.Form):
+    choices = [('',''),
+               ('<http://reference.metoffice.gov.uk/um/f3/UMField>', 'PP Field'),
+               ('<http://reference.metoffice.gov.uk/um/f3/UMFieldCollection>', 'PP Field Set'),
+               ('<http://test.wmocodes.info/def/common/grib_message>', 'GRIB message'),
+               ('<http://test.wmocodes.info/def/common/grib_message_collection>', 'GRIB message Collection'),
+               ('<http://def.scitools.org.uk/cfmodel/Field>', 'CF Field')
+               ]
+    concept_type = forms.ChoiceField(choices=choices)
+
+
+class TypedConceptProperty(forms.Form):
+    propthingy = forms.CharField(max_length=200)

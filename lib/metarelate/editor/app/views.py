@@ -42,7 +42,7 @@ import metarelate
 import metarelate.prefixes as prefixes
 from metarelate.editor.settings import READ_ONLY
 from metarelate.editor.settings import fuseki_process
-
+from metarelate.editor.settings import ROOTUSER
 
 def home(request):
     """
@@ -93,7 +93,8 @@ def home(request):
         con_dict = _process_mapping_list(edited_mappings, 'cached mapping edits')
         searchurl = url_qstr(reverse('fsearch'),ref='')
         con_dict['search'] = {'url':searchurl, 'label':'search for mappings'}
-        createurl = reverse('mapping_formats')
+        # createurl = reverse('mapping_formats')
+        createurl = reverse('mapping_concepts')
         con_dict['create'] = {'url':createurl, 'label':'create a new mapping'}
         con_dict['control'] = {'control':'control'}
         con_dict['form'] = form
@@ -101,22 +102,22 @@ def home(request):
         response = render_to_response('main.html', context)
     return response
 
-def mapping_formats(request):
-    """ returns a view to define the formats for the mapping_concept """
-    if request.method == 'POST':
-        form = forms.MappingFormats(data=request.POST)
-        if form.is_valid():
-            data = form.cleaned_data
-            referrer = {'mr:source': {'mr:hasFormat': data['source_format']},
-                        'mr:target': {'mr:hasFormat': data['target_format']}}
-            url = url_qstr(reverse('mapping_concepts'),
-                                       ref=json.dumps(referrer))
-            response = HttpResponseRedirect(url)
-    else:
-        form = forms.MappingFormats()
-        context = RequestContext(request, {'form':form})
-        response = render_to_response('simpleform.html', context)
-    return response
+# def mapping_formats(request):
+#     """ returns a view to define the formats for the mapping_concept """
+#     if request.method == 'POST':
+#         form = forms.MappingFormats(data=request.POST)
+#         if form.is_valid():
+#             data = form.cleaned_data
+#             referrer = {'mr:source': {'mr:hasFormat': data['source_format']},
+#                         'mr:target': {'mr:hasFormat': data['target_format']}}
+#             url = url_qstr(reverse('mapping_concepts'),
+#                                        ref=json.dumps(referrer))
+#             response = HttpResponseRedirect(url)
+#     else:
+#         form = forms.MappingFormats()
+#         context = RequestContext(request, {'form':form})
+#         response = render_to_response('simpleform.html', context)
+#     return response
 
 def _prop_id(members, fformat=None):
     """
@@ -536,27 +537,10 @@ def mapping_concepts(request):
     source and target, and the valuemaps
     
     """
-    requestor_path = request.GET.get('ref', '')
-    requestor_path = urllib.unquote(requestor_path).decode('utf8')
-    if requestor_path == '':
-        requestor_path = '{}'
-    requestor = json.loads(requestor_path)
-    print requestor
-    amended_dict = copy.deepcopy(requestor)
+
     if request.method == 'POST':
-        ## get the formatConcepts for source and target
-        ## pass to value map definition
         form = forms.MappingConcept(request.POST)
-        new_map = copy.deepcopy(requestor)
-        for key in ['mr:source','mr:target']:
-            if requestor[key].get('mr:hasProperty'):
-                new_map = _create_properties(key, requestor, new_map)
-            elif requestor[key].get('mr:hasComponent'):
-                new_map = _create_components(key, requestor, new_map)
-        for key in ['mr:source','mr:target']:
-            if not new_map[key].has_key('component'):
-                raise ValueError('The source and target are not both defined')
-        ref = json.dumps(new_map)
+        ref = json.dumps('')
         url = url_qstr(reverse('value_maps'),ref=ref)
         response = HttpResponseRedirect(url)
     else:
@@ -567,7 +551,7 @@ def mapping_concepts(request):
         con_dict['mapping'] = amended_dict
         con_dict['form'] = form
         context = RequestContext(request, con_dict)
-        response = render_to_response('mapping_concept.html', context)
+        response = render_to_response('core_mapping.html', context)
     return response
 
 def define_mediator(request, mediator, fformat):
@@ -1227,3 +1211,28 @@ def add_contact(request):
         context = RequestContext(request, con_dict)
         response = render_to_response('simpleform.html', context)
     return response
+
+def newmapping(request):
+    CForm = forms.Concept
+    SFormset = formset_factory(CForm)
+    TFormset = formset_factory(CForm)
+    if request.method == 'POST':
+        # create a form instance and populate it with data from the request:
+        sourceformset = SFormset(request.POST, prefix='source')
+        targetformset = TFormset(request.POST, prefix='target')
+        # check whether it's valid:
+        if formset.is_valid():
+            # process the data in form.cleaned_data as required
+            # ...
+            # redirect to a new URL:
+            return HttpResponseRedirect('/thanks/')
+
+    # if a GET (or any other method) we'll create a blank form
+    else:
+        sourceformset = SFormset(prefix='source')
+        targetformset = TFormset(prefix='target')
+
+    return render_to_response('newmapping.html', {'sourceformset': sourceformset,
+                                                  'targetformset': targetformset,
+})
+
