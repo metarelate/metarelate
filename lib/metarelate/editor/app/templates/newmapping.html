@@ -29,11 +29,8 @@
 <script type="text/javascript" src="/static/js/RelatedObjectLookups.js"></script> 
 <script type="text/javascript" src="/static/js/dynamic-formset.js"></script> 
 
-
-{% endblock %}
-
-   <script type="text/javascript">
-
+    <script type="text/javascript">
+    <!--
     $(function () {
         $('.add-row').click(function() {
     	    return addForm(this, 'form');
@@ -42,14 +39,17 @@
     	    return deleteForm(this, 'form');
         })
     })
-
+    //-->
     </script>
+
+{% endblock %}
+
 
 {% block content %}
 
 <p>The time is {% current_time "%Y-%m-%d %I:%M %p" %}.</p>
 
-<table border="1" class="recordtable">
+<table id="id_forms_table" border="1" cellpadding="0" cellspacing="5" class="recordtable">
 <tr>
 
 <td>
@@ -62,37 +62,74 @@
 <tr>
 <td>Source</td><td>Target</td>
 </tr>
+<tr> <td>
+<table id="source_id_forms" border="1" cellpadding="0" cellspacing="5" class="recordtable">
 
 <tr>
-<td>
+<td colspan="2">
+
 {{ sourceformset.as_p }}
-
+</tr></td>
 {% for sform in sourceformset.forms %}
+    	    <tr id="{{ sform.prefix }}-row" class="dynamic-form">
+	      <td></td>
+    	        <td>{{ sform.as_p }}
+    	            <a id="remove-{{ sform.prefix }}-row" href="javascript:void(0)" class="delete-row">delete property</a></td>
+            </tr>
 
-{{ sform.as_p }}
 
 {% endfor %}
-<!-- non-functional -->
+<tr><td></td><td>
 <!-- https://djangosnippets.org/snippets/1389/ -->
+
 <a href="javascript:void(0)" class="add-row">add property</a>
+
+</td></tr><tr><td colspan="2">
+{{ sourceformset.management_form }}
+
 </td>
+
+</tr>
+
+</td></tr></table>
+
+</td>
+
 <td>
+<table id="target_id_forms" border="1" cellpadding="0" cellspacing="5" class="recordtable">
+
+<tr>
+<td colspan="2">
+
 {{ targetformset.as_p }}
-
+</tr></td>
 {% for tform in targetformset.forms %}
+    	    <tr id="{{ tform.prefix }}-row" class="dynamic-form">
+	      <td></td>
+    	        <td>{{ tform.as_p }}
+    	            <a id="remove-{{ tform.prefix }}-row" href="javascript:void(0)" class="delete-row">delete property</a></td>
 
-{{ tform.as_p }}
+            </tr>
+	    <tr><td></td><td>
+	      {% if forloop.first %}
+	      <a id="add-{{ tform.prefix }}-row" href="javascript:void(0)" class="add-row">add property</a>
+	      {% endif %}<td>
+
+
 {% endfor %}
-<a href="javascript:void(0)" class="add-row">add property</a>
+<tr><td></td><td>
+
+
+<!-- <a href="javascript:void(0)" class="add-row">add property</a> -->
+
 </td>
-</tr>
-
-
-
-
 
 </tr>
-</table>
+
+</td></tr></table>
+
+
+</td></tr></table>
 
 
 

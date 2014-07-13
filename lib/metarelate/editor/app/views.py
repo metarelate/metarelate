@@ -1214,7 +1214,7 @@ def add_contact(request):
 
 def newmapping(request):
     PForm = forms.ConceptProperty
-    CFormset = formset_factory(PForm, formset=forms.Concept, extra=0)
+    CFormset = formset_factory(PForm, formset=forms.Concept, extra=1)
     if request.method == 'POST':
         # create a form instance and populate it with data from the request:
         sourceformset = CFormset(request.POST, prefix='source')
@@ -1229,9 +1229,12 @@ def newmapping(request):
     # if a GET (or any other method) we'll create a blank form
     else:
         sourceformset = CFormset(prefix='source')
-        targetformset = CFormset(prefix='target')
+        # targetformset = CFormset(prefix='target')
+        ff = formset_factory(forms.TestConceptProperty, formset=forms.Concept, extra=1)
+        targetformset = ff(prefix='target')
 
     return render_to_response('newmapping.html', {'sourceformset': sourceformset,
                                                   'targetformset': targetformset,
 })
+
 

@@ -568,6 +568,21 @@ class ConceptProperty(forms.Form):
                 ]
     values = forms.ChoiceField(choices=vchoices)
 
+class TestConceptProperty(forms.Form):
+    """Form for a property in a concept"""
+    def __init__(self, *args, **kwargs):
+        # CODE TRICK #1
+        # pass in a fformat from the formset
+        # use the property to build the form
+        # pop removes from dict, so we don't pass to the parent
+        #self.fformat = kwargs.pop('fformat')
+        super(TestConceptProperty, self).__init__(*args, **kwargs)
+    pchoices = [('<standard_name>','standard_name'),
+                ]
+    property = forms.ChoiceField(choices=pchoices)
+    vchoices = [('<air_potential_temperature>','air potential temperature'),
+                ]
+    values = forms.ChoiceField(choices=vchoices)
 
 
 # ConceptFormSet = formset_factory(QuestionForm, formset=BaseConceptFormSet)
