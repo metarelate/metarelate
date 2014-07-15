@@ -1224,6 +1224,7 @@ def newmapping(request):
             # process the data in form.cleaned_data as required
             # ...
             # redirect to a new URL:
+            import pdb; pdb.set_trace()
             return HttpResponseRedirect('/thanks/')
 
     # if a GET (or any other method) we'll create a blank form
@@ -1232,9 +1233,10 @@ def newmapping(request):
         # targetformset = CFormset(prefix='target')
         ff = formset_factory(forms.TestConceptProperty, formset=forms.Concept, extra=1)
         targetformset = ff(prefix='target')
+        context = RequestContext(request, {'sourceformset': sourceformset,
+                                           'targetformset': targetformset})
 
-    return render_to_response('newmapping.html', {'sourceformset': sourceformset,
-                                                  'targetformset': targetformset,
-})
+    return render_to_response('newmapping.html', context)
 
 
+2
