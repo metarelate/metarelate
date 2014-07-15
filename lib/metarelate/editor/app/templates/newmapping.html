@@ -51,20 +51,24 @@
 <td>Source</td><td>Target</td>
 </tr>
 <tr> <td>
+<<<<<<< HEAD
 <div id="source">
+=======
+<div id="{{ sourceformset.prefix }}">
+>>>>>>> hmmm
 <table id="source_id_forms" border="1" cellpadding="0" cellspacing="5" class="recordtable">
 
 <tr>
 <td colspan="2">
 
-{{ sourceformset.as_p }}
+<!-- {{ sourceformset.as_p }} -->
 </tr></td>
 {% for sform in sourceformset.forms %}
+
     	    <tr id="{{ sform.prefix }}-row" class="dynamic-form">
 	      <td></td>
     	        <td>{{ sform.as_p }}
-    	            <!-- <a id="remove-{{ sform.prefix }}-row" href="javascript:void(0)" class="delete-row">delete property</a></td> -->
-    	            <a id="remove-{{ sform.prefix }}-row" href="javascript:void(0)" onclick="deleteForm(this, remove-{{ sform.prefix }}-row, 'source')">delete property</a></td>
+    	            <a id="remove-{{ sform.prefix }}-row" href="javascript:void(0)" onclick="deleteForm(this, {{ sourceformset.prefix }})">delete property</a></td>
             </tr>
 
 
@@ -72,12 +76,9 @@
 <tr><td></td><td>
 <!-- https://djangosnippets.org/snippets/1389/ -->
 
-<!-- <a href="javascript:void(0)" class="add-row">add property</a> -->
-<a href="javascript:void(0)" onclick="addForm(this, {{ sourceformset.prefix }}, 'source')" >add property</a>
 
+<a href="javascript:void(0)" onclick="addForm(this, {{ sourceformset.prefix }})">add property</a>
 
-</td></tr><tr><td colspan="2">
-{{ sourceformset.management_form }}
 
 </td>
 
@@ -88,20 +89,19 @@
 </td>
 
 <td>
-<div id="target">
 <table id="target_id_forms" border="1" cellpadding="0" cellspacing="5" class="recordtable">
 
 <tr>
 <td colspan="2">
 
-{{ targetformset.as_p }}
+<!-- {{ targetformset.as_p }} -->
 </tr></td>
 {% for tform in targetformset.forms %}
     	    <tr id="{{ tform.prefix }}-row" class="dynamic-form">
 	      <td></td>
     	        <td>{{ tform.as_p }}
-    	            <!-- <a id="remove-{{ tform.prefix }}-row" href="javascript:void(0)" class="delete-row">delete property</a></td> -->
-    	            <a id="remove-{{ sform.prefix }}-row" href="javascript:void(0)" onclick="deleteForm(this, remove-{{ tform.prefix }}-row, 'target')">delete property</a></td>
+
+    	            <a id="remove-{{ tform.prefix }}-row" href="javascript:void(0)" onclick="deleteForm(this, {{ targetformset.prefix }})">delete property</a></td>
 
             </tr>
 
@@ -109,8 +109,8 @@
 {% endfor %}
 <tr><td></td><td>
 
+<a href="javascript:void(0)" onclick="addForm(this, {{ targetformset.prefix }})">add property</a>
 
-<a href="javascript:void(0)" onclick="addForm(this, {{ targetformset.prefix }}, 'target')" >add property</a>
 
 </td>
 
