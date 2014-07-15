@@ -21,13 +21,23 @@
 # along with metarelate. If not, see <http://www.gnu.org/licenses/>.
 -->
 
-
+<!-- https://github.com/elo80ka/django-dynamic-formset -->
 {% block title %}: {{ title }}{% endblock %}
 
 {% block head %}
 <script type="text/javascript" src="/static/js/jquery.min.js"></script>
 <script type="text/javascript" src="/static/js/RelatedObjectLookups.js"></script> 
-<script type="text/javascript" src="/static/js/dynamic-formset.js"></script> 
+<script type="text/javascript" src="/static/js/jquery.js"></script>
+<script type="text/javascript" src="/static/js/jquery.formset.js"></script> 
+
+       <script type="text/javascript">
+           $(function() {
+               $('#{{ sourceformset.prefix }} tbody tr').formset({
+	           prefix: "{{ sourceformset.prefix }}"});
+               $('#{{ targetformset.prefix }} tbody tr').formset({
+                   prefix: "{{ targetformset.prefix }}"});
+	   });
+       </script>
 
 
 {% endblock %}
@@ -38,88 +48,62 @@
 <p>The time is {% current_time "%Y-%m-%d %I:%M %p" %}.</p>
 
 <table id="id_forms_table" border="1" cellpadding="0" cellspacing="5" class="recordtable">
-<tr>
+  <tr>
+    <td>
+    <form action="" method="post">
+    <input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} value="Create this mapping"/>
+    {% csrf_token %}
+    {{ sourceformset.management_form }}
+    {{ targetformset.management_form }}
+    </td>
+  </tr>
+  <tr>
+    <td>Source</td><td>Target</td>
+  </tr>
+  <tr> <td>
+    <table id="{{ sourceformset.prefix }}" border="1" cellpadding="0" cellspacing="5" class="recordtable">
+      <tbody>
+      <!-- <tr> -->
+      <!--   <td colspan="2"> -->
+      <!--   {{ sourceformset.as_p }} -->
+      <!--   </td> -->
+      <!-- </tr> -->
+      {% for form in sourceformset.forms %}
+      <tr id="{{ form.prefix }}-row" class="form-container">
+        <td></td>
+        <td>{{ form.as_p }}
+        </td>
+      </tr>
+      {% endfor %}
+    </td></tr>
+    </tbody>
+    </table>
+  </td>
 
-<td>
-<form action="" method="post">
-<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} value="Create this mapping"/>
-
-</td>
-</tr>
-
-<tr>
-<td>Source</td><td>Target</td>
-</tr>
-<tr> <td>
-<div id="{{ sourceformset.prefix }}">
-<table id="source_id_forms" border="1" cellpadding="0" cellspacing="5" class="recordtable">
-
-<tr>
-<td colspan="2">
-
-<!-- {{ sourceformset.as_p }} -->
-</tr></td>
-{% for sform in sourceformset.forms %}
-
-    	    <tr id="{{ sform.prefix }}-row" class="dynamic-form">
-	      <td></td>
-    	        <td>{{ sform.as_p }}
-    	            <a id="remove-{{ sform.prefix }}-row" href="javascript:void(0)" onclick="deleteForm(this, {{ sourceformset.prefix }})">delete property</a></td>
-            </tr>
-
-
-{% endfor %}
-<tr><td></td><td>
-<!-- https://djangosnippets.org/snippets/1389/ -->
-
-
-<a href="javascript:void(0)" onclick="addForm(this, {{ sourceformset.prefix }})">add property</a>
-
-
-</td>
-
-</tr>
-
-</td></tr></table>
-</div>
-</td>
-
-<td>
-<table id="target_id_forms" border="1" cellpadding="0" cellspacing="5" class="recordtable">
-
-<tr>
-<td colspan="2">
-
-<!-- {{ targetformset.as_p }} -->
-</tr></td>
-{% for tform in targetformset.forms %}
-    	    <tr id="{{ tform.prefix }}-row" class="dynamic-form">
-	      <td></td>
-    	        <td>{{ tform.as_p }}
-
-    	            <a id="remove-{{ tform.prefix }}-row" href="javascript:void(0)" onclick="deleteForm(this, {{ targetformset.prefix }})">delete property</a></td>
-
-            </tr>
-
-
-{% endfor %}
-<tr><td></td><td>
-
-<a href="javascript:void(0)" onclick="addForm(this, {{ targetformset.prefix }})">add property</a>
-
-
-</td>
-
-</tr>
-
-</td></tr></table>
-</div>
-
-</td></tr></table>
+  <td>
+    <table id="{{ targetformset.prefix }}" border="1" cellpadding="0" cellspacing="5" class="recordtable">
+      <tbody>
+      <!-- <tr> -->
+      <!--   <td colspan="2"> -->
+      <!--   {{ targetformset.as_p }} -->
+      <!--   </td> -->
+      <!-- </tr> -->
+      {% for form in targetformset.forms %}
+      <tr id="{{ form.prefix }}-row" class="form-container">
+        <td></td>
+        <td>{{ form.as_p }}
+        </td>
+      </tr>
+      {% endfor %}
+    </td></tr>
+    </tbody>
+    </table>
+  </td>
+  </tr>
+</table>
 
 
 
-{% csrf_token %}
 
 
 {% endblock %}
