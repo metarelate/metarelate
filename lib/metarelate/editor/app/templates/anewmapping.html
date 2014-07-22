@@ -1,0 +1,60 @@
+
+{% extends "base.html" %}
+{% load dict_keys %}
+{% load concept %}
+
+<!-- https://github.com/elo80ka/django-dynamic-formset -->
+{% block title %}: {{ title }}{% endblock %}
+
+{% block head %}
+<script type="text/javascript" src="/static/js/jquery.min.js"></script>
+<script type="text/javascript" src="/static/js/RelatedObjectLookups.js"></script> 
+<script type="text/javascript" src="/static/js/jquery.js"></script>
+<script type="text/javascript" src="/static/js/jquery.formset.js"></script> 
+
+       <script type="text/javascript">
+           $(function() {
+               $('#{{ source.prefix }} tbody tr').formset({
+	           prefix: "{{ source.prefix }}"});
+               $('#{{ target.prefix }} tbody tr').formset({
+                   prefix: "{{ target.prefix }}"});
+	   });
+       </script>
+
+
+{% endblock %}
+
+
+{% block content %}
+
+<p>The time is {% current_time "%Y-%m-%d %I:%M %p" %}.</p>
+
+<table id="id_forms_table" border="1" cellpadding="0" cellspacing="5" class="recordtable">
+  <tr>
+    <td>
+    <form action="" method="post">
+    <input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} value="Create this mapping"/>
+    {% csrf_token %}
+    </td>
+  </tr>
+  <tr>
+    <td>Source</td><td>Target</td>
+  </tr>
+  <tr> <td>
+    {% show_concept source %}
+  </td>
+
+  <td>
+
+    {% show_concept target %}
+
+  </td>
+  </tr>
+</table>
+
+
+
+
+
+
+{% endblock %}

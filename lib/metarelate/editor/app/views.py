@@ -1238,3 +1238,24 @@ def newmapping(request):
     return render_to_response('newmapping.html', context)
 
 
+def anewmapping(request):
+    # PForm = forms.ConceptProperty
+    # CFormset = formset_factory(PForm)#, formset=forms.Concept)
+
+    if request.method == 'POST':
+        # source = CFormset(request.POST, prefix='source')
+        # target = CFormset(request.POST, prefix='target')
+
+        source = forms.Concept(request.POST, prefix='source')
+        target = forms.Concept(request.POST, prefix='target')
+        if source.is_valid() and target.is_valid():
+            return render_to_response('anewmapping.html', context)
+    else:
+        source = forms.Concept(prefix='source')
+        target = forms.Concept(prefix='target')
+        # source = CFormset(prefix='source')
+        # target = CFormset(prefix='target')
+
+        context = RequestContext(request, {'source': source,
+                                           'target': target})
+    return render_to_response('anewmapping.html', context)

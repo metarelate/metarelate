@@ -510,46 +510,31 @@ class MappingForm(forms.Form):
 
 
 #class Concept(forms.Form, BaseFormSet):
-class Concept(BaseFormSet):
+class Concept (forms.Form):
     def __init__(self, *args, **kwargs):
-        # CODE TRICK #3 - same as #1:
-        # pass in a valid quiz object from the view
-        # pop removes arg, so we don't pass to the parent
-        #self.quiz = kwargs.pop('quiz')
-
-        # CODE TRICK #4
-        # set length of extras based on query
-        # each question will fill one 'extra' slot
-        # use an order_by clause if you care about order
-        #self.questions = self.quiz.question_set.all().order_by('id')
-        #self.extra = len(self.questions)
-        #if not self.extra:
-        #    raise Http404('Badly configured quiz has no questions.')
-
-        # call the parent constructor to finish __init__
         super(Concept, self).__init__(*args, **kwargs)
-        
+        self.properties = formset_factory(ConceptProperty)
+        self.concepts = formset_factory(Concept)
 
-    def _construct_form(self, index, **kwargs):
-        # CODE TRICK #5
-        # know that _construct_form is where forms get added
-        # we can take advantage of this fact to add our forms
-        # add custom kwargs, using the index to retrieve a question
-        # kwargs will be passed to our form class
-        #kwargs['question'] = self.questions[index]
-        return super(Concept, self)._construct_form(index, **kwargs)
+    choices = [('',''),
+               ('<http://reference.metoffice.gov.uk/um/f3/UMField>', 'PP Field'),
+               ('<http://reference.metoffice.gov.uk/um/f3/UMFieldCollection>', 'PP Field Set'),
+               ('<http://test.wmocodes.info/def/common/grib_message>', 'GRIB message'),
+               ('<http://test.wmocodes.info/def/common/grib_message_collection>', 'GRIB message Collection'),
+               ('<http://def.scitools.org.uk/cfmodel/Field>', 'CF Field'),
+               ('<http://def.scitools.org.uk/cfmodel/DomainAxis>', 'CF Domain Axis'),
+               ('<http://def.scitools.org.uk/cfmodel/DimensionCoordinate>', 'CF Dimension Coordinate'),
+               ('<http://def.scitools.org.uk/cfmodel/CellMethod>', 'CF Cell Method'),
+               ]
+    concept_type = forms.ChoiceField(choices=choices)
 
-    # choices = [('',''),
-    #            ('<http://reference.metoffice.gov.uk/um/f3/UMField>', 'PP Field'),
-    #            ('<http://reference.metoffice.gov.uk/um/f3/UMFieldCollection>', 'PP Field Set'),
-    #            ('<http://test.wmocodes.info/def/common/grib_message>', 'GRIB message'),
-    #            ('<http://test.wmocodes.info/def/common/grib_message_collection>', 'GRIB message Collection'),
-    #            ('<http://def.scitools.org.uk/cfmodel/Field>', 'CF Field'),
-    #            ('<http://def.scitools.org.uk/cfmodel/DomainAxis>', 'CF Domain Axis'),
-    #            ('<http://def.scitools.org.uk/cfmodel/DimensionCoordinate>', 'CF Dimension Coordinate'),
-    #            ('<http://def.scitools.org.uk/cfmodel/CellMethod>', 'CF Cell Method'),
-    #            ]
-    # concept_type = forms.ChoiceField(choices=choices)
+
+    # def __init__(self, *args, **kwargs):
+    #     self.properties = formset_factory(ConceptProperty)
+    #     # CODE TRICK #3 - same as #1:
+    #     # pass in a valid quiz object from the view
+    #     # pop removes arg, so we don't pass to the parent
+    #     self.pref = kwargs.pop('pref')
 
 class ConceptProperty(forms.Form):
     """Form for a property in a concept"""

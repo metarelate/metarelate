@@ -7,6 +7,7 @@ from django.conf.urls import patterns, include, url
 urlpatterns = patterns('',
     url(r'^$', 'metarelate.editor.app.views.home', name='home'),
     url(r'^newmapping/$', 'metarelate.editor.app.views.newmapping', name='newmapping'),
+    url(r'^anewmapping/$', 'metarelate.editor.app.views.anewmapping', name='anewmapping'),
 
     url(r'^invalid_mappings/$', 'metarelate.editor.app.views.invalid_mappings',
         name='invalid_mappings'),
