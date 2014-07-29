@@ -133,6 +133,10 @@ class Mapping(_DotMixin):
         self.watchers = watchers
         self.status = status
 
+    def __repr__(self):
+        pstr = '{}\nSource:\n{!r}Target:\n{!r}'.format(self.uri, self.source, self.target)
+        return pstr
+
     def __eq__(self, other):
         result = NotImplemented
         if isinstance(other, Mapping):
@@ -511,35 +515,33 @@ class Component(_DotMixin):
             comp.dot(graph, node, 'Component')
         return node
 
-    @staticmethod
-    def sparql_retriever(uri):
-        qstr = '''SELECT ?component ?mediates ?requires ?com_type
-                         ?subComponent ?property
-        (GROUP_CONCAT(?acomponent; SEPARATOR='&') AS ?subComponent)
-        (GROUP_CONCAT(?aproperty; SEPARATOR='&') AS ?property)
-        (GROUP_CONCAT(?arequires; SEPARATOR='&') AS ?requires)
-        WHERE {
-        GRAPH <http://metarelate.net/concepts.ttl> {
-            ?component rdf:type ?com_type .
-            FILTER(?com_type != skos:Concept)
-            OPTIONAL{?component mr:hasComponent ?acomponent .}
-            OPTIONAL{?component mr:hasProperty ?aproperty .}
-            OPTIONAL{?component dc:requires ?arequires .}
-            OPTIONAL{?component dc:mediator ?mediates .}
-            FILTER(?component = %s)
-            FILTER(?type != mr:Component)
-        }
-            {SELECT ?component WHERE {
-            GRAPH <http://metarelate.net/concepts.ttl> {
-            ?component rdf:type mr:Component .
-            }}}
-        }
-        GROUP BY ?component ?mediates ?com_type
-        ''' % uri
+    def populate_from_uri(self, fuseki_process):
+        statements = fuseki_process.run_query(self.sparql_retriever())
+        for statement in statements:
+            if statement.get('p') == '<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>':
+                self.com_type = statement.get('o')
+            else:
+                predicate = Item(statement.get('p'))#,
+                                 # fuseki_process.get_notation(statement.get('p')))
+                rdfobject = Item(statement.get('o'))#,
+                                 # fuseki_process.get_notation(statement.get('o')))
+                self.properties.append(StatementProperty(predicate, rdfobject))
+
+
+    # @staticmethod
+    def sparql_retriever(self):
+        qstr = ('SELECT ?component ?p ?o '
+                'WHERE {GRAPH <http://metarelate.net/concepts.ttl> {'
+                '?component ?p ?o ; '
+                'rdf:type mr:Component .'
+                'FILTER(?component = %s) '
+                'FILTER(?o != mr:Component) '
+                'FILTER(?p != mr:saveCache) '
+                '}}' % self.uri.data)
         return qstr
 
-    @staticmethod
-    def sparql_creator(po_dict):
+    # @staticmethod
+    def sparql_creator(self, po_dict):
         subj_pref = 'http://www.metarelate.net/{}/component'
         subj_pref = subj_pref.format(site_config['fuseki_dataset'])
         search_string = ''
