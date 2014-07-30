@@ -426,8 +426,16 @@ class Component(_DotMixin):
                     props[prop.predicate.notation] = [prop]
         return props
 
+    @property
+    def data(self):
+        if self.uri:
+            res = self.uri.data
+        else:
+            raise ValueError('Component has no URI')
+        return res
+
     def _okeys(self):
-        return ['uri', 'com_type', 'properties']
+        return ['uri', 'data', 'com_type', 'properties']
         
     def __getattr__(self, key):
         if key in self._okeys():
@@ -964,9 +972,9 @@ class StatementProperty(Property):
             raise TypeError('predicate: {!r} is not a metarelate '
                             'Item'.format(predicateitem))
         if not (isinstance(rdfobject, Item) or
-                isinstance(rdfobject, Concept)):
+                isinstance(rdfobject, Component)):
             raise TypeError('rdfobject: {!r} is not a metarelate '
-                            'Item or Concept'.format(rdfobject))
+                            'Item or Component'.format(rdfobject))
         self.predicate = predicate
         self.rdfobject = rdfobject
 
