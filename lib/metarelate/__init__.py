@@ -19,6 +19,7 @@ from collections import Iterable, MutableMapping, namedtuple
 from datetime import datetime
 import hashlib
 import os
+import requests
 from urlparse import urlparse
 
 import pydot
@@ -59,6 +60,35 @@ update(site_config)
 #     def _immutable_exception(self):
 #         msg = '{!r} object is immutable.'
 #         raise TypeError(msg.format(type(self).__name__))
+
+
+def get_notation(uri):
+    """Returns the skos:notation for a uri if it exists, or None.
+    If uri is not a http uri, the input is returned as the notation.
+    """
+    result = None
+    # if uri == '<http://reference.metoffice.gov.uk/um/fieldcode/253>':
+    #     import pdb; pdb.set_trace()
+    if uri.startswith('<') and uri.endswith('>'):
+        uri = uri.lstrip('<').rstrip('>')
+    if uri.startswith('http://'):
+        r = requests.get(uri, headers={'Accept':'application/ld+json'})
+        if r.status_code == 200:
+            try:
+                result = r.json().get('skos:notation')
+                if isinstance(result, dict):
+                    result = result.get('@value')
+            except ValueError, e:
+                if e.message == 'No JSON object could be decoded':
+                    result = uri.split('/')[-1]
+        else:
+            ## hack to use the last part of the uri for now
+            result = uri.split('/')[-1]
+    else:
+        result = uri
+    if isinstance(result, unicode):
+        result = str(result)
+    return result 
 
 
 class _DotMixin(object):
@@ -365,11 +395,7 @@ class Component(_DotMixin):
     def __init__(self, uri, com_type=None, properties=None):
                  # requires=[], mediator=None):
         self.uri = Item(uri)
-        # if com_type is not None:
         self.com_type = Item(com_type)
-        # self.requires = [Item(req) for req in requires]
-        # self.mediator = Item(mediator)
-        # self.components = components
         if properties is None:
             properties = []
         for prop in properties:
@@ -410,7 +436,6 @@ class Component(_DotMixin):
     def _props(self):
         # if self.__dict__.has_key('properties'):
             #uniquekeys = len(set([p.notation for p in self.__dict__['properties']]))
-            # import pdb; pdb.set_trace()
             ## need this back and fixed: look up notations
             ## but uniquness is not required, it just needs handling
             ## re: multiple mr:hasProperty
@@ -424,6 +449,11 @@ class Component(_DotMixin):
                     props[prop.predicate.notation].append(prop)
                 else:
                     props[prop.predicate.notation] = [prop]
+                if props.has_key(prop.predicate.data):
+                    props[prop.predicate.data].append(prop)
+                else:
+                    props[prop.predicate.data] = [prop]
+                
         return props
 
     @property
@@ -451,9 +481,9 @@ class Component(_DotMixin):
         return result
 
     def __contains__(self, key):
-        if key in self._props().keys():
+        if key in self._okeys():
             res = True
-        elif key in self._okeys():
+        elif key in self._props().keys():
             res = True
         else:
             res = False
@@ -529,12 +559,34 @@ class Component(_DotMixin):
             if statement.get('p') == '<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>':
                 self.com_type = statement.get('o')
             else:
-                predicate = Item(statement.get('p'))#,
-                                 # fuseki_process.get_notation(statement.get('p')))
-                rdfobject = Item(statement.get('o'))#,
-                                 # fuseki_process.get_notation(statement.get('o')))
+                data = statement.get('p')
+                notation = get_notation(statement.get('p'))
+                predicate = Item(data, notation)
+                data = statement.get('o')
+                notation = get_notation(statement.get('o'))
+                rdfobject = Item(data, notation)
+                # if notation is not None:
+                #     rdfobject = Item(data, notation)
+                # else:
+                #     rdfobject = Item(data, data)
+                # if statement.get('p').startswith('<'):
+                #     notation = statement.get('p').split('/')[-1].strip('>').lower()
+                # else:
+                #     notation = statement.get('p')
+                
+                # predicate = Item(statement.get('p'),
+                #                  # fuseki_process.get_notation(statement.get('p'))
+                #                  get_notation(statement.get('p'))
+                #                  )
+                # if statement.get('o').startswith('<'):
+                #     notation = statement.get('o').split('/')[-1].strip('>').lower()
+                # else:
+                #     notation = statement.get('o')
+                # rdfobject = Item(statement.get('o'),
+                #                  # fuseki_process.get_notation(statement.get('o')))
+                #                  get_notation(statement.get('o'))
+                #                  )
                 self.properties.append(StatementProperty(predicate, rdfobject))
-
 
     # @staticmethod
     def sparql_retriever(self):
@@ -703,9 +755,10 @@ class Property(_DotMixin):
         self.operator = Item(operator)
         #self.component = Item(component)
 
-    @property
-    def notation(self):
-        return self.ptype.notation
+    ## careful here
+    # @property
+    # def notation(self):
+    #     return self.ptype.notation
 
     def __eq__(self, other):
         result = NotImplemented
@@ -983,6 +1036,47 @@ class StatementProperty(Property):
     # def as_rdf(self, fuseki_process=None):
     #     return (self.predicate, self.rdfobject)
 
+    def get_notation(self):
+        """Returns a dictionary of key value pairs, providing a pattern
+        of skos:notations which match the component explicitly"""
+        result = {}
+        if self.predicate.notation is not None and \
+            self.rdfobject.notation is not None:
+            result = {self.predicate.notation: self.rdfobject.notation}
+        else:
+            pref = ('prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>'
+                    'prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>'
+                    'prefix skos: <http://www.w3.org/2004/02/skos/core#>')
+            puri = self.rdfobject.data
+            qstr = ('SELECT ?key ?val '
+                    'WHERE {'
+                    '    { SELECT ?param ?key ?val '
+                    'WHERE {'
+                    '      ?param ?p ?o .'
+                    '    FILTER(?param = %s)'
+                    '          ?p rdfs:range ?range .'
+                    '        ?range skos:notation ?key .'
+                    '        ?o skos:notation ?val . '
+                    '  } } UNION'
+                    '  { SELECT ?param ?key ?val WHERE {'
+                    '           ?param rdf:type ?ptype .'
+                    '        ?ptype skos:notation ?key .'
+                    '        ?param skos:notation ?val .'
+                    '    FILTER(?param = %s)'
+                    '    } }'
+                    '}' % (puri, puri))
+
+            base = 'http://codes.wmo.int/system/query?'
+            r = requests.get(base, params={'query':pref+qstr, 'output':'json'})
+            if r.status_code == 200:
+                for b in r.json()['results']['bindings']:
+                    result[str(b['key']['value'])] = str(b['val']['value'])
+        return result
+
+    @property
+    def notation(self):
+        return self.rdfobject.notation
+
 
 class Item(_DotMixin, namedtuple('Item', 'data notation')):
     """
@@ -995,12 +1089,12 @@ class Item(_DotMixin, namedtuple('Item', 'data notation')):
         if data is None and notation is None:
             res = None
         else:
-            if data.startswith('http'):
-                new_data = '<{}>'.format(data)
-            elif data.startswith('<'):
-                new_data = data
-            elif isinstance(data, str):
-                if data.startswith('"'):
+            if isinstance(data, str):
+                if data.startswith('http'):
+                    new_data = '<{}>'.format(data)
+                elif data.startswith('<'):
+                    new_data = data
+                elif data.startswith('"'):
                     new_data = data
                 else:
                     new_data = '"{}"'.format(data)

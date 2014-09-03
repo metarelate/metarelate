@@ -372,7 +372,8 @@ class FusekiServer(object):
 
         """
         self.clean()
-        graphs = os.path.join(self._static_dir, '*')
+        #graphs = os.path.join(self._static_dir, '*')
+        graphs = os.path.join(self._static_dir, 'metarelate.net')
         for ingraph in glob.glob(graphs):
             graph = ingraph.split('/')[-1]
             if os.path.exists(os.path.join(ingraph, 'getCodes.py')):
@@ -447,36 +448,36 @@ class FusekiServer(object):
         else:
             return data
 
-    def get_label(self, subject, debug=False):
-        """
-        return the skos:notation for a subject, if it exists
+    # def get_label(self, subject, debug=False):
+    #     """
+    #     return the skos:notation for a subject, if it exists
 
-        """
-        subject = str(subject)
-        if not subject.startswith('<') and not subject.startswith('"'):
-            subj_str = '"{}"'.format(subject)
-        else:
-            subj_str = subject
-        qstr = ''' SELECT ?notation 
-        WHERE { {'''
-        for graph in _vocab_graphs():
-            qstr += '\n\tGRAPH %s {' % graph
-            qstr += '\n\t?s skos:notation ?notation . }}\n\tUNION {'
-        qstr = qstr.rstrip('\n\tUNION {')
-        qstr += '\n\tFILTER(?s = %(sub)s) }' % {'sub':subj_str}
-        results = self.run_query(qstr, debug=debug)
-        if len(results) == 0:
-            hash_split = subject.split('#')
-            if len(hash_split) == 2 and hash_split[1].endswith('>'):
-                label = hash_split[1].rstrip('>')
-            else:
-                # raise ValueError('{} returns no notation'.format(subject))
-                label = subject
-        elif len(results) >1:
-            raise ValueError('{} returns multiple notation'.format(subject))
-        else:
-            label = results[0]['notation']
-        return label
+    #     """
+    #     subject = str(subject)
+    #     if not subject.startswith('<') and not subject.startswith('"'):
+    #         subj_str = '"{}"'.format(subject)
+    #     else:
+    #         subj_str = subject
+    #     qstr = ''' SELECT ?notation 
+    #     WHERE { {'''
+    #     for graph in _vocab_graphs():
+    #         qstr += '\n\tGRAPH %s {' % graph
+    #         qstr += '\n\t?s skos:notation ?notation . }}\n\tUNION {'
+    #     qstr = qstr.rstrip('\n\tUNION {')
+    #     qstr += '\n\tFILTER(?s = %(sub)s) }' % {'sub':subj_str}
+    #     results = self.run_query(qstr, debug=debug)
+    #     if len(results) == 0:
+    #         hash_split = subject.split('#')
+    #         if len(hash_split) == 2 and hash_split[1].endswith('>'):
+    #             label = hash_split[1].rstrip('>')
+    #         else:
+    #             # raise ValueError('{} returns no notation'.format(subject))
+    #             label = subject
+    #     elif len(results) >1:
+    #         raise ValueError('{} returns multiple notation'.format(subject))
+    #     else:
+    #         label = results[0]['notation']
+    #     return label
 
     def get_contacts(self, register, debug=False):
         """
