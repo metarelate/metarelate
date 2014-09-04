@@ -20,7 +20,7 @@ from datetime import datetime
 import hashlib
 import os
 import requests
-from urlparse import urlparse
+import urlparse
 
 import pydot
 
@@ -67,8 +67,6 @@ def get_notation(uri):
     If uri is not a http uri, the input is returned as the notation.
     """
     result = None
-    # if uri == '<http://reference.metoffice.gov.uk/um/fieldcode/253>':
-    #     import pdb; pdb.set_trace()
     if uri.startswith('<') and uri.endswith('>'):
         uri = uri.lstrip('<').rstrip('>')
     if uri.startswith('http://'):
@@ -1036,42 +1034,119 @@ class StatementProperty(Property):
     # def as_rdf(self, fuseki_process=None):
     #     return (self.predicate, self.rdfobject)
 
-    def get_notation(self):
+    def get_identifiers(self, fuseki_process):
         """Returns a dictionary of key value pairs, providing a pattern
         of skos:notations which match the component explicitly"""
-        result = {}
-        if self.predicate.notation is not None and \
-            self.rdfobject.notation is not None:
-            result = {self.predicate.notation: self.rdfobject.notation}
+        qstr = ('SELECT ?key ?value'
+                ' WHERE {'
+                '  {SELECT ?key ?value'
+                '   WHERE {'
+                '    {SERVICE %(ps)s '
+                '     {SELECT ?key ?value WHERE {'
+                '      %(p)s skos:notation ?key .'
+                '    }}}'
+                '    {SERVICE %(os)s '
+                '     {SELECT ?value WHERE {'
+                '      %(o)s skos:notation ?value'
+                '    }}}'
+                '       }}'
+                ' UNION '
+                '  {SELECT ?key ?value'
+                '   WHERE {'
+                '    {SERVICE %(ps)s '
+                '     {SELECT ?key ?value WHERE {'
+                '      %(p)s skos:notation ?key .'
+                '      FILTER(isLiteral(%(o)s))'
+                '      BIND(%(o)s as ?value)'
+                '    }}}'
+                '       }}'
+                ' UNION '
+                '  {SELECT ?key ?value'
+                '   WHERE {'
+                '    {SERVICE %(os)s '
+                '     {SELECT ?key ?value ?idr ?rdfobj ?rdfobjnot WHERE {'
+                '      %(o)s <http://metarelate.net/vocabulary/index.html#identifier> ?idr ;'
+                '       ?idr ?rdfobj .'
+                '      OPTIONAL {?idr skos:notation ?key . }'
+                '      OPTIONAL {?rdfobj skos:notation ?rdfobjnot}'
+                '      {SERVICE %(ps)s'
+                '       {SELECT ?idr ?key ?rdfobj ?rdfobjnot WHERE {'
+                '        OPTIONAL {?idr skos:notation ?key . }'
+                '        OPTIONAL {?rdfobj skos:notation ?rdfobjnot}'
+                '       }}}'
+                '      BIND((IF(isURI(?rdfobj), ?rdfobjnot, ?rdfobj)) AS ?value)'
+                '     }}'
+                '    }'
+                '  }}'
+                '}')
+        predicate = self.predicate.data
+        psplit = urlparse.urlsplit(predicate.strip('<>'))
+        if psplit.netloc == 'vocab.nerc.ac.uk':
+            pdomain = 'def.scitools.org.uk'
         else:
-            pref = ('prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>'
-                    'prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>'
-                    'prefix skos: <http://www.w3.org/2004/02/skos/core#>')
-            puri = self.rdfobject.data
-            qstr = ('SELECT ?key ?val '
-                    'WHERE {'
-                    '    { SELECT ?param ?key ?val '
-                    'WHERE {'
-                    '      ?param ?p ?o .'
-                    '    FILTER(?param = %s)'
-                    '          ?p rdfs:range ?range .'
-                    '        ?range skos:notation ?key .'
-                    '        ?o skos:notation ?val . '
-                    '  } } UNION'
-                    '  { SELECT ?param ?key ?val WHERE {'
-                    '           ?param rdf:type ?ptype .'
-                    '        ?ptype skos:notation ?key .'
-                    '        ?param skos:notation ?val .'
-                    '    FILTER(?param = %s)'
-                    '    } }'
-                    '}' % (puri, puri))
+            pdomain = psplit.netloc 
+        pspq = '<{}://{}/system/query?>'.format(psplit.scheme, pdomain)
+        rdfobject = self.rdfobject.data
+        msplit = urlparse.urlsplit(rdfobject.strip('<>'))
+        if msplit.netloc:
+            if msplit.netloc == 'vocab.nerc.ac.uk':
+                mdomain = 'def.scitools.org.uk'
+            else:
+                mdomain = psplit.netloc 
+            rospq = '<{}://{}/system/query?>'.format(msplit.scheme, mdomain)
+        else:
+            rospq = pspq
 
-            base = 'http://codes.wmo.int/system/query?'
-            r = requests.get(base, params={'query':pref+qstr, 'output':'json'})
-            if r.status_code == 200:
-                for b in r.json()['results']['bindings']:
-                    result[str(b['key']['value'])] = str(b['val']['value'])
-        return result
+        aqstr = qstr % {'p':predicate, 'o':rdfobject, 'ps':pspq, 'os':rospq}
+        results = fuseki_process.run_query(aqstr)
+        identifiers = {}
+        for item in results:
+            key = item.get('key').strip('"')
+            value = item.get('value').strip('"')
+            if not (key and value):
+                raise ValueError('key and value required, but not present\n'
+                                 '{}'.format(item))
+            else:
+                if identifiers.has_key(key):
+                    raise ValueError('duplicate key: {}'.format(key))
+            identifiers[key] = value
+        ## until nerc vocab server is understood
+        # if self.rdfobject.data.startswith('<http://vocab.nerc.ac.uk'):
+        #     identifiers['standard_name'] = self.rdfobject.data.split('/')[-1]
+        return identifiers
+        # result = {}
+        # if self.predicate.notation is not None and \
+        #     self.rdfobject.notation is not None:
+        #     result = {self.predicate.notation: self.rdfobject.notation}
+        # else:
+        #     pref = ('prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>'
+        #             'prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>'
+        #             'prefix skos: <http://www.w3.org/2004/02/skos/core#>')
+        #     puri = self.rdfobject.data
+        #     qstr = ('SELECT ?key ?val '
+        #             'WHERE {'
+        #             '    { SELECT ?param ?key ?val '
+        #             'WHERE {'
+        #             '      ?param ?p ?o .'
+        #             '    FILTER(?param = %s)'
+        #             '          ?p rdfs:range ?range .'
+        #             '        ?range skos:notation ?key .'
+        #             '        ?o skos:notation ?val . '
+        #             '  } } UNION'
+        #             '  { SELECT ?param ?key ?val WHERE {'
+        #             '           ?param rdf:type ?ptype .'
+        #             '        ?ptype skos:notation ?key .'
+        #             '        ?param skos:notation ?val .'
+        #             '    FILTER(?param = %s)'
+        #             '    } }'
+        #             '}' % (puri, puri))
+
+        #     base = 'http://codes.wmo.int/system/query?'
+        #     r = requests.get(base, params={'query':pref+qstr, 'output':'json'})
+        #     if r.status_code == 200:
+        #         for b in r.json()['results']['bindings']:
+        #             result[str(b['key']['value'])] = str(b['val']['value'])
+        # return result
 
     @property
     def notation(self):
@@ -1131,7 +1206,7 @@ class Item(_DotMixin, namedtuple('Item', 'data notation')):
             uri = self.data
             if uri.startswith('<') and uri.endswith('>'):
                 uri = uri[1:-1]
-            uri = urlparse(uri)
+            uri = urlparse.urlparse(uri)
             result = len(uri.scheme) > 0 and len(uri.netloc) > 0
         return result
 

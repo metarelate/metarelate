@@ -407,6 +407,9 @@ class FusekiServer(object):
         return the results
         
         """
+        # base = 'http://127.0.0.1:3131/metOcean/query'
+        # pref = prefixes.Prefixes().sparql
+        # results = requests.get(base, params={'query':pref+aqstr, 'output':'json'})
         if not self.alive():
             self.restart()
         # use null ProxyHandler to ignore proxy for localhost access
