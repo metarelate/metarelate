@@ -676,6 +676,13 @@ class Component(_DotMixin):
                     podict[aprop.predicate.data].append(aprop.rdfobject.data)
                 else:
                     podict[aprop.predicate.data] = [aprop.rdfobject.data]
+            elif isinstance(aprop, ComponentProperty):
+                if aprop.predicate.data in podict:
+                    podict[aprop.predicate.data].append(aprop.component.uri.data)
+                else:
+                    podict[aprop.predicate.data] = [aprop.component.uri.data]
+            else:
+                raise TypeError('property not a recognised type:\n{}'.format(type(prop)))
         return podict
 
     # def _podict_elems(self, podict):
@@ -1012,20 +1019,54 @@ class Property(_DotMixin):
         return qstr, instr
 
 
+class ComponentProperty(Property):
+    """
+    A property which is only a predicate(Item) and an
+    object(Component)
+
+    """
+    def __init__(self, predicate, component):
+        if not isinstance(predicate, Item):
+            raise TypeError('predicate: {!r} is not a metarelate '
+                            'Item'.format(predicateitem))
+        if not isinstance(component, Component):
+            raise TypeError('rdfobject: {!r} is not a metarelate '
+                            'Item or Component'.format(rdfobject))
+        self.predicate = predicate
+        self.component = component
+
+    def __repr__(self):
+        return '{!r}:{!r}'.format(self.predicate, self.component)
+    # def as_rdf(self, fuseki_process=None):
+    #     return (self.predicate, self.rdfobject)
+
+    def get_identifiers(self, fuseki_process):
+        comp_ids = {}
+        for prop in component.properties:
+            careful_update(comp_ids, prop.get_identifiers(fuseki_process))
+        identifiers = {predicate.notation, comp_ids}
+
+def careful_update(adict, bdict):
+    if not set(adict.keys()).isdisjoint(set(bdict.keys())):
+        raise ValueError('adict shares keys with bdict')
+    else:
+        adict.update(bdict)
+        return adict
+
+
 class StatementProperty(Property):
     """
     A property which is only a predicate(Item) and an
-    object(Item|Concept)
+    object(Item)
 
     """
     def __init__(self, predicate, rdfobject):
         if not isinstance(predicate, Item):
             raise TypeError('predicate: {!r} is not a metarelate '
                             'Item'.format(predicateitem))
-        if not (isinstance(rdfobject, Item) or
-                isinstance(rdfobject, Component)):
+        if not isinstance(rdfobject, Item):
             raise TypeError('rdfobject: {!r} is not a metarelate '
-                            'Item or Component'.format(rdfobject))
+                            'Item'.format(rdfobject))
         self.predicate = predicate
         self.rdfobject = rdfobject
 
