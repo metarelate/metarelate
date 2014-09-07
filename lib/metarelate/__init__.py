@@ -1051,6 +1051,7 @@ class ComponentProperty(Property):
         for prop in component.properties:
             careful_update(comp_ids, prop.get_identifiers(fuseki_process))
         identifiers = {predicate.notation, comp_ids}
+        return comp_ids
 
 def careful_update(adict, bdict):
     if not set(adict.keys()).isdisjoint(set(bdict.keys())):
@@ -1150,16 +1151,17 @@ class StatementProperty(Property):
         for item in results:
             key = item.get('key').strip('"')
             value = item.get('value').strip('"')
-            if not (key and value):
+            if not (key is not None and value is not None):
                 raise ValueError('key and value required, but not present\n'
                                  '{}'.format(item))
             else:
                 if identifiers.has_key(key):
                     raise ValueError('duplicate key: {}'.format(key))
             identifiers[key] = value
-        ## until nerc vocab server is understood
-        # if self.rdfobject.data.startswith('<http://vocab.nerc.ac.uk'):
-        #     identifiers['standard_name'] = self.rdfobject.data.split('/')[-1]
+        until nerc vocab server is understood
+        if self.rdfobject.data.startswith('<http://vocab.nerc.ac.uk'):
+            sn = self.rdfobject.data.rstrip('>').split('/')[-1]
+            identifiers['standard_name'] = sn
         return identifiers
         # result = {}
         # if self.predicate.notation is not None and \
