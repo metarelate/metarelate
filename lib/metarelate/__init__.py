@@ -21,8 +21,10 @@ import hashlib
 import os
 import requests
 import urlparse
+import time
 
 import pydot
+from requests.exceptions import ConnectionError
 
 from metarelate.config import update
 import metarelate.prefixes as prefixes
@@ -70,7 +72,11 @@ def get_notation(uri):
     if uri.startswith('<') and uri.endswith('>'):
         uri = uri.lstrip('<').rstrip('>')
     if uri.startswith('http://'):
-        r = requests.get(uri, headers={'Accept':'application/ld+json'})
+        try:
+            r = requests.get(uri, headers={'Accept':'application/ld+json'})
+        except requests.exceptions.ConnectionError, e:
+            time.sleep(0.5)
+            r = requests.get(uri, headers={'Accept':'application/ld+json'})
         if r.status_code == 200:
             try:
                 result = r.json().get('skos:notation')
