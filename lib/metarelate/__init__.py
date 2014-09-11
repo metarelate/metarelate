@@ -38,31 +38,12 @@ site_config = {
 
 update(site_config)
 
-
-# class _ComponentMixin(object):
-#     """
-#     Mixin class for common mapping component behaviour.
-
-#     """
-#     # def __setitem__(self, key, value):
-#     #     self._immutable_exception()
-
-#     # def __delitem__(self, key):
-#     #     self._immutable_exception()
-
-#     # def __getattr__(self, name):
-#     #     return self.__getitem__(name)
-
-#     # def __iter__(self):
-#     #     return iter(self._data)
-
-#     # def __len__(self):
-#     #     return len(self._data)
-
-#     def _immutable_exception(self):
-#         msg = '{!r} object is immutable.'
-#         raise TypeError(msg.format(type(self).__name__))
-
+def careful_update(adict, bdict):
+    if not set(adict.keys()).isdisjoint(set(bdict.keys())):
+        raise ValueError('adict shares keys with bdict')
+    else:
+        adict.update(bdict)
+        return adict
 
 def get_notation(uri):
     """Returns the skos:notation for a uri if it exists, or None.
@@ -383,7 +364,6 @@ class Mapping(_DotMixin):
         return qstr, instr
 
 
-# class Component(_ComponentMixin, _DotMixin, MutableMapping):
 class Component(_DotMixin):
     """
     A Component is a typed identifiable collection of metadata.
@@ -397,7 +377,6 @@ class Component(_DotMixin):
 
     """
     def __init__(self, uri, com_type=None, properties=None):
-                 # requires=[], mediator=None):
         self.uri = Item(uri)
         self.com_type = Item(com_type)
         if properties is None:
@@ -407,13 +386,6 @@ class Component(_DotMixin):
                 raise TypeError('one of the properties is a {}, not '
                                 'a metarelate Property'.format(type(prop)))
         self.properties = properties
-
-    # def _retrieve(self, fuseki_process):
-    #     if self.uri:
-    #         qstr = self.sparql_retriever(uri)
-    #         response = fuseki_process.run_query(qstr)
-    #         # populate attrs
-    #         # not yet done
 
     def __eq__(self, other):
         result = NotImplemented
@@ -438,14 +410,6 @@ class Component(_DotMixin):
         return res
 
     def _props(self):
-        # if self.__dict__.has_key('properties'):
-            #uniquekeys = len(set([p.notation for p in self.__dict__['properties']]))
-            ## need this back and fixed: look up notations
-            ## but uniquness is not required, it just needs handling
-            ## re: multiple mr:hasProperty
-            # if len(self.__dict__['properties']) != uniquekeys:
-            #     raise ValueError('this component has non-unique property types')
-            #props = dict([(prop.notation, prop) for prop in self.properties])
         props = {}
         if self.__dict__.has_key('properties'):
             for prop in self.properties:
@@ -495,6 +459,7 @@ class Component(_DotMixin):
 
     def __setattr__(self, key, value):
         if key in self._props().keys():
+            # query make this a list instead
             raise ValueError('A property named {} already exists'.format(key))
         elif key in self._okeys():
             self.__dict__[key] = value
@@ -569,28 +534,16 @@ class Component(_DotMixin):
                 data = statement.get('o')
                 notation = get_notation(statement.get('o'))
                 rdfobject = Item(data, notation)
-                # if notation is not None:
-                #     rdfobject = Item(data, notation)
-                # else:
-                #     rdfobject = Item(data, data)
-                # if statement.get('p').startswith('<'):
-                #     notation = statement.get('p').split('/')[-1].strip('>').lower()
-                # else:
-                #     notation = statement.get('p')
-                
-                # predicate = Item(statement.get('p'),
-                #                  # fuseki_process.get_notation(statement.get('p'))
-                #                  get_notation(statement.get('p'))
-                #                  )
-                # if statement.get('o').startswith('<'):
-                #     notation = statement.get('o').split('/')[-1].strip('>').lower()
-                # else:
-                #     notation = statement.get('o')
-                # rdfobject = Item(statement.get('o'),
-                #                  # fuseki_process.get_notation(statement.get('o')))
-                #                  get_notation(statement.get('o'))
-                #                  )
-                self.properties.append(StatementProperty(predicate, rdfobject))
+
+                subc = '<http://www.metarelate.net/metOcean/component/'
+                if rdfobject.data.startswith(subc):
+                    comp = Component(rdfobject.data)
+                    comp.populate_from_uri(fuseki_process)
+                    self.properties.append(ComponentProperty(predicate,
+                                                             comp))
+                else:
+                    self.properties.append(StatementProperty(predicate, 
+                                                             rdfobject))
 
     # @staticmethod
     def sparql_retriever(self):
@@ -691,12 +644,6 @@ class Component(_DotMixin):
                 raise TypeError('property not a recognised type:\n{}'.format(type(prop)))
         return podict
 
-    # def _podict_elems(self, podict):
-    #     podict['mr:hasProperty'] = []
-    #     for aprop in self.properties:
-    #         podict['mr:hasProperty'].append(aprop.uri.data)
-    #     return podict
-
     def creation_sparql(self):
         """
         return SPARQL string for creation of a Concept
@@ -734,6 +681,8 @@ class Property(_DotMixin):
        :class:`PropertyComponent`.
 
     """
+
+    ## ToDo reconsider this class in light of StatementProperty and ComponentProperty
     def __init__(self, uri=None, predicate=None, ptype=None, closematch=None, defby=None,
                  value=None, name=None, operator=None):#, component=None):
         self.uri = Item(uri)
@@ -1048,17 +997,16 @@ class ComponentProperty(Property):
 
     def get_identifiers(self, fuseki_process):
         comp_ids = {}
-        for prop in component.properties:
+        for prop in self.component.properties:
             careful_update(comp_ids, prop.get_identifiers(fuseki_process))
-        identifiers = {predicate.notation, comp_ids}
-        return comp_ids
-
-def careful_update(adict, bdict):
-    if not set(adict.keys()).isdisjoint(set(bdict.keys())):
-        raise ValueError('adict shares keys with bdict')
-    else:
-        adict.update(bdict)
-        return adict
+        # import pdb; pdb.set_trace()
+        identifiers = {self.predicate.notation: comp_ids}
+        newids = {}
+        for k,v in comp_ids.iteritems():
+            newkey = self.predicate.notation + '_' + k
+            newids[newkey] = v
+        return identifiers
+        #return newids
 
 
 class StatementProperty(Property):
@@ -1140,7 +1088,7 @@ class StatementProperty(Property):
             if msplit.netloc == 'vocab.nerc.ac.uk':
                 mdomain = 'def.scitools.org.uk'
             else:
-                mdomain = psplit.netloc 
+                mdomain = msplit.netloc 
             rospq = '<{}://{}/system/query?>'.format(msplit.scheme, mdomain)
         else:
             rospq = pspq
@@ -1151,6 +1099,8 @@ class StatementProperty(Property):
         for item in results:
             key = item.get('key').strip('"')
             value = item.get('value').strip('"')
+            if isinstance(value, unicode):
+                value=str(value)
             if not (key is not None and value is not None):
                 raise ValueError('key and value required, but not present\n'
                                  '{}'.format(item))
@@ -1158,44 +1108,11 @@ class StatementProperty(Property):
                 if identifiers.has_key(key):
                     raise ValueError('duplicate key: {}'.format(key))
             identifiers[key] = value
-        until nerc vocab server is understood
+        # until nerc vocab server is understood
         if self.rdfobject.data.startswith('<http://vocab.nerc.ac.uk'):
             sn = self.rdfobject.data.rstrip('>').split('/')[-1]
             identifiers['standard_name'] = sn
         return identifiers
-        # result = {}
-        # if self.predicate.notation is not None and \
-        #     self.rdfobject.notation is not None:
-        #     result = {self.predicate.notation: self.rdfobject.notation}
-        # else:
-        #     pref = ('prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>'
-        #             'prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>'
-        #             'prefix skos: <http://www.w3.org/2004/02/skos/core#>')
-        #     puri = self.rdfobject.data
-        #     qstr = ('SELECT ?key ?val '
-        #             'WHERE {'
-        #             '    { SELECT ?param ?key ?val '
-        #             'WHERE {'
-        #             '      ?param ?p ?o .'
-        #             '    FILTER(?param = %s)'
-        #             '          ?p rdfs:range ?range .'
-        #             '        ?range skos:notation ?key .'
-        #             '        ?o skos:notation ?val . '
-        #             '  } } UNION'
-        #             '  { SELECT ?param ?key ?val WHERE {'
-        #             '           ?param rdf:type ?ptype .'
-        #             '        ?ptype skos:notation ?key .'
-        #             '        ?param skos:notation ?val .'
-        #             '    FILTER(?param = %s)'
-        #             '    } }'
-        #             '}' % (puri, puri))
-
-        #     base = 'http://codes.wmo.int/system/query?'
-        #     r = requests.get(base, params={'query':pref+qstr, 'output':'json'})
-        #     if r.status_code == 200:
-        #         for b in r.json()['results']['bindings']:
-        #             result[str(b['key']['value'])] = str(b['val']['value'])
-        # return result
 
     @property
     def notation(self):
