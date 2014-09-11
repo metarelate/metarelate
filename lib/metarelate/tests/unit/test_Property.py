@@ -15,37 +15,32 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with metarelate. If not, see <http://www.gnu.org/licenses/>.
 """
-Test the metarelate Apache Fuseki server.
+Test the metarelate framework.
 
 """
 
 import unittest
 
 import metarelate
+import metarelate.fuseki
 import metarelate.tests as tests
-from metarelate.fuseki import FusekiServer
-
-SCHEME_CF = '<http://def.scitools.org.uk/cfdatamodel/Field>'
-SCHEME_UM = '<http://reference.metoffice.gov.uk/um/f3/UMField>'
+import metarelate.tests.stock as stock
 
 
-class TestFuseki(tests.MetarelateTestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.fuseki = FusekiServer(test=True)
-        cls.fuseki.load()
-        cls.fuseki.start()
+class Test_StatementProperty(tests.MetarelateTestCase):
+    def setUp(self):
+        self.prop = stock.property_cf_standard_name()
 
-    @classmethod
-    def tearDownClass(cls):
-        cls.fuseki.stop()
+    def test_eq(self):
+        other = stock.property2_cf_standard_name()
+        self.assertNotEqual(self.prop, other)
 
-    def test_retrieve_um_cf(self):
-        mappings = self.fuseki.retrieve_mappings(SCHEME_UM, SCHEME_CF)
-        self.assertEqual(len(mappings), 1)
-        imappings = self.fuseki.retrieve_mappings(SCHEME_CF, SCHEME_UM)
-        self.assertEqual(len(imappings), 1)
-
+    def test_get_identifiers(self):
+        expected = {'standard_name': 
+                    'tendency_of_sea_ice_thickness_due_to_dynamics'}
+        with metarelate.fuseki.FusekiServer() as fu_p:
+            self.assertEqual(self.prop.get_identifiers(fu_p),
+                             expected)
 
 
 if __name__ == '__main__':

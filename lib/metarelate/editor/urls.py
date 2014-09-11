@@ -5,8 +5,10 @@ from django.conf.urls import patterns, include, url
 # admin.autodiscover()
 
 urlpatterns = patterns('',
-
     url(r'^$', 'metarelate.editor.app.views.home', name='home'),
+    url(r'^newmapping/$', 'metarelate.editor.app.views.newmapping', name='newmapping'),
+    url(r'^anewmapping/$', 'metarelate.editor.app.views.anewmapping', name='anewmapping'),
+
     url(r'^invalid_mappings/$', 'metarelate.editor.app.views.invalid_mappings',
         name='invalid_mappings'),
     url(r'^fsearch/$', 'metarelate.editor.app.views.fsearch', name='fsearch'),
@@ -16,8 +18,8 @@ urlpatterns = patterns('',
     url(r'^searchproperty/(?P<fformat>[^/]+)/$',
         'metarelate.editor.app.views.search_property', name='search_property'),
     url(r'^searchmaps/$', 'metarelate.editor.app.views.search_maps', name='search_maps'),
-    url(r'^mappingformats/$', 'metarelate.editor.app.views.mapping_formats',
-        name='mapping_formats'),
+    # url(r'^mappingformats/$', 'metarelate.editor.app.views.mapping_formats',
+    #     name='mapping_formats'),
     url(r'^definemediator/(?P<mediator>[^/]+)/(?P<fformat>[^/]+)/$',
         'metarelate.editor.app.views.define_mediator', name='define_mediator'),
     url(r'^createmediator/(?P<fformat>[^/]+)/$',

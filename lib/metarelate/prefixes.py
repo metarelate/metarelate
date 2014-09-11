@@ -62,6 +62,7 @@ class Prefixes(dict):
         'gribapi'  : 'http://def.ecmwf.int/api/grib/keys/',
         'openmathr1' : 'http://www.openmath.org/cd/relation1.xhtml#',
         'openmatha1' : 'http://www.openmath.org/cd/arith1.xhtml#',
+        'cfnames' : 'http://vocab.nerc.ac.uk/standard_name/',
         }
         self.update(prefixd)
 

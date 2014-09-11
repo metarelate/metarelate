@@ -372,7 +372,8 @@ class FusekiServer(object):
 
         """
         self.clean()
-        graphs = os.path.join(self._static_dir, '*')
+        #graphs = os.path.join(self._static_dir, '*')
+        graphs = os.path.join(self._static_dir, 'metarelate.net')
         for ingraph in glob.glob(graphs):
             graph = ingraph.split('/')[-1]
             if os.path.exists(os.path.join(ingraph, 'getCodes.py')):
@@ -406,6 +407,9 @@ class FusekiServer(object):
         return the results
         
         """
+        # base = 'http://127.0.0.1:3131/metOcean/query'
+        # pref = prefixes.Prefixes().sparql
+        # results = requests.get(base, params={'query':pref+aqstr, 'output':'json'})
         if not self.alive():
             self.restart()
         # use null ProxyHandler to ignore proxy for localhost access
@@ -447,36 +451,36 @@ class FusekiServer(object):
         else:
             return data
 
-    def get_label(self, subject, debug=False):
-        """
-        return the skos:notation for a subject, if it exists
+    # def get_label(self, subject, debug=False):
+    #     """
+    #     return the skos:notation for a subject, if it exists
 
-        """
-        subject = str(subject)
-        if not subject.startswith('<') and not subject.startswith('"'):
-            subj_str = '"{}"'.format(subject)
-        else:
-            subj_str = subject
-        qstr = ''' SELECT ?notation 
-        WHERE { {'''
-        for graph in _vocab_graphs():
-            qstr += '\n\tGRAPH %s {' % graph
-            qstr += '\n\t?s skos:notation ?notation . }}\n\tUNION {'
-        qstr = qstr.rstrip('\n\tUNION {')
-        qstr += '\n\tFILTER(?s = %(sub)s) }' % {'sub':subj_str}
-        results = self.run_query(qstr, debug=debug)
-        if len(results) == 0:
-            hash_split = subject.split('#')
-            if len(hash_split) == 2 and hash_split[1].endswith('>'):
-                label = hash_split[1].rstrip('>')
-            else:
-                # raise ValueError('{} returns no notation'.format(subject))
-                label = subject
-        elif len(results) >1:
-            raise ValueError('{} returns multiple notation'.format(subject))
-        else:
-            label = results[0]['notation']
-        return label
+    #     """
+    #     subject = str(subject)
+    #     if not subject.startswith('<') and not subject.startswith('"'):
+    #         subj_str = '"{}"'.format(subject)
+    #     else:
+    #         subj_str = subject
+    #     qstr = ''' SELECT ?notation 
+    #     WHERE { {'''
+    #     for graph in _vocab_graphs():
+    #         qstr += '\n\tGRAPH %s {' % graph
+    #         qstr += '\n\t?s skos:notation ?notation . }}\n\tUNION {'
+    #     qstr = qstr.rstrip('\n\tUNION {')
+    #     qstr += '\n\tFILTER(?s = %(sub)s) }' % {'sub':subj_str}
+    #     results = self.run_query(qstr, debug=debug)
+    #     if len(results) == 0:
+    #         hash_split = subject.split('#')
+    #         if len(hash_split) == 2 and hash_split[1].endswith('>'):
+    #             label = hash_split[1].rstrip('>')
+    #         else:
+    #             # raise ValueError('{} returns no notation'.format(subject))
+    #             label = subject
+    #     elif len(results) >1:
+    #         raise ValueError('{} returns multiple notation'.format(subject))
+    #     else:
+    #         label = results[0]['notation']
+    #     return label
 
     def get_contacts(self, register, debug=False):
         """
@@ -513,165 +517,58 @@ class FusekiServer(object):
         results = self.run_query(qstr, debug=debug)
         return results
 
-    def retrieve_mappings(self, source, target):
+    def retrieve_mappings(self, sourcetype, targettype):
         """
         return the format specific mappings for a particular source
-        and target format
+        and target component type
 
         """
-        if isinstance(source, basestring) and \
-                not metarelate.Item(source).is_uri():
-            s_str = '<http://www.metarelate.net/{ds}/format/{s}>'
-            source = s_str.format(ds=self._fuseki_dataset, s=source.lower())
-        if isinstance(target, basestring) and \
-                not metarelate.Item(target).is_uri():
-            t_str = '<http://www.metarelate.net/{ds}/format/{t}>'
-            target = t_str.format(ds=self._fuseki_dataset, t=target.lower())
-        qstr = '''
-        SELECT ?mapping ?source ?sourceFormat ?target ?targetFormat ?inverted
-        (GROUP_CONCAT(DISTINCT(?valueMap); SEPARATOR = '&') AS ?valueMaps)
-        WHERE { 
-        GRAPH <http://metarelate.net/mappings.ttl> { {
-        ?mapping mr:source ?source ;
-                 mr:target ?target ;
-                 mr:status ?status .
-        BIND("False" AS ?inverted)
-        OPTIONAL {?mapping mr:hasValueMap ?valueMap . }
-        FILTER (?status NOT IN ("Deprecated", "Broken"))
-        MINUS {?mapping ^dc:replaces+ ?anothermap}
-        }
-        UNION {
-        ?mapping mr:source ?target ;
-                 mr:target ?source ;
-                 mr:status ?status ;
-                 mr:invertible "True" .
-        BIND("True" AS ?inverted)
-        OPTIONAL {?mapping mr:hasValueMap ?valueMap . }
-        FILTER (?status NOT IN ("Deprecated", "Broken"))
-        MINUS {?mapping ^dc:replaces+ ?anothermap}
-        } }
-        GRAPH <http://metarelate.net/concepts.ttl> { 
-        ?source mr:hasFormat %s .
-        ?target mr:hasFormat %s .
-        }
-        }
-        GROUP BY ?mapping ?source ?sourceFormat ?target ?targetFormat ?inverted
-        ORDER BY ?mapping
+        if not isinstance(sourcetype, metarelate.Item):
+            sourcetype = metarelate.Item(sourcetype)
+        if not isinstance(targettype, metarelate.Item):
+            targettype = metarelate.Item(targettype)
+        if not (sourcetype.is_uri() and targettype.is_uri()):
+            raise ValueError('sourcetype and targettype must both be URIs')
 
-        ''' % (source, target)
+        qstr = ('SELECT ?mapping ?source ?target ?inverted '
+                '''(GROUP_CONCAT(DISTINCT(?valueMap); SEPARATOR = '&') AS ?valueMaps) '''
+                'WHERE {  '
+                'GRAPH <http://metarelate.net/mappings.ttl> { { '
+                '?mapping mr:source ?source ; '
+                'mr:target ?target ; '
+                'mr:status ?status . '
+                'BIND("False" AS ?inverted) '
+                'OPTIONAL {?mapping mr:hasValueMap ?valueMap . } '
+                'FILTER (?status NOT IN ("Deprecated", "Broken")) '
+                'MINUS {?mapping ^dc:replaces+ ?anothermap} '
+                '} UNION { '
+                '?mapping mr:source ?target ; '
+                '         mr:target ?source ; '
+                '         mr:status ?status ; '
+                '         mr:invertible "True" . '
+                'BIND("True" AS ?inverted) '
+                'OPTIONAL {?mapping mr:hasValueMap ?valueMap . } '
+                'FILTER (?status NOT IN ("Deprecated", "Broken")) '
+                'MINUS {?mapping ^dc:replaces+ ?anothermap} '
+                '} } '
+                'GRAPH <http://metarelate.net/concepts.ttl> { '
+                '?source rdf:type %s . '
+                '?target rdf:type %s . '
+                '}} '
+                'GROUP BY ?mapping ?source ?target ?inverted '
+                'ORDER BY ?mapping') % (sourcetype.data, targettype.data)
         mappings = self.run_query(qstr)
         mapping_list = []
         for mapping in mappings:
             mapping_list.append(self.structured_mapping(mapping))
         return mapping_list
 
-    def _retrieve_component(self, uri, base=True):
-        qstr = metarelate.Component.sparql_retriever(uri)
-        qcomp = self.retrieve(qstr)
-        if qcomp is None:
-            msg = 'Cannot retrieve URI {!r} from triple-store.'
-            raise ValueError(msg.format(uri))
-        for key in ['property', 'subComponent']:
-            if qcomp.get(key) is None:
-                qcomp[key] = []
-            if isinstance(qcomp[key], basestring):
-                qcomp[key] = [qcomp[key]]
-        if qcomp['property']:
-            properties = []
-            for puri in qcomp['property']:
-                qstr = metarelate.Property.sparql_retriever(puri)
-                qprop = self.retrieve(qstr)
-                name = qprop['name']
-                name = metarelate.Item(name, self.get_label(name))
-                curi = qprop.get('component')
-                if curi is not None:
-                    value = self._retrieve_component(curi, base=False)
-                else:
-                    value = qprop.get('value')
-                    if value is not None:
-                        value = metarelate.Item(value, self.get_label(value))
-                    op = qprop.get('operator')
-                    if op is not None:
-                        op = metarelate.Item(op, self.get_label(op))
-                properties.append(metarelate.Property(puri, name, value, op))
-            result = metarelate.PropertyComponent(uri, properties)
-        if qcomp['subComponent']:
-            components = []
-            for curi in qcomp['subComponent']:
-                components.append(self._retrieve_component(curi, base=False))
-            if base:
-                result = components
-            else:
-                result = metarelate.Component(uri, components)
-        if base:
-            scheme = qcomp['format']
-            scheme = metarelate.Item(scheme, self.get_label(scheme))
-            result = metarelate.Concept(uri, scheme, result)
-        return result
-
-    def _retrieve_value_map(self, valmap_id, inv):
-        """
-        returns a dictionary of valueMap information
-        
-        """
-        if inv == '"False"':
-            inv = False
-        elif inv == '"True"':
-            inv = True
-        else:
-            raise ValueError('inv = {}, not "True" or "False"'.format(inv))
-        value_map = {'valueMap':valmap_id, 'mr:source':{}, 'mr:target':{}}
-        qstr = metarelate.ValueMap.sparql_retriever(valmap_id)
-        vm_record = self.retrieve(qstr)
-        if inv:
-            value_map['mr:source']['value'] = vm_record['target']
-            value_map['mr:target']['value'] = vm_record['source']
-        else:
-            value_map['mr:source']['value'] = vm_record['source']
-            value_map['mr:target']['value'] = vm_record['target']
-        for role in ['mr:source', 'mr:target']:
-            value_map[role] = self._retrieve_value(value_map[role]['value'])
-
-        return value_map
-
-    def _retrieve_value(self, val_id):
-        """
-        returns a dictionary from a val_id
-        
-        """
-        value_dict = {'value':val_id}
-        qstr = metarelate.Value.sparql_retriever(val_id)
-        val = self.retrieve(qstr)
-        for key in val.keys():
-            value_dict['mr:{}'.format(key)] = val[key]
-        for sc_prop in ['mr:subject', 'mr:object']:
-            pid = value_dict.get(sc_prop)
-            if pid:
-                qstr = metarelate.ScopedProperty.sparql_retriever(pid)
-                prop = self.retrieve(qstr)
-                if prop:
-                    value_dict[sc_prop] = {}
-                    for pkey in prop:
-                        pv = prop[pkey]
-                        value_dict[sc_prop]['mr:{}'.format(pkey)] = pv
-                        if pkey == 'hasProperty':
-                            pr = value_dict[sc_prop]['mr:{}'.format(pkey)]
-                            qstr = metarelate.Property.sparql_retriever(pr)
-                            aprop = self.retrieve(qstr)
-                            value_dict[sc_prop]['mr:{}'.format(pkey)] = {'property':pv}
-                            for p in aprop:
-                                value_dict[sc_prop]['mr:{}'.format(pkey)]['mr:{}'.format(p)] = aprop[p]
-                elif pid.startswith('<http://www.metarelate.net/{}/value/'.format(self._fuseki_dataset)):
-                    newval = self._retrieve_value(pid)
-                    value_dict[sc_prop] = newval
-                else:
-                    value_dict[sc_prop] = pid
-        return value_dict
-
     def structured_mapping(self, template):
-        uri = template['mapping']
-        source = self._retrieve_component(template['source'])
-        target = self._retrieve_component(template['target'])
+        uri = template.get('mapping')
+        source = metarelate.Component(template.get('source'))
+        source.populate_from_uri(self)
+        target = metarelate.Component(template.get('target'))
+        target.populate_from_uri(self)
         return metarelate.Mapping(uri, source, target)
     
     def retrieve(self, qstr, debug=False):

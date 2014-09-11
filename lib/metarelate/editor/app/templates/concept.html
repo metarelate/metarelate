@@ -1,0 +1,30 @@
+
+{% load inclusions %}
+
+
+
+<table border="1" class="recordtable">
+  <tr>
+    <td>
+    {{ aconcept.as_p }}
+    </td>
+
+    <td>
+
+    <table id="{{ aconcept.prefix }}" border="1" cellpadding="0" cellspacing="5" class="recordtable">
+      <tbody>
+	{{ aconcept.properties.management_form }}
+	{% for form in aconcept.properties.forms %}
+      <tr id="{{ form.prefix }}-row" class="form-container">
+        <td></td>
+        <td>{{ form.as_p }}
+        </td>
+      </tr>
+      {% endfor %}
+    </td></tr>
+    </tbody>
+    </table>
+
+    </td>
+  </tr>
+</table>

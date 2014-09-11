@@ -27,6 +27,8 @@ from django.core.urlresolvers import reverse
 from django.template.loader import render_to_string
 from django.utils import formats
 from django.utils.safestring import mark_safe
+from django.forms.formsets import Form, BaseFormSet, formset_factory, \
+            ValidationError
 
 import metarelate
 import metarelate.prefixes as prefixes
@@ -505,4 +507,74 @@ class MappingForm(forms.Form):
        self.fields['target'].widget.attrs['readonly'] = True
 #       self.fields['mapping'].widget = forms.HiddenInput()
 
-    
+
+
+#class Concept(forms.Form, BaseFormSet):
+class Concept (forms.Form):
+    def __init__(self, *args, **kwargs):
+        super(Concept, self).__init__(*args, **kwargs)
+        self.properties = formset_factory(ConceptProperty)
+        self.concepts = formset_factory(Concept)
+
+    choices = [('',''),
+               ('<http://reference.metoffice.gov.uk/um/f3/UMField>', 'PP Field'),
+               ('<http://reference.metoffice.gov.uk/um/f3/UMFieldCollection>', 'PP Field Set'),
+               ('<http://test.wmocodes.info/def/common/grib_message>', 'GRIB message'),
+               ('<http://test.wmocodes.info/def/common/grib_message_collection>', 'GRIB message Collection'),
+               ('<http://def.scitools.org.uk/cfmodel/Field>', 'CF Field'),
+               ('<http://def.scitools.org.uk/cfmodel/DomainAxis>', 'CF Domain Axis'),
+               ('<http://def.scitools.org.uk/cfmodel/DimensionCoordinate>', 'CF Dimension Coordinate'),
+               ('<http://def.scitools.org.uk/cfmodel/CellMethod>', 'CF Cell Method'),
+               ]
+    concept_type = forms.ChoiceField(choices=choices)
+
+
+    # def __init__(self, *args, **kwargs):
+    #     self.properties = formset_factory(ConceptProperty)
+    #     # CODE TRICK #3 - same as #1:
+    #     # pass in a valid quiz object from the view
+    #     # pop removes arg, so we don't pass to the parent
+    #     self.pref = kwargs.pop('pref')
+
+class ConceptProperty(forms.Form):
+    """Form for a property in a concept"""
+    def __init__(self, *args, **kwargs):
+        # CODE TRICK #1
+        # pass in a fformat from the formset
+        # use the property to build the form
+        # pop removes from dict, so we don't pass to the parent
+        #self.fformat = kwargs.pop('fformat')
+        super(ConceptProperty, self).__init__(*args, **kwargs)
+    pchoices = [('<stash>','stash'),
+                ('<standard_name>','standard_name'),
+                ]
+    property = forms.ChoiceField(choices=pchoices)
+    vchoices = [('<stash/m01s00i004>','m01s00i004'),
+                ('<air_potential_temperature>','air potential temperature'),
+                ]
+    values = forms.ChoiceField(choices=vchoices)
+
+class TestConceptProperty(forms.Form):
+    """Form for a property in a concept"""
+    def __init__(self, *args, **kwargs):
+        # CODE TRICK #1
+        # pass in a fformat from the formset
+        # use the property to build the form
+        # pop removes from dict, so we don't pass to the parent
+        #self.fformat = kwargs.pop('fformat')
+        super(TestConceptProperty, self).__init__(*args, **kwargs)
+    pchoices = [('<standard_name>','standard_name'),
+                ]
+    property = forms.ChoiceField(choices=pchoices)
+    vchoices = [('<air_potential_temperature>','air potential temperature'),
+                ]
+    values = forms.ChoiceField(choices=vchoices)
+
+
+# ConceptFormSet = formset_factory(QuestionForm, formset=BaseConceptFormSet)
+
+
+## https://djangosnippets.org/snippets/1955/
+
+## https://djangosnippets.org/snippets/1863/
+## https://djangosnippets.org/snippets/1389/

@@ -19,9 +19,12 @@ from collections import Iterable, MutableMapping, namedtuple
 from datetime import datetime
 import hashlib
 import os
-from urlparse import urlparse
+import requests
+import urlparse
+import time
 
 import pydot
+from requests.exceptions import ConnectionError
 
 from metarelate.config import update
 import metarelate.prefixes as prefixes
@@ -35,30 +38,42 @@ site_config = {
 
 update(site_config)
 
+def careful_update(adict, bdict):
+    if not set(adict.keys()).isdisjoint(set(bdict.keys())):
+        raise ValueError('adict shares keys with bdict')
+    else:
+        adict.update(bdict)
+        return adict
 
-class _ComponentMixin(object):
+def get_notation(uri):
+    """Returns the skos:notation for a uri if it exists, or None.
+    If uri is not a http uri, the input is returned as the notation.
     """
-    Mixin class for common mapping component behaviour.
-
-    """
-    def __setitem__(self, key, value):
-        self._immutable_exception()
-
-    def __delitem__(self, key):
-        self._immutable_exception()
-
-    def __getattr__(self, name):
-        return self.__getitem__(name)
-
-    def __iter__(self):
-        return iter(self._data)
-
-    def __len__(self):
-        return len(self._data)
-
-    def _immutable_exception(self):
-        msg = '{!r} object is immutable.'
-        raise TypeError(msg.format(type(self).__name__))
+    result = None
+    if uri.startswith('<') and uri.endswith('>'):
+        uri = uri.lstrip('<').rstrip('>')
+    if uri.startswith('http://'):
+        try:
+            r = requests.get(uri, headers={'Accept':'application/ld+json'})
+        except requests.exceptions.ConnectionError, e:
+            time.sleep(0.5)
+            r = requests.get(uri, headers={'Accept':'application/ld+json'})
+        if r.status_code == 200:
+            try:
+                result = r.json().get('skos:notation')
+                if isinstance(result, dict):
+                    result = result.get('@value')
+            except ValueError, e:
+                if e.message == 'No JSON object could be decoded':
+                    result = uri.split('/')[-1]
+        else:
+            ## hack to use the last part of the uri for now
+            result = uri.split('/')[-1]
+    else:
+        result = uri
+    if isinstance(result, unicode):
+        result = str(result)
+    return result 
 
 
 class _DotMixin(object):
@@ -93,20 +108,20 @@ class _DotMixin(object):
 class Mapping(_DotMixin):
     """
     Represents an mapping relationship between a source
-    :class:`Concept` and a target :class:`Concept`.
+    :class:`Component` and a target :class:`Component`.
 
     """
     def __init__(self, uri, source, target, invertible='"False"',
                  editor=None, note=None, reason=None, replaces=None, 
                  valuemaps=None, owners=None, watchers=None, status=None):
         uri = Item(uri)
-        if not isinstance(source, Concept):
+        if not isinstance(source, Component):
             msg = 'Expected source {!r} object, got {!r}.'
-            raise TypeError(msg.format(Concept.__name__,
+            raise TypeError(msg.format(Component.__name__,
                                        type(source).__name__))
-        if not isinstance(target, Concept):
+        if not isinstance(target, Component):
             msg = 'Expected target {!r} object, got {!r}.'
-            raise TypeError(msg.format(Concept.__name__,
+            raise TypeError(msg.format(Component.__name__,
                                        type(target).__name__))
         if owners and not isinstance(owners, list):
             msg = 'Expected target {!r} object, got {!r}.'
@@ -132,6 +147,10 @@ class Mapping(_DotMixin):
         self.owners = owners
         self.watchers = watchers
         self.status = status
+
+    def __repr__(self):
+        pstr = '{}\nSource:\n{!r}Target:\n{!r}'.format(self.uri, self.source, self.target)
+        return pstr
 
     def __eq__(self, other):
         result = NotImplemented
@@ -345,60 +364,39 @@ class Mapping(_DotMixin):
         return qstr, instr
 
 
-class Component(_ComponentMixin, _DotMixin, MutableMapping):
+class Component(_DotMixin):
     """
-    A component participates in a :class:`Property` hierarchy
-    represented by its parent :class:`Concept`. It is immutable and contains
-    one or more :class`Component` or :class:`PropertyComponent` members.
+    A Component is a typed identifiable collection of metadata.
+    
+    One may be an identified as a source or target for a mapping.
 
     A component is deemed as either *simple* or *compound*:
 
-     * A component is *simple* iff it contains exactly one member,
-       which is a :class:`PropertyComponent`.
-     * A component is *compound* iff:
-       * It is not *simple*, or
-       * It contains two or more members.
-
-    If a component is *simple* then each :class:`Property` that participates
-    in its underlying hierarchy may be accessed via the :class:`Property`
-    *name* attribute for convenience i.e. *property = component.standard_name*,
-    or indexed via the associated :class:`Property` *name*
-    i.e. *concept['standard_name']*.
-
-    If a concept is *compound* then each component member is accessed by
-    indexing i.e. *component = concept[0]*
+    * A component is *simple* if it contains properties but no
+    component members
 
     """
-    def __init__(self, uri, components):
-        self.__dict__['uri'] = Item(uri)
-        if isinstance(components, Component) or \
-                isinstance(components, PropertyComponent) or \
-                not isinstance(components, Iterable):
-            components = [components]
-        if not len(components):
-            msg = '{!r} object must contain at least one component.'
-            raise ValueError(msg.format(type(self).__name__))
-        temp = []
-        for comp in components:
-            if not isinstance(comp, (Component, PropertyComponent)):
-                msg = 'Expected a {!r} or {!r} object, got {!r}.'
-                raise TypeError(msg.format(Component.__name__,
-                                           PropertyComponent.__name__,
-                                           type(comp).__name__))
-            temp.append(comp)
-        self.__dict__['_data'] = tuple(sorted(temp, key=lambda c: c.uri.data))
-        self.__dict__['components'] = self._data
+    def __init__(self, uri, com_type=None, properties=None):
+        self.uri = Item(uri)
+        self.com_type = Item(com_type)
+        if properties is None:
+            properties = []
+        for prop in properties:
+            if not isinstance(prop, Property):
+                raise TypeError('one of the properties is a {}, not '
+                                'a metarelate Property'.format(type(prop)))
+        self.properties = properties
 
     def __eq__(self, other):
         result = NotImplemented
         if isinstance(other, type(self)):
             result = False
             if self.uri == other.uri and len(self) == len(other):
-                for i, comp in enumerate(self):
-                    if comp != other[i]:
-                        break
-                else:
-                    result = True
+                result=True
+                if not self.properties.sort() == other.properties.sort():
+                    res = False
+                if not self.com_type == other.com_type:
+                    result = False
         return result
 
     def __ne__(self, other):
@@ -407,41 +405,82 @@ class Component(_ComponentMixin, _DotMixin, MutableMapping):
             result = not result
         return result
 
-    def __getitem__(self, key):
-        if isinstance(key, int):
-            result = self.components[key]
+    def __len__(self):
+        res = len(self.properties)
+        return res
+
+    def _props(self):
+        props = {}
+        if self.__dict__.has_key('properties'):
+            for prop in self.properties:
+                if props.has_key(prop.predicate.notation):
+                    props[prop.predicate.notation].append(prop)
+                else:
+                    props[prop.predicate.notation] = [prop]
+                if props.has_key(prop.predicate.data):
+                    props[prop.predicate.data].append(prop)
+                else:
+                    props[prop.predicate.data] = [prop]
+                
+        return props
+
+    @property
+    def data(self):
+        if self.uri:
+            res = self.uri.data
         else:
-            if self.compound:
-                self._compound_exception()
-            result = None
-            simple, = self.components
-            for name in simple:
-                if name == key:
-                    result = simple[name]
-                    break
+            raise ValueError('Component has no URI')
+        return res
+
+    def _okeys(self):
+        return ['uri', 'data', 'com_type', 'properties']
+        
+    def __getattr__(self, key):
+        if key in self._okeys():
+            result = self.__dict__[key]
+        elif key in self._props().keys():
+            result = self._props()[key]
+            if len(result) == 1:
+                result = result[0]
+        else:
+            msg = '{} object has no attribute "{}"'
+            msg = msg.format(type(self).__name__, key)
+            raise AttributeError(msg)
         return result
 
     def __contains__(self, key):
-        if self.compound:
-            self._compound_exception()
-        return key in self.components[0]
+        if key in self._okeys():
+            res = True
+        elif key in self._props().keys():
+            res = True
+        else:
+            res = False
+        return res
 
+    def __setattr__(self, key, value):
+        if key in self._props().keys():
+            # query make this a list instead
+            raise ValueError('A property named {} already exists'.format(key))
+        elif key in self._okeys():
+            self.__dict__[key] = value
+        else:
+            if isinstance(value, Property):
+                self.properties.append(value)
+            else:
+                msg = '{} is not a metarelate Property'
+                msg = msg.format(type(value).__name__)
+                raise TypeError(msg)
+        
     def __repr__(self):
-        fmt = '{cls}({self.uri!r}, {components!r})'
-        components = self.components
-        if len(components) == 1:
-            components, = components
+        fmt = '{cls}({self.uri!r}, {self.com_type!r}\n'
+        fmt += '{properties!r}\n'
         return fmt.format(self=self, cls=type(self).__name__,
-                          components=components)
-
-    def _compound_exception(self):
-        msg = '{!r} object is compound.'
-        raise TypeError(msg.format(type(self).__name__))
+                          properties=self.properties)
 
     @property
     def simple(self):
-        return len(self) == 1 and \
-            isinstance(self.components[0], PropertyComponent)
+        return len(self.components) == 0 and \
+            len(self.properties) != 0
 
     @property
     def compound(self):
@@ -463,7 +502,11 @@ class Component(_ComponentMixin, _DotMixin, MutableMapping):
 
         """
         label = self.dot_escape('{}_{}'.format(parent.uri, self.uri.data))
-        node = pydot.Node(label, label='Component',
+        if self.com_type:
+            nlabel = self.com_type.dot()
+        else:
+            nlabel = 'Component'
+        node = pydot.Node(label, label=nlabel,
                           style='filled', peripheries='2',
                           colorscheme='dark28', fillcolor='3',
                           fontsize=8)
@@ -475,219 +518,106 @@ class Component(_ComponentMixin, _DotMixin, MutableMapping):
             edge.set_label(self.dot_escape(name))
             edge.set_fontsize(7)
         graph.add_edge(edge)
-        for comp in self.components:
-            comp.dot(graph, node, 'Component')
+        for property in self.properties:
+            property.dot(graph, node)#, 'Component')
+        return node
 
-    @staticmethod
-    def sparql_retriever(uri):
-        qstr = '''SELECT ?component ?format ?mediates 
-        (GROUP_CONCAT(?acomponent; SEPARATOR='&') AS ?subComponent)
-        (GROUP_CONCAT(?aproperty; SEPARATOR='&') AS ?property)
-        (GROUP_CONCAT(?arequires; SEPARATOR='&') AS ?requires)
-        WHERE {
-        GRAPH <http://metarelate.net/concepts.ttl> {
-            ?component mr:hasFormat ?format .
-            OPTIONAL{?component mr:hasComponent ?acomponent .}
-            OPTIONAL{?component mr:hasProperty ?aproperty .}
-            OPTIONAL{?component dc:requires ?arequires .}
-            OPTIONAL{?component dc:mediator ?mediates .}
-            FILTER(?component = %s)
-            }
-        }
-        GROUP BY ?component ?format ?mediates
-        ''' % uri
+    def populate_from_uri(self, fuseki_process):
+        statements = fuseki_process.run_query(self.sparql_retriever())
+        for statement in statements:
+            if statement.get('p') == '<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>':
+                self.com_type = statement.get('o')
+            else:
+                data = statement.get('p')
+                notation = get_notation(statement.get('p'))
+                predicate = Item(data, notation)
+                data = statement.get('o')
+                notation = get_notation(statement.get('o'))
+                rdfobject = Item(data, notation)
+
+                subc = '<http://www.metarelate.net/metOcean/component/'
+                if rdfobject.data.startswith(subc):
+                    comp = Component(rdfobject.data)
+                    comp.populate_from_uri(fuseki_process)
+                    self.properties.append(ComponentProperty(predicate,
+                                                             comp))
+                else:
+                    self.properties.append(StatementProperty(predicate, 
+                                                             rdfobject))
+
+    # @staticmethod
+    def sparql_retriever(self):
+        qstr = ('SELECT ?component ?p ?o '
+                'WHERE {GRAPH <http://metarelate.net/concepts.ttl> {'
+                '?component ?p ?o ; '
+                'rdf:type mr:Component .'
+                'FILTER(?component = %s) '
+                'FILTER(?o != mr:Component) '
+                'FILTER(?p != mr:saveCache) '
+                '}}' % self.uri.data)
         return qstr
 
-    @staticmethod
-    def sparql_creator(po_dict):
-        allowed_prefixes = set(('mr:hasFormat','mr:hasComponent', 'mr:hasProperty',
-                                'dc:requires', 'dc:mediator'))
-        preds = set(po_dict)
-        if not preds.issubset(allowed_prefixes):
-            ec = '{} is not a subset of the allowed predicates set for '\
-                 'a component record {}'
-            ec = ec.format(preds, allowed_prefixes)
-            raise ValueError(ec)
+    # @staticmethod
+    def sparql_creator(self, po_dict):
         subj_pref = 'http://www.metarelate.net/{}/component'
         subj_pref = subj_pref.format(site_config['fuseki_dataset'])
         search_string = ''
-        n_propertys = 0
-        n_components = 0
-        n_reqs = 0
-        for pred in po_dict:
-            if isinstance(po_dict[pred], list):
-                if pred == 'mr:format' and len(po_dict[pred]) != 1:
-                    ec = 'get_format_concept only accepts 1 mr:format statement '\
-                         ' The po_dict in this case is not valid {} '
-                    ec = ec.format(str(po_dict))
-                    raise ValueError(ec)
-                elif pred == 'dc:mediator' and len(po_dict[pred]) != 1:
-                    ec = 'get_format_concept only accepts 1 dc:mediator statement'\
-                         ' The po_dict in this case is not valid {} '
-                    ec = ec.format(str(po_dict))
-                    raise ValueError(ec)
-                elif pred == 'dc:requires':
-                    for obj in po_dict[pred]:
-                        search_string += '''
-                        %s %s ;''' % (pred, obj)
-                        n_reqs +=1
-                elif pred == 'mr:hasProperty':
-                    for obj in po_dict[pred]:
-                        search_string += '''
-                        %s %s ;''' % (pred, obj)
-                        n_propertys +=1
-                elif pred == 'mr:hasComponent':
-                    for obj in po_dict[pred]:
-                        search_string += '''
-                        %s %s ;''' % (pred, obj)
-                        n_components +=1
-                else:
-                    for obj in po_dict[pred]:
-                        search_string += '''
-                        %s %s ;''' % (pred, obj)
-            else:
-                search_string += '''
-                %s %s ;''' % (pred, po_dict[pred])
-                if pred == 'skos:member':
-                    n_members =1
-        if search_string != '':
-            qstr = '''SELECT ?component ?format
-            WHERE { {
-            SELECT ?component ?format
-            (COUNT(DISTINCT(?property)) AS ?propertys)
-            (COUNT(DISTINCT(?subComponent)) AS ?subComponents)
-            (COUNT(DISTINCT(?requires)) AS ?requireses)        
-            WHERE{
-            GRAPH <http://metarelate.net/concepts.ttl> {
-            ?component mr:hasFormat ?format ;
-                   %s .
-            OPTIONAL { ?component  mr:hasProperty ?property . }
-            OPTIONAL { ?component  mr:hasComponent ?subComponent . }
-            OPTIONAL{?component dc:requires ?requires .}
-            OPTIONAL{?component dc:mediator ?mediates .}
-            } }
-            GROUP BY ?component ?format 
-            }
-            FILTER(?subComponents = %i)
-            FILTER(?propertys = %i)
-            FILTER(?requireses = %i)
-            }
-            ''' % (search_string, n_components, n_propertys, n_reqs)
-            sha1 = make_hash(po_dict)
-            instr = '''INSERT DATA {
-            GRAPH <http://metarelate.net/concepts.ttl> {
-            <%s/%s> rdf:type mr:Component ;
-                    %s
-                    mr:saveCache "True" .
-            }
-            }
-            ''' % (subj_pref, sha1, search_string)
+        n_statements = 2
+        ## type and savecache
+        for pred, objs in po_dict.iteritems():
+            for obj in objs:
+                search_string += '\t\t{p} {o} \n;'.format(p=pred, o=obj)
+                n_statements +=1
+        qstr = ('SELECT ?component WHERE {{\n'
+                '{SELECT ?component (COUNT(?p) as ?statements)\n'
+                'WHERE {\n'
+                'GRAPH <http://metarelate.net/concepts.ttl> {\n'
+                '?component ?p ?o ;\n'
+                '\t%s'
+                '\tmr:saveCache "True" ;\n'
+                '\t. }}\n'
+                '\tGROUP by ?component\n'
+                '}\n'
+                '\t FILTER(?statements = %i)\n'
+                '}UNION{'
+                '{SELECT ?component (COUNT(?p) as ?statements)\n'
+                'WHERE {\n'
+                'GRAPH <http://metarelate.net/concepts.ttl> {\n'
+                '?component ?p ?o ;\n'
+                '\t%s '
+                '\t.}}\n'
+                '\tGROUP by ?component\n'
+                '}\n'
+                '\t FILTER(?statements = %i)\n'
+                '}}\n' % (search_string, n_statements, search_string, n_statements-1))
+        sha1 = make_hash(po_dict)
+        instr = ('INSERT DATA {\n'
+                 '\tGRAPH <http://metarelate.net/concepts.ttl> {\n'
+                 '\t<%s/%s> rdf:type mr:Component ;\n'
+                 '\t%s\n'
+                 '\tmr:saveCache "True" .\n'
+                 '}}' % (subj_pref, sha1, search_string))
         return qstr, instr
 
+    # def json_referrer(self):
+    #     """
+    #     return the data contents of the component instance ready for encoding
+    #     as a json string
 
-class Concept(Component):
-    """
-    A concept is the root component in a :class:`Property` hierarchy,
-    which defines the *domain* or *range* of a particular :class:`Mapping`
-    relationship.
-
-    A concept represents a specific :data:`scheme` or format such
-    as *UM* or *CF*. It is immutable and contains one or more
-    :class:`Component` or :class:`PropertyComponent` members.
-
-    A concept is deemed as either *simple* or *compound*:
-
-     * A concept is *simple* iff it contains exactly one member,
-       which is a :class:`PropertyComponent`.
-     * A concept is *compound* iff:
-       * It is not *simple*, or
-       * It contains two or more members.
-
-    If a concept is *simple* then each :class:`Property` that participates
-    in its hierarchy may be accessed via the :class:`Property` *name* attribute
-    for convenience i.e. *property = concept.standard_name*, or indexed via
-    the associated :class:`Property` *name* i.e. *concept['standard_name']*.
-
-    If a concept is *compound* then each component member is accessed via
-    indexing i.e. *component = concept[0]*
-
-    """
-    def __init__(self, uri, scheme, components, requires=None, mediator=None):
-        super(Concept, self).__init__(uri, components)
-        self.__dict__['scheme'] = Item(scheme)
-        # nb requires should allow list
-        if requires:
-            self.__dict__['requires'] = Item(requires)
-        if mediator:
-            self.__dict__['mediator'] = Item(mediator)
-
-    def __eq__(self, other):
-        result = NotImplemented
-        if isinstance(other, Concept):
-            result = False
-            if self.scheme == other.scheme:
-                result = super(Concept, self).__eq__(other)
-        return result
-
-    def __ne__(self, other):
-        result = self.__eq__(other)
-        if result is not NotImplemented:
-            result = not result
-        return result
-
-    def __repr__(self):
-        fmt = '{cls}({self.uri!r}, {self.scheme!r}, {components!r})'
-        components = self.components
-        if len(components) == 1:
-            components, = components
-        return fmt.format(self=self, cls=type(self).__name__,
-                          components=components)
-
-    def dot(self, graph, parent, name=None):
-        """
-        Generate a Dot digraph representation of this mapping concept.
-
-        Args:
-         * graph:
-            The containing Dot graph.
-         * parent:
-            The parent Dot node of this property.
-
-        Kwargs:
-         * name:
-            Name of the relationship between the nodes.
-
-        """
-        label = self.dot_escape('{}_{}'.format(parent.uri, self.uri.data))
-        node = pydot.Node(label, label=self.scheme.dot(),
-                          shape='box', style='filled',
-                          colorscheme='dark28', fillcolor='2',
-                          fontsize=8)
-        node.uri = self.uri.data
-        graph.add_node(node)
-        for comp in self.components:
-            comp.dot(graph, node, 'Component')
-        return node
-
-    def json_referrer(self):
-        """
-        return the data contents of the component instance ready for encoding
-        as a json string
-
-        """
-        if len(self) == 1 and self.uri.data == self.components[0].uri.data:
-            prop_ref = self.components[0].json_referrer()
-            prop_ref['mr:hasFormat'] = self.scheme.data
-            referrer = prop_ref
-        else:
-            referrer = {'component': self.uri.data,
-                        'mr:hasFormat': self.scheme.data,
-                        'mr:hasComponent': []}
-            for comp in self.components:
-                prop_ref = comp.json_referrer()
-                prop_ref['mr:hasFormat'] = self.scheme.data
-                referrer['mr:hasComponent'].append(prop_ref)
-        return referrer
+    #     """
+    #     ## not updated yet
+    #     if len(self) == 1 and self.uri.data == self.components[0].uri.data:
+    #         prop_ref = self.components[0].json_referrer()
+    #         prop_ref['rdf:type'] = self.com_type.data
+    #         referrer = prop_ref
+    #     else:
+    #         referrer = {'component': self.uri.data,
+    #                     prop_ref['rdf:type'] : self.com_type.data,
+    #                     'mr:hasComponent': []}
+    #         for comp in self.components:
+    #             prop_ref = comp.json_referrer()
+    #             referrer['mr:hasComponent'].append(prop_ref)
+    #     return referrer
 
     def _podict(self):
         """
@@ -695,20 +625,23 @@ class Concept(Component):
 
         """
         podict = {}
-        if self.scheme:
-            podict['mr:hasFormat'] = self.scheme.data
-        if len(self) == 1:
-            podict['mr:hasProperty'] = []
-            for aproperty in self.components[0].values():
-                podict['mr:hasProperty'].append(aproperty.uri.data)
-        elif len(self) > 1:
-            podict['mr:hasComponent'] = []
-            for comp in self.components:
-                podict['mr:hasComponent'].append(comp.uri.data)
-        if self.__dict__.has_key('requires'):
-            podict['dc:requires'] = self.requires.data ## list
-        if self.__dict__.has_key('mediator'):
-            podict['dc:mediator'] = self.mediator.data
+        if self.com_type:
+            podict['rdf:type'] = [self.com_type.data]
+        else:
+            raise TypeError('this concept has no type')
+        for aprop in self.properties:
+            if isinstance(aprop, StatementProperty):
+                if aprop.predicate.data in podict:
+                    podict[aprop.predicate.data].append(aprop.rdfobject.data)
+                else:
+                    podict[aprop.predicate.data] = [aprop.rdfobject.data]
+            elif isinstance(aprop, ComponentProperty):
+                if aprop.predicate.data in podict:
+                    podict[aprop.predicate.data].append(aprop.component.uri.data)
+                else:
+                    podict[aprop.predicate.data] = [aprop.component.uri.data]
+            else:
+                raise TypeError('property not a recognised type:\n{}'.format(type(prop)))
         return podict
 
     def creation_sparql(self):
@@ -726,147 +659,6 @@ class Concept(Component):
         qstr, instr = self.creation_sparql()
         result = fuseki_process.create(qstr, instr)
         self.uri = Item(result['component'])
-        if len(self) == 1 and isinstance(self.components[0], PropertyComponent):
-            self.components[0].uri = Item(self.uri)
-
-
-
-class PropertyComponent(_ComponentMixin, _DotMixin, MutableMapping):
-    """
-    A property component must be contained within a parent
-    :class:`Concept` or :class:`Component`. It is immutable and
-    contains one or more uniquely named :class:`Property` members.
-
-    The property component provides dictionary style access to its
-    :class:`Property` members, keyed on the :data:`Property.name`.
-    Alternatively, attribute access via the member *name* is supported
-    as a convenience.
-
-    Note that, each :class:`Property` member must have a unique *name*.
-
-    A property component is deemed as either *simple* or *compound*:
-
-     * A property component is *simple* iff all its :class:`Property`
-       members are *simple*.
-     * A property component is *compound* iff it contains at least
-       one :class:`Property` member that is *compound*.
-
-    """
-    def __init__(self, uri, properties):
-        self.__dict__['uri'] = Item(uri)
-        self.__dict__['_data'] = {}
-        if isinstance(properties, Property) or \
-                not isinstance(properties, Iterable):
-            properties = [properties]
-        if not len(properties):
-            msg = '{!r} object must contain at least one {!r}.'
-            raise ValueError(msg.format(type(self).__name__,
-                                        Property.__name__))
-        for prop in properties:
-            if not isinstance(prop, Property):
-                msg = 'Expected a {!r} object, got {!r}.'
-                raise TypeError(msg.format(Property.__name__,
-                                           type(prop).__name__))
-            self.__dict__['_data'][prop.name] = prop
-
-    def __eq__(self, other):
-        result = NotImplemented
-        if isinstance(other, PropertyComponent):
-            result = False
-            if self.uri == other.uri and set(self.keys()) == set(other.keys()):
-                for key in self.keys():
-                    if self[key] != other[key]:
-                        break
-                else:
-                    result = True
-        return result
-
-    def __ne__(self, other):
-        result = self.__eq__(other)
-        if result is not NotImplemented:
-            result = not result
-        return result
-
-    def __getitem__(self, key):
-        result = None
-        for item in self._data.iterkeys():
-            if item == key:
-                result = self._data[item]
-                break
-        return result
-
-    def __contains__(self, key):
-        result = False
-        if isinstance(key, (Item, basestring)):
-            result = self[key] is not None
-        elif isinstance(key, Property):
-            result = key == self[key.name]
-        return result
-
-    def __repr__(self):
-        fmt = '{cls}({self.uri!r}, {properties!r})'
-        properties = sorted(self._data.values())
-        if len(properties) == 1:
-            properties, = properties
-        return fmt.format(self=self, cls=type(self).__name__,
-                          properties=properties)
-
-    @property
-    def simple(self):
-        return all([prop.simple for prop in self.itervalues()])
-
-    @property
-    def compound(self):
-        return not self.simple
-
-    def dot(self, graph, parent, name=None):
-        """
-        Generate a Dot digraph representation of this mapping component.
-
-        Args:
-         * graph:
-            The containing Dot graph.
-         * parent:
-            The parent Dot node of this componet.
-
-        Kwargs:
-         * name:
-            Name of the relationship between the nodes.
-
-        """
-        if parent.uri == self.uri.data:
-            # This component references one or more properties.
-            for prop in self.values():
-                prop.dot(graph, parent, 'Property')
-        else:
-            # This component references another component.
-            label = self.dot_escape('{}_{}'.format(parent.uri, self.uri.data))
-            node = pydot.Node(label, label='Component',
-                              style='filled', peripheries='2',
-                              colorscheme='dark28', fillcolor='3',
-                              fontsize=8)
-            node.uri = self.uri.data
-            graph.add_node(node)
-            edge = pydot.Edge(parent, node,
-                              tailport='s', headport='n')
-            if name is not None:
-                edge.set_label(self.dot_escape(name))
-                edge.set_fontsize(7)
-            graph.add_edge(edge)
-            for prop in self.values():
-                prop.dot(graph, node, 'Property')
-
-    def json_referrer(self):
-        """
-        return the data contents of the propertyComponent instance
-        ready for encoding as a json string
-
-        """
-        referrer = {'component': self.uri.data,
-                    'mr:hasProperty': []}
-        for item in self.itervalues():
-            referrer['mr:hasProperty'].append(item.json_referrer())
-        return referrer
 
 
 class Property(_DotMixin):
@@ -889,34 +681,44 @@ class Property(_DotMixin):
        :class:`PropertyComponent`.
 
     """
-    def __init__(self, uri, name, value=None, operator=None, component=None):
-        new_uri = Item(uri)
-        new_name = Item(name)
-        if (value is None and operator is not None) or \
-                (value is not None and operator is None):
-            msg = 'The {!r} and {!r} of a Property must be both set or unset.'
-            raise ValueError(msg.format('value', 'operator'))
-        new_value = None
-        new_operator = None
-        new_comp = None
-        if value is not None:
-            if isinstance(value, (Item, basestring)):
-                new_value = Item(value)
-            elif isinstance(value, PropertyComponent):
-                new_value = value
-            else:
-                msg = 'Invalid {!r} value, got {!r}.'
-                raise TypeError(msg.format(cls.__name__,
-                                           type(value).__name__))
-        if operator is not None:
-            new_operator = Item(operator)
-        if component is not None:
-            new_comp = Item(component)
-        self.uri = new_uri
-        self.name = new_name
-        self.operator = new_operator
+
+    ## ToDo reconsider this class in light of StatementProperty and ComponentProperty
+    def __init__(self, uri=None, predicate=None, ptype=None, closematch=None, defby=None,
+                 value=None, name=None, operator=None):#, component=None):
+        self.uri = Item(uri)
+        if predicate is None:
+            self.predicate = Item('mr:hasProperty', 'hasProperty')
+        elif isinstance(predicate, Item):
+            self.predicate = predicate
+        else:
+            raise TypeError('{!r} is not an Item'.format(predicate))
+        self.ptype = Item(ptype)
+        self.closematch = Item(closematch)
+        self.definedby = Item(defby)
+        if name is not None and ptype is not None:
+            raise ValueError('A name a ptype may not both be defined for'
+                                 'a Property')
+        self.name = Item(name)
+        # if isinstance(value, (Item, basestring)):
+        #     new_value = Item(value)
+        # el
+        if value is None:
+            new_value = value
+        elif isinstance(value, int) or isinstance(value, float):
+            new_value = value
+        elif isinstance(value, str):
+            new_value = '"{}"'.format(value)
+        else:
+            msg = 'Invalid value, got {!r}.'
+            raise TypeError(msg.format(type(value).__name__))
         self.value = new_value
-        self.component = new_comp
+        self.operator = Item(operator)
+        #self.component = Item(component)
+
+    ## careful here
+    # @property
+    # def notation(self):
+    #     return self.ptype.notation
 
     def __eq__(self, other):
         result = NotImplemented
@@ -924,7 +726,11 @@ class Property(_DotMixin):
             result = self.uri == other.uri and \
                 self.name == other.name and \
                 self.value == other.value and \
-                self.operator == other.operator
+                self.operator == other.operator and \
+                self.ptype == other.ptype and \
+                self.closematch == other.closematch and \
+                self.definedby == other.definedby and \
+                self.component == other.component
         elif self.simple and isinstance(other, (Item, basestring)):
             result = self.value == other
         return result
@@ -936,13 +742,23 @@ class Property(_DotMixin):
         return result
 
     def __repr__(self):
-        fmt = '{cls}(uri={self.uri!r}, name={self.name!r}{value}{operator})'
-        value = operator = component = ''
+        fmt = '{cls}(uri={self.uri!r}, {ptype}{cm}{db}{name}{value}{operator})'
+        value = operator = component = name = ptype = cm = db = ''
+        if self.ptype is not None:
+            ptype = ', type={!r}'.format(self.ptype)
+        if self.closematch is not None:
+            cm = ', closeMatch={!r}'.format(self.closematch)
+        if self.definedby is not None:
+            db = ', definedBy={!r}'.format(self.definedby)
+        if self.name is not None:
+            name = ', name={!r}'.format(self.name)
         if self.value is not None:
             value = ', value={!r}'.format(self.value)
         if self.operator is not None:
             operator = ', operator={!r}'.format(self.operator)
         return fmt.format(self=self, cls=type(self).__name__,
+                          ptype=ptype, name=name,
+                          cm=cm, db=db,
                           value=value, operator=operator)
 
     @property
@@ -966,12 +782,17 @@ class Property(_DotMixin):
         if self.name:
             podict['mr:name'] = self.name.data
         if self.value:
-            if isinstance(self.value, PropertyComponent):
-                podict['mr:hasComponent'] = self.value.data
-            else:
-                podict['rdf:value'] = self.value.data
+            podict['rdf:value'] = self.value
+        # if self.component:
+        #     podict['mr:hasComponent'] = self.component.data
         if self.operator:
             podict['mr:operator'] = self.operator.data
+        if self.ptype:
+            podict['rdf:type'] = self.ptype.data
+        if self.closematch:
+            podict['skos:closeMatch'] = self.closematch.data
+        if self.definedby:
+            podict['rdfs:isDefinedBy'] = self.definedby.data
         return podict
 
     def creation_sparql(self):
@@ -981,7 +802,10 @@ class Property(_DotMixin):
         """
         return self.sparql_creator(self._podict())
 
-    def create_rdf(self, fuseki_process):
+    def as_rdf(self, fuseki_process):
+        return(self.predicate, self._create_rdf(fuseki_process))
+
+    def _create_rdf(self, fuseki_process):
         """
         create the rdf representation using the provided fuseki process
 
@@ -1006,7 +830,14 @@ class Property(_DotMixin):
 
         """
         items = []
-        items.append(self.name.dot())
+        if self.ptype is not None:
+            items.append(self.ptype.dot())
+        if self.closematch is not None:
+            items.append(self.closematch.dot())
+        if self.definedby is not None:
+            items.append(self.definedby.dot())
+        if self.name is not None:
+            items.append(self.name.dot())
         if self.operator is not None:
             items.append(self.operator.dot())
         if self.value is not None and isinstance(self.value, Item):
@@ -1030,36 +861,27 @@ class Property(_DotMixin):
             # This property references a component.
             self.value.dot(graph, node, 'Component')
 
-    def json_referrer(self):
-        """
-        return the data contents of the property instance ready for encoding
-        as a json string
-
-        """
-        referrer = {}
-        referrer['property'] = self.uri.data
-        referrer['mr:name'] = self.name.data
-        if self.operator:
-            referrer['mr:operator'] = self.operator.data
-        if self.value:
-            if self.simple:
-                referrer['rdf:value'] = self.value.data
-            else:
-                referrer['mr:hasComponent'] = self.value.json_referrer()
-        return referrer
-
     @staticmethod
     def sparql_retriever(uri):
         qstr = '''SELECT ?property ?name ?operator ?component
+                         ?closematch ?ptype ?defby
         (GROUP_CONCAT(?avalue; SEPARATOR='&') AS ?value)
         WHERE {
         GRAPH <http://metarelate.net/concepts.ttl> {
-            ?property mr:name ?name .
-            OPTIONAL { ?property rdf:value ?avalue ;
-                      mr:operator ?operator . }
+            OPTIONAL {?property mr:name ?name .}
+            OPTIONAL {?property rdf:value ?avalue .}
+            OPTIONAL {?property mr:operator ?operator . }
             OPTIONAL {?property mr:hasComponent ?component . }
+            OPTIONAL {?property skos:closeMatch ?closematch .}
+            OPTIONAL {?property rdf:type ?ptype .}
+            OPTIONAL {?property rdfs:isDefinedBy ?defby .}
             FILTER(?property = %s)
+            FILTER(?ptype != mr:Property)
             }
+            {SELECT ?property WHERE {
+            GRAPH <http://metarelate.net/concepts.ttl> {
+            ?property rdf:type mr:Property .
+            }}}
         }
         GROUP BY ?property ?name ?operator ?component
         ''' % uri
@@ -1069,8 +891,9 @@ class Property(_DotMixin):
     def sparql_creator(po_dict):
         qstr = ''
         instr = ''
-        allowed_predicates = set(('mr:name','rdf:value',
-                                'mr:operator', 'mr:hasComponent'))
+        allowed_predicates = set(('rdf:type', 'mr:name', 'rdf:value',
+                                'mr:operator', 'mr:hasComponent',
+                                'skos:closeMatch', 'rdfs:isDefinedBy'))
         single_predicates = set(('mr:name', 'mr:operator', 'mr:hasComponent'))
         preds = set(po_dict)
         if not preds.issubset(allowed_predicates):
@@ -1125,7 +948,13 @@ class Property(_DotMixin):
             ?property %(assign)s %(search)s
             .
             %(block)s
-            } }
+            FILTER(?type != mr:Property)
+            }
+            {SELECT ?property WHERE {
+            GRAPH <http://metarelate.net/concepts.ttl> {
+            ?property rdf:type mr:Property .
+            }}}
+            }
             GROUP BY ?property
             }
             %(filter)s
@@ -1145,24 +974,261 @@ class Property(_DotMixin):
         return qstr, instr
 
 
+class ComponentProperty(Property):
+    """
+    A property which is only a predicate(Item) and an
+    object(Component)
+
+    """
+    def __init__(self, predicate, component):
+        if not isinstance(predicate, Item):
+            raise TypeError('predicate: {!r} is not a metarelate '
+                            'Item'.format(predicateitem))
+        if not isinstance(component, Component):
+            raise TypeError('rdfobject: {!r} is not a metarelate '
+                            'Item or Component'.format(rdfobject))
+        self.predicate = predicate
+        self.component = component
+
+    def __repr__(self):
+        return '{!r}:{!r}'.format(self.predicate, self.component)
+
+    def get_identifiers(self, fuseki_process):
+        comp_ids = {}
+        for prop in self.component.properties:
+            careful_update(comp_ids, prop.get_identifiers(fuseki_process))
+        identifiers = {self.predicate.notation: comp_ids}
+        return identifiers
+
+    def dot(self, graph, parent, name=None):
+        """
+        Generate a Dot digraph representation of this mapping property.
+
+        Args:
+         * graph:
+            The containing Dot graph.
+         * parent:
+            The parent Dot node of this property.
+
+        Kwargs:
+         * name:
+            Name of the relationship between the nodes.
+
+        """
+        items = []
+        items.append(self.predicate.dot())
+        items.append(self.component.dot())
+        items = ' '.join(items)
+        label = self.dot_escape('{}'.format(self.predicate.notation))
+        node = pydot.Node(label, label=items,
+                          style='filled',
+                          colorscheme='dark28', fillcolor='4',
+                          fontsize=8)
+        node.uri = self.uri.data
+        graph.add_node(node)
+        edge = pydot.Edge(parent, node,
+                          tailport='s', headport='n')
+        if name is not None:
+            edge.set_label(self.dot_escape(name))
+            edge.set_fontsize(7)
+        graph.add_edge(edge)
+
+
+class StatementProperty(Property):
+    """
+    A property which is only a predicate(Item) and an
+    object(Item)
+
+    """
+    def __init__(self, predicate, rdfobject):
+        if not isinstance(predicate, Item):
+            raise TypeError('predicate: {!r} is not a metarelate '
+                            'Item'.format(predicateitem))
+        if not isinstance(rdfobject, Item):
+            raise TypeError('rdfobject: {!r} is not a metarelate '
+                            'Item'.format(rdfobject))
+        self.predicate = predicate
+        self.rdfobject = rdfobject
+
+    def __eq__(self, other):
+        result = False
+        if isinstance(other, StatementProperty):
+            predres = self.predicate == other.predicate
+            objres = self.rdfobject == other.rdfobject
+            result = predres and objres
+        return result
+
+    def __ne__(self, other):
+        result = not self.__eq__(other)
+        return result
+
+    def __repr__(self):
+        return '{!r}:{!r}'.format(self.predicate, self.rdfobject)
+    # def as_rdf(self, fuseki_process=None):
+    #     return (self.predicate, self.rdfobject)
+
+    def get_identifiers(self, fuseki_process):
+        """Returns a dictionary of key value pairs, providing a pattern
+        of skos:notations which match the component explicitly"""
+        qstr = ('SELECT ?key ?value'
+                ' WHERE {'
+                '  {SELECT ?key ?value'
+                '   WHERE {'
+                '    {SERVICE %(ps)s '
+                '     {SELECT ?key ?value WHERE {'
+                '      %(p)s skos:notation ?key .'
+                '    }}}'
+                '    {SERVICE %(os)s '
+                '     {SELECT ?value WHERE {'
+                '      %(o)s skos:notation ?value'
+                '    }}}'
+                '       }}'
+                ' UNION '
+                '  {SELECT ?key ?value'
+                '   WHERE {'
+                '    {SERVICE %(ps)s '
+                '     {SELECT ?key ?value WHERE {'
+                '      %(p)s skos:notation ?key .'
+                '      FILTER(isLiteral(%(o)s))'
+                '      BIND(%(o)s as ?value)'
+                '    }}}'
+                '       }}'
+                ' UNION '
+                '  {SELECT ?key ?value'
+                '   WHERE {'
+                '    {SERVICE %(os)s '
+                '     {SELECT ?key ?value ?idr ?rdfobj ?rdfobjnot WHERE {'
+                '      %(o)s <http://metarelate.net/vocabulary/index.html#identifier> ?idr ;'
+                '       ?idr ?rdfobj .'
+                '      OPTIONAL {?idr skos:notation ?key . }'
+                '      OPTIONAL {?rdfobj skos:notation ?rdfobjnot}'
+                '      {SERVICE %(ps)s'
+                '       {SELECT ?idr ?key ?rdfobj ?rdfobjnot WHERE {'
+                '        OPTIONAL {?idr skos:notation ?key . }'
+                '        OPTIONAL {?rdfobj skos:notation ?rdfobjnot}'
+                '       }}}'
+                '      BIND((IF(isURI(?rdfobj), ?rdfobjnot, ?rdfobj)) AS ?value)'
+                '     }}'
+                '    }'
+                '  }}'
+                '}')
+        predicate = self.predicate.data
+        psplit = urlparse.urlsplit(predicate.strip('<>'))
+        if psplit.netloc == 'vocab.nerc.ac.uk':
+            pdomain = 'def.scitools.org.uk'
+        else:
+            pdomain = psplit.netloc 
+        pspq = '<{}://{}/system/query?>'.format(psplit.scheme, pdomain)
+        rdfobject = self.rdfobject.data
+        msplit = urlparse.urlsplit(rdfobject.strip('<>'))
+        if msplit.netloc:
+            if msplit.netloc == 'vocab.nerc.ac.uk':
+                mdomain = 'def.scitools.org.uk'
+            else:
+                mdomain = msplit.netloc 
+            rospq = '<{}://{}/system/query?>'.format(msplit.scheme, mdomain)
+        else:
+            rospq = pspq
+
+        aqstr = qstr % {'p':predicate, 'o':rdfobject, 'ps':pspq, 'os':rospq}
+        results = fuseki_process.run_query(aqstr)
+        identifiers = {}
+        for item in results:
+            key = item.get('key').strip('"')
+            value = item.get('value').strip('"')
+            if isinstance(value, unicode):
+                value=str(value)
+            if not (key is not None and value is not None):
+                raise ValueError('key and value required, but not present\n'
+                                 '{}'.format(item))
+            else:
+                if identifiers.has_key(key):
+                    raise ValueError('duplicate key: {}'.format(key))
+            identifiers[key] = value
+        # until nerc vocab server is understood
+        if self.rdfobject.data.startswith('<http://vocab.nerc.ac.uk'):
+            sn = self.rdfobject.data.rstrip('>').split('/')[-1]
+            identifiers['standard_name'] = sn
+        return identifiers
+
+    @property
+    def notation(self):
+        return self.rdfobject.notation
+
+    def dot(self, graph, parent, name=None):
+        """
+        Generate a Dot digraph representation of this mapping property.
+
+        Args:
+         * graph:
+            The containing Dot graph.
+         * parent:
+            The parent Dot node of this property.
+
+        Kwargs:
+         * name:
+            Name of the relationship between the nodes.
+
+        """
+        items = []
+        items.append(self.predicate.dot())
+        items.append(self.rdfobject.dot())
+        items = ' '.join(items)
+        label = self.dot_escape('{}_{}'.format(self.predicate.notation, 
+                                               self.rdfobject.notation))
+        node = pydot.Node(label, label=items,
+                          style='filled',
+                          colorscheme='dark28', fillcolor='4',
+                          fontsize=8)
+        node.uri = 'foo'
+        graph.add_node(node)
+        edge = pydot.Edge(parent, node,
+                          tailport='s', headport='n')
+        if name is not None:
+            edge.set_label(self.dot_escape(name))
+            edge.set_fontsize(7)
+        graph.add_edge(edge)
+
+
 class Item(_DotMixin, namedtuple('Item', 'data notation')):
     """
-    Represents a mapping data item and associated skos notation in
-    the form of an immutable named tuple.
+    Represents an rdf data item, as an rdf:literal, or as a subject URI and,
+    optionally, an associated skos notation in the form of an immutable
+    named tuple.
 
     """
     def __new__(cls, data, notation=None):
-        new_data = data
-        new_notation = None
-        if isinstance(data, Item):
-            new_data = data.data
-            new_notation = data.notation
-        if notation is not None:
-            if isinstance(notation, basestring) and len(notation) > 1 and \
-                    notation.startswith('"') and notation.endswith('"'):
-                notation = notation[1:-1]
-            new_notation = notation
-        return super(Item, cls).__new__(cls, new_data, new_notation)
+        if data is None and notation is None:
+            res = None
+        else:
+            if isinstance(data, str):
+                if data.startswith('http'):
+                    new_data = '<{}>'.format(data)
+                elif data.startswith('<'):
+                    new_data = data
+                elif data.startswith('"'):
+                    new_data = data
+                else:
+                    new_data = '"{}"'.format(data)
+            else:
+                new_data = data
+            new_notation = None
+            if isinstance(data, Item):
+                new_data = data.data
+                new_notation = data.notation
+            if notation is not None:
+                if isinstance(notation, basestring) and len(notation) > 1 and \
+                        notation.startswith('"') and notation.endswith('"'):
+                    notation = notation[1:-1]
+                new_notation = notation
+            #else:
+                #look up notation
+                #but it's immutable
+                #so write a func in fuseki which takes a notation free Item
+                #and returns an Item with its notation
+                #pass
+            res = super(Item, cls).__new__(cls, new_data, new_notation)
+        return res
 
     def is_uri(self):
         """
@@ -1177,7 +1243,7 @@ class Item(_DotMixin, namedtuple('Item', 'data notation')):
             uri = self.data
             if uri.startswith('<') and uri.endswith('>'):
                 uri = uri[1:-1]
-            uri = urlparse(uri)
+            uri = urlparse.urlparse(uri)
             result = len(uri.scheme) > 0 and len(uri.netloc) > 0
         return result
 
@@ -1229,253 +1295,251 @@ class Item(_DotMixin, namedtuple('Item', 'data notation')):
         return label
 
 
-class ValueMap(object):
-    @staticmethod
-    def sparql_retriever(uri):
-        qstr = '''SELECT ?valueMap ?source ?target
-        WHERE {
-        GRAPH <http://metarelate.net/concepts.ttl> {
-            ?valueMap mr:source ?source ;
-                      mr:target ?target .
-            FILTER(?valueMap = %s)
-            }
-        }
-        ''' % uri
-        return qstr
+# class ValueMap(object):
+#     @staticmethod
+#     def sparql_retriever(uri):
+#         qstr = '''SELECT ?valueMap ?source ?target
+#         WHERE {
+#         GRAPH <http://metarelate.net/concepts.ttl> {
+#             ?valueMap mr:source ?source ;
+#                       mr:target ?target .
+#             FILTER(?valueMap = %s)
+#             }
+#         }
+#         ''' % uri
+#         return qstr
 
-    @staticmethod
-    def sparql_creator(po_dict):
-        qstr = ''
-        instr = ''
-        allowed_preds = set(('mr:source','mr:target'))
-        preds = set(po_dict)
-        if not preds == allowed_preds:
-            ec = '''{} is not a subset of the allowed predicates set
-                    for a valueMap record
-                    {}'''
-            ec = ec.format(preds, allowed_preds)
-            raise ValueError(ec)
-        subj_pref = 'http://www.metarelate.net/{}/valueMap'
-        subj_pref = subj_pref.format(site_config['fuseki_dataset'])
-        search_string = ''
-        for pred in po_dict:
-            if isinstance(po_dict[pred], list):
-                if len(po_dict[pred]) != 1:
-                    ec = 'get_format_concept only accepts 1 mr:format statement }'
-                    ec = ec.format(po_dict)
-                    raise ValueError(ec)
-                else:
-                    for obj in po_dict[pred]:
-                        search_string += '''
-                        %s %s ;''' % (pred, obj)
-            else:
-                search_string += '''
-                %s %s ;''' % (pred, po_dict[pred])
-        if search_string != '':
-            qstr = '''SELECT ?valueMap 
-            WHERE{
-            GRAPH <http://metarelate.net/concepts.ttl> {
-            ?valueMap
-                   %s .
-            }
-            }
-            ''' % (search_string)
-            sha1 = make_hash(po_dict)
-            instr = '''INSERT DATA {
-            GRAPH <http://metarelate.net/concepts.ttl> {
-            <%s/%s> a mr:ValueMap ;
-                    %s
-                    mr:saveCache "True" .
-            }
-            }
-            ''' % (subj_pref, sha1, search_string)
-        return qstr, instr
-
-
-class Value(object):
-    @staticmethod
-    def sparql_retriever(uri):
-        qstr = '''SELECT ?value ?operator ?subject ?object
-        WHERE {
-        GRAPH <http://metarelate.net/concepts.ttl> {
-            ?value mr:subject ?subject .
-            OPTIONAL {?value mr:operator ?operator .}
-            OPTIONAL {?value mr:object ?object . }
-            FILTER(?value = %s)
-            }
-        }
-        ''' % uri
-        return qstr
-
-    @staticmethod
-    def sparql_creator(po_dict):
-        qstr = ''
-        instr = ''
-        allowed_preds = set(('mr:operator','mr:subject', 'mr:object'))
-        preds = set(po_dict)
-        if not preds.issubset(allowed_preds):
-            ec = '''{} is not a subset of the allowed predicates set
-                    for a value record
-                    {}'''
-            ec = ec.format(preds, allowed_preds)
-            raise ValueError(ec)
-        subj_pref = 'http://www.metarelate.net/{}/value'
-        subj_pref = subj_pref.format(site_config['fuseki_dataset'])
-        search_string = ''
-        for pred in po_dict:
-            if isinstance(po_dict[pred], list):
-                if len(po_dict[pred]) != 1:
-                    ec = 'get_value only accepts 1 mr:format statement }'
-                    ec = ec.format(po_dict)
-                    raise ValueError(ec)
-                else:
-                    for obj in po_dict[pred]:
-                        search_string += '''
-                        %s %s ;''' % (pred, obj)
-            else:
-                search_string += '''
-                %s %s ;''' % (pred, po_dict[pred])
-        if search_string != '':
-            qstr = '''SELECT ?value
-            WHERE{
-            GRAPH <http://metarelate.net/concepts.ttl> {
-            ?value
-                   %s .
-            }
-            }
-            ''' % (search_string)
-            sha1 = make_hash(po_dict)
-            instr = '''INSERT DATA {
-            GRAPH <http://metarelate.net/concepts.ttl> {
-            <%s/%s> a mr:Value ;
-                    %s
-                    mr:saveCache "True" .
-            }
-            }
-            ''' % (subj_pref, sha1, search_string)
-        return qstr, instr
+#     @staticmethod
+#     def sparql_creator(po_dict):
+#         qstr = ''
+#         instr = ''
+#         allowed_preds = set(('mr:source','mr:target'))
+#         preds = set(po_dict)
+#         if not preds == allowed_preds:
+#             ec = '''{} is not a subset of the allowed predicates set
+#                     for a valueMap record
+#                     {}'''
+#             ec = ec.format(preds, allowed_preds)
+#             raise ValueError(ec)
+#         subj_pref = 'http://www.metarelate.net/{}/valueMap'
+#         subj_pref = subj_pref.format(site_config['fuseki_dataset'])
+#         search_string = ''
+#         for pred in po_dict:
+#             if isinstance(po_dict[pred], list):
+#                 if len(po_dict[pred]) != 1:
+#                     ec = 'get_format_concept only accepts 1 mr:format statement }'
+#                     ec = ec.format(po_dict)
+#                     raise ValueError(ec)
+#                 else:
+#                     for obj in po_dict[pred]:
+#                         search_string += '''
+#                         %s %s ;''' % (pred, obj)
+#             else:
+#                 search_string += '''
+#                 %s %s ;''' % (pred, po_dict[pred])
+#         if search_string != '':
+#             qstr = '''SELECT ?valueMap 
+#             WHERE{
+#             GRAPH <http://metarelate.net/concepts.ttl> {
+#             ?valueMap
+#                    %s .
+#             }
+#             }
+#             ''' % (search_string)
+#             sha1 = make_hash(po_dict)
+#             instr = '''INSERT DATA {
+#             GRAPH <http://metarelate.net/concepts.ttl> {
+#             <%s/%s> a mr:ValueMap ;
+#                     %s
+#                     mr:saveCache "True" .
+#             }
+#             }
+#             ''' % (subj_pref, sha1, search_string)
+#         return qstr, instr
 
 
-class ScopedProperty(object):
-    @staticmethod
-    def sparql_retriever(uri):
-        qstr = '''SELECT ?scopedProperty ?scope ?hasProperty
-        WHERE {
-        GRAPH <http://metarelate.net/concepts.ttl> {
-            ?scopedProperty mr:scope ?scope ;
-                      mr:hasProperty ?hasProperty .
-            FILTER(?scopedProperty = %s)
-            }
-        }
-        ''' % uri
-        return qstr
+# class Value(object):
+#     @staticmethod
+#     def sparql_retriever(uri):
+#         qstr = '''SELECT ?value ?operator ?subject ?object
+#         WHERE {
+#         GRAPH <http://metarelate.net/concepts.ttl> {
+#             ?value mr:subject ?subject .
+#             OPTIONAL {?value mr:operator ?operator .}
+#             OPTIONAL {?value mr:object ?object . }
+#             FILTER(?value = %s)
+#             }
+#         }
+#         ''' % uri
+#         return qstr
 
-    @staticmethod
-    def sparql_creator(po_dict):
-        qstr = ''
-        instr = ''
-        allowed_preds = set(('mr:scope','mr:hasProperty'))
-        preds = set(po_dict)
-        if not preds == allowed_preds:
-            ec = '''{} is not a subset of the allowed predicates set
-                    for a scopedProperty record
-                    {}'''
-            ec = ec.format(preds, allowed_preds)
-            raise ValueError(ec)
-        subj_pref = 'http://www.metarelate.net/{}/scopedProperty'
-        subj_pref = subj_pref.format(site_config['fuseki_dataset'])
-        search_string = ''
-        for pred in po_dict:
-            if isinstance(po_dict[pred], list):
-                if len(po_dict[pred]) != 1:
-                    ec = 'get_scopedProperty only accepts 1 mr:format statement {}'
-                    ec = ec.format(po_dict)
-                    raise ValueError(ec)
-                else:
-                    for obj in po_dict[pred]:
-                        search_string += '''
-                        %s %s ;''' % (pred, obj)
-            else:
-                search_string += '''
-                %s %s ;''' % (pred, po_dict[pred])
-        if search_string != '':
-            qstr = '''SELECT ?scopedProperty
-            WHERE{
-            GRAPH <http://metarelate.net/concepts.ttl> {
-            ?scopedProperty
-                   %s .
-            }
-            }
-            ''' % (search_string)
-            sha1 = make_hash(po_dict)
-            instr = '''INSERT DATA {
-            GRAPH <http://metarelate.net/concepts.ttl> {
-            <%s/%s> a mr:Property ;
-                    %s
-                    mr:saveCache "True" .
-            }
-            }
-            ''' % (subj_pref, sha1, search_string)
-        return qstr, instr
+#     @staticmethod
+#     def sparql_creator(po_dict):
+#         qstr = ''
+#         instr = ''
+#         allowed_preds = set(('mr:operator','mr:subject', 'mr:object'))
+#         preds = set(po_dict)
+#         if not preds.issubset(allowed_preds):
+#             ec = '''{} is not a subset of the allowed predicates set
+#                     for a value record
+#                     {}'''
+#             ec = ec.format(preds, allowed_preds)
+#             raise ValueError(ec)
+#         subj_pref = 'http://www.metarelate.net/{}/value'
+#         subj_pref = subj_pref.format(site_config['fuseki_dataset'])
+#         search_string = ''
+#         for pred in po_dict:
+#             if isinstance(po_dict[pred], list):
+#                 if len(po_dict[pred]) != 1:
+#                     ec = 'get_value only accepts 1 mr:format statement }'
+#                     ec = ec.format(po_dict)
+#                     raise ValueError(ec)
+#                 else:
+#                     for obj in po_dict[pred]:
+#                         search_string += '''
+#                         %s %s ;''' % (pred, obj)
+#             else:
+#                 search_string += '''
+#                 %s %s ;''' % (pred, po_dict[pred])
+#         if search_string != '':
+#             qstr = '''SELECT ?value
+#             WHERE{
+#             GRAPH <http://metarelate.net/concepts.ttl> {
+#             ?value
+#                    %s .
+#             }
+#             }
+#             ''' % (search_string)
+#             sha1 = make_hash(po_dict)
+#             instr = '''INSERT DATA {
+#             GRAPH <http://metarelate.net/concepts.ttl> {
+#             <%s/%s> a mr:Value ;
+#                     %s
+#                     mr:saveCache "True" .
+#             }
+#             }
+#             ''' % (subj_pref, sha1, search_string)
+#         return qstr, instr
 
 
-class Mediator(object):
-    @staticmethod
-    def sparql_retriever(uri=None, fformat=''):
-        if fformat:
-            ffilter = 'FILTER(?format = <http://www.metarelate.net/{ds}/format/{f}>)'
-            ffilter = ffilter.format(ds=site_config['fuseki_dataset'], f=fformat)
-        else:
-            ffilter = ''
-        urifilter = ''
-        if uri is not None:
-            urifilter = 'FILTER(?mediator = <{}>)'.format(uri)
-        qstr = '''
-        SELECT ?mediator ?format ?label
-        WHERE
-        { GRAPH <http://metarelate.net/concepts.ttl> {
-            ?mediator mr:hasFormat ?format ;
-                      rdf:label ?label .
-        %s
-        %s
-        } }
-        ''' % (urifilter, ffilter)
-        return qstr
+# class ScopedProperty(object):
+#     @staticmethod
+#     def sparql_retriever(uri):
+#         qstr = '''SELECT ?scopedProperty ?scope ?hasProperty
+#         WHERE {
+#         GRAPH <http://metarelate.net/concepts.ttl> {
+#             ?scopedProperty mr:scope ?scope ;
+#                       mr:hasProperty ?hasProperty .
+#             FILTER(?scopedProperty = %s)
+#             }
+#         }
+#         ''' % uri
+#         return qstr
 
-    @staticmethod
-    def sparql_creator(po_dict):
-        allowed_preds = set(('mr:hasFormat','rdf:label'))
-        preds = set(po_dict)
-        if not preds == allowed_preds:
-            ec = '''{} is not a subset of the allowed predicates set
-                    for a scopedProperty record
-                    {}'''
-            ec = ec.format(preds, allowed_preds)
-            raise ValueError(ec)
-        fformat = po_dict['mr:hasFormat']
-        label = po_dict['rdf:label']
-        ff = fformat.rstrip('>').split('/')[-1]
-        med = '<http://www.metarelate.net/{ds}/mediates/{f}/{l}>'
-        med = med.format(ds=site_config['fuseki_dataset'], f=ff, l=label)
-        qstr = '''
-        SELECT ?mediator
-        WHERE
-        { GRAPH <http://metarelate.net/concepts.ttl> {
-        %s a mr:Mediator ;
-             rdf:label "%s" ;
-             mr:hasFormat <http://www.metarelate.net/%s/format/%s> .
-             } }
-        ''' % (med, label, site_config['fuseki_dataset'], fformat)
-        instr = '''
-        INSERT DATA
-        { GRAPH <http://metarelate.net/concepts.ttl> {
-        %s a mr:Mediator ;
-             rdf:label "%s" ;
-             mr:hasFormat <http://www.metarelate.net/%s/format/%s> ;
-             mr:saveCache "True" .
-             } }
-        ''' % (med, label, site_config['fuseki_dataset'], fformat)
-        return qstr, instr
+#     @staticmethod
+#     def sparql_creator(po_dict):
+#         qstr = ''
+#         instr = ''
+#         allowed_preds = set(('mr:scope','mr:hasProperty'))
+#         preds = set(po_dict)
+#         if not preds == allowed_preds:
+#             ec = '''{} is not a subset of the allowed predicates set
+#                     for a scopedProperty record
+#                     {}'''
+#             ec = ec.format(preds, allowed_preds)
+#             raise ValueError(ec)
+#         subj_pref = 'http://www.metarelate.net/{}/scopedProperty'
+#         subj_pref = subj_pref.format(site_config['fuseki_dataset'])
+#         search_string = ''
+#         for pred in po_dict:
+#             if isinstance(po_dict[pred], list):
+#                 if len(po_dict[pred]) != 1:
+#                     ec = 'get_scopedProperty only accepts 1 mr:format statement {}'
+#                     ec = ec.format(po_dict)
+#                     raise ValueError(ec)
+#                 else:
+#                     for obj in po_dict[pred]:
+#                         search_string += '''
+#                         %s %s ;''' % (pred, obj)
+#             else:
+#                 search_string += '''
+#                 %s %s ;''' % (pred, po_dict[pred])
+#         if search_string != '':
+#             qstr = '''SELECT ?scopedProperty
+#             WHERE{
+#             GRAPH <http://metarelate.net/concepts.ttl> {
+#             ?scopedProperty
+#                    %s .
+#             }
+#             }
+#             ''' % (search_string)
+#             sha1 = make_hash(po_dict)
+#             instr = '''INSERT DATA {
+#             GRAPH <http://metarelate.net/concepts.ttl> {
+#             <%s/%s> a mr:Property ;
+#                     %s
+#                     mr:saveCache "True" .
+#             }
+#             }
+#             ''' % (subj_pref, sha1, search_string)
+#         return qstr, instr
+
+
+# class Mediator(object):
+#     @staticmethod
+#     def sparql_retriever(uri=None, fformat=''):
+#         if fformat:
+#             ffilter = 'FILTER(?format = <http://www.metarelate.net/{ds}/format/{f}>)'
+#             ffilter = ffilter.format(ds=site_config['fuseki_dataset'], f=fformat)
+#         else:
+#             ffilter = ''
+#         urifilter = ''
+#         if uri is not None:
+#             urifilter = 'FILTER(?mediator = <{}>)'.format(uri)
+#         qstr = '''
+#         SELECT ?mediator ?label
+#         WHERE
+#         { GRAPH <http://metarelate.net/concepts.ttl> {
+#                       rdf:label ?label .
+#         %s
+#         %s
+#         } }
+#         ''' % (urifilter, ffilter)
+#         return qstr
+
+#     @staticmethod
+#     def sparql_creator(po_dict):
+#         allowed_preds = set(('rdf:type','rdf:label'))
+#         preds = set(po_dict)
+#         if not preds == allowed_preds:
+#             ec = '''{} is not a subset of the allowed predicates set
+#                     for a scopedProperty record
+#                     {}'''
+#             ec = ec.format(preds, allowed_preds)
+#             raise ValueError(ec)
+#         atype = po_dict['rdf:type']
+#         label = po_dict['rdf:label']
+#         ff = fformat.rstrip('>').split('/')[-1]
+#         med = '<http://www.metarelate.net/{ds}/mediates/{f}/{l}>'
+#         med = med.format(ds=site_config['fuseki_dataset'], f=ff, l=label)
+#         qstr = '''
+#         SELECT ?mediator
+#         WHERE
+#         { GRAPH <http://metarelate.net/concepts.ttl> {
+#         %s a mr:Mediator, {} ;
+#              rdf:label "%s" ;
+#              .
+#              } }
+#         ''' % (med, atype, label)
+#         instr = '''
+#         INSERT DATA
+#         { GRAPH <http://metarelate.net/concepts.ttl> {
+#         %s a mr:Mediator, {} ;
+#              rdf:label "%s" ;
+#              mr:saveCache "True" .
+#              } }
+#         ''' % (med, atype, label)
+#         return qstr, instr
 
 
 def make_hash(pred_obj, omitted=None):
@@ -1501,15 +1565,19 @@ def make_hash(pred_obj, omitted=None):
     po_keys.sort()
     for pred in po_keys:
         if pred not in omitted:
-            pred_elems = pred.split(':')
-            if len(pred_elems) == 2:
-                if pre.has_key(pred_elems[0]):
-                    predicate = '%s%s' % (pre[pred_elems[0]], pred_elems[1])
+            if not pred.startswith('<'):
+                pred_elems = pred.split(':')
+                if len(pred_elems) == 2:
+                    if pre.has_key(pred_elems[0]):
+                        predicate = '%s%s' % (pre[pred_elems[0]], pred_elems[1])
+                    else:
+                        raise ValueError('predicate {} not in prefixes.py'
+                                         ''.format(pred_elems[0]))
                 else:
-                    raise ValueError('predicate not in prefixes.py')
+                    raise ValueError('make hash passed a predicate '
+                                     'which is not of the form <prefix>:<item>')
             else:
-                raise ValueError('make hash passed a predicate '
-                                 'which is not of the form <prefix>:<item>')
+                predicate = pred
             if isinstance(pred_obj[pred], list):
                 for obj in pred_obj[pred]:
                     sha1.update(predicate)
@@ -1556,7 +1624,7 @@ class Contact(object):
             ec = ec.format(preds, allowed_preds)
             raise ValueError(ec)
         scheme = po_dict['skos:inScheme'].split('/')[-1].rstrip('>')
-        print scheme
+        #print scheme
         search_string = ''
         for pred in po_dict:
             if isinstance(po_dict[pred], list):
@@ -1588,5 +1656,5 @@ class Contact(object):
              mr:saveCache "True" .
              } }
         ''' % (scheme, po_hash, search_string)
-        print scheme, po_hash, search_string
+        #print scheme, po_hash, search_string
         return qstr, instr

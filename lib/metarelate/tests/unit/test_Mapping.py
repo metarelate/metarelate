@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with metarelate. If not, see <http://www.gnu.org/licenses/>.
 """
-Test the metarelate Apache Fuseki server.
+Test the metarelate framework.
 
 """
 
@@ -23,29 +23,22 @@ import unittest
 
 import metarelate
 import metarelate.tests as tests
-from metarelate.fuseki import FusekiServer
+import metarelate.tests.stock as stock
 
-SCHEME_CF = '<http://def.scitools.org.uk/cfdatamodel/Field>'
-SCHEME_UM = '<http://reference.metoffice.gov.uk/um/f3/UMField>'
+class Test_checks(tests.MetarelateTestCase):
+    def setUp(self):
+        self.mapping = stock.simple_mapping_um_cf()
 
+    def test_eq_pass(self):
+        self.assertEqual(self.mapping, stock.simple_mapping_um_cf())
 
-class TestFuseki(tests.MetarelateTestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.fuseki = FusekiServer(test=True)
-        cls.fuseki.load()
-        cls.fuseki.start()
+    def test_eq_fail(self):
+        mapping = metarelate.Mapping('uri', stock.simple_component_cf(),
+                                     stock.simple_component_um())
+        self.assertNotEqual(self.mapping, mapping)
 
-    @classmethod
-    def tearDownClass(cls):
-        cls.fuseki.stop()
-
-    def test_retrieve_um_cf(self):
-        mappings = self.fuseki.retrieve_mappings(SCHEME_UM, SCHEME_CF)
-        self.assertEqual(len(mappings), 1)
-        imappings = self.fuseki.retrieve_mappings(SCHEME_CF, SCHEME_UM)
-        self.assertEqual(len(imappings), 1)
-
+    def test_dot(self):
+        self.check_dot(self.mapping)
 
 
 if __name__ == '__main__':

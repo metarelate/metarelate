@@ -7,10 +7,12 @@ To contribute to a translation project, the static data from that project should
 
 Dependencies
 ------------
+* Linux/posix
 * Apache Jena - http://jena.apache.org/
 * Fuseki - http://jena.apache.org/documentation/serving_data/
 * Python - http://python.org/
 * Django - https://www.djangoproject.com/
+* curl
 
 Installation
 ------------

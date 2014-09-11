@@ -1,0 +1,109 @@
+
+{% extends "base.html" %}
+{% load dict_keys %}
+{% load inclusions %}
+<!--
+# (C) British Crown Copyright 2013, Met Office
+#
+# This file is part of metarelate.
+#
+# metarelate is free software: you can redistribute it and/or 
+# modify it under the terms of the GNU Lesser General Public License 
+# as published by the Free Software Foundation, either version 3 of 
+# the License, or (at your option) any later version.
+#
+# metarelate is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with metarelate. If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<!-- https://github.com/elo80ka/django-dynamic-formset -->
+{% block title %}: {{ title }}{% endblock %}
+
+{% block head %}
+<script type="text/javascript" src="/static/js/jquery.min.js"></script>
+<script type="text/javascript" src="/static/js/RelatedObjectLookups.js"></script> 
+<script type="text/javascript" src="/static/js/jquery.js"></script>
+<script type="text/javascript" src="/static/js/jquery.formset.js"></script> 
+
+       <script type="text/javascript">
+           $(function() {
+               $('#{{ sourceformset.prefix }} tbody tr').formset({
+	           prefix: "{{ sourceformset.prefix }}"});
+               $('#{{ targetformset.prefix }} tbody tr').formset({
+                   prefix: "{{ targetformset.prefix }}"});
+	   });
+       </script>
+
+
+{% endblock %}
+
+
+{% block content %}
+
+<p>The time is {% current_time "%Y-%m-%d %I:%M %p" %}.</p>
+
+<table id="id_forms_table" border="1" cellpadding="0" cellspacing="5" class="recordtable">
+  <tr>
+    <td>
+    <form action="" method="post">
+    <input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} value="Create this mapping"/>
+    {% csrf_token %}
+    {{ sourceformset.management_form }}
+    {{ targetformset.management_form }}
+    </td>
+  </tr>
+  <tr>
+    <td>Source</td><td>Target</td>
+  </tr>
+  <tr> <td>
+    <table id="{{ sourceformset.prefix }}" border="1" cellpadding="0" cellspacing="5" class="recordtable">
+      <tbody>
+      <!-- <tr> -->
+      <!--   <td colspan="2"> -->
+      <!--   {{ sourceformset.as_p }} -->
+      <!--   </td> -->
+      <!-- </tr> -->
+      {% for form in sourceformset.forms %}
+      <tr id="{{ form.prefix }}-row" class="form-container">
+        <td></td>
+        <td>{{ form.as_p }}
+        </td>
+      </tr>
+      {% endfor %}
+    </td></tr>
+    </tbody>
+    </table>
+  </td>
+
+  <td>
+    <table id="{{ targetformset.prefix }}" border="1" cellpadding="0" cellspacing="5" class="recordtable">
+      <tbody>
+      <!-- <tr> -->
+      <!--   <td colspan="2"> -->
+      <!--   {{ targetformset.as_p }} -->
+      <!--   </td> -->
+      <!-- </tr> -->
+      {% for form in targetformset.forms %}
+      <tr id="{{ form.prefix }}-row" class="form-container">
+        <td></td>
+        <td>{{ form.as_p }}
+        </td>
+      </tr>
+      {% endfor %}
+    </td></tr>
+    </tbody>
+    </table>
+  </td>
+  </tr>
+</table>
+
+
+
+
+
+{% endblock %}
