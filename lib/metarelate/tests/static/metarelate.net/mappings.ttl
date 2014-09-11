@@ -29,28 +29,9 @@ map:m001
 	mr:source	component:c001 ;
 	mr:target	component:c002 ;
 	mr:status	"Draft " ;
-	skos:note	"Test mapping #001" .
-
-
-<http://www.metarelate.net/test/mapping/5548eb9f06bac6416855247e5ea8d3a016088be2>
-      rdf:type      mr:Mapping ;
-      dc:creator    <http://www.metarelate.net/test/people/marqh> ;
-      dc:date       "2013-11-13T13:09:15.031157"^^xsd:dateTime ;
-      mr:hasValueMap  <http://www.metarelate.net/test/valueMap/d648fef7ec19c04ce517d2a54a66c7ae2dd3a5bc> ;
-      mr:hasValueMap  <http://www.metarelate.net/test/valueMap/68cc34ea6b60e68f4c0ed6f5d2e4d17c6a7bb458> ;
-      mr:invertible  "True" ;
-      mr:reason     "new mapping" ;
-      mr:source     <http://www.metarelate.net/test/component/e0c3bbdb7d5d97d7ba9dc3799b6309261866e59c> ;
-      mr:status     "Draft" ;
-      mr:target     <http://www.metarelate.net/test/component/9c9dc6d30913497e1764181e94127a67633f443a> .
-
-<http://www.metarelate.net/test/mapping/26d669bd240221d794a2afe4dd548295adcf9cb3>
-      rdf:type      mr:Mapping ;
-      dc:creator    <http://www.metarelate.net/test/people/marqh> ;
-      dc:date       "2013-11-13T11:54:22.376393"^^xsd:dateTime ;
-      mr:invertible  "True" ;
-      mr:reason     "new mapping" ;
-      mr:source     <http://www.metarelate.net/test/component/9bc5c14c847fdefddca873a7bdc6c6f589703ef1> ;
-      mr:status     "Draft" ;
-      mr:target     <http://www.metarelate.net/test/component/a536ad57631ebff6afa14b6a08ad1d12dffa27db> .
+        dc:creator    <http://www.metarelate.net/test/people/marqh> ;
+        dc:date       "2013-11-13T11:54:22.376393"^^xsd:dateTime ;
+        mr:invertible  "True" ;
+        mr:reason     "new mapping" ;
+        .
 

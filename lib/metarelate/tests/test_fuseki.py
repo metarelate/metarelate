@@ -25,15 +25,15 @@ import metarelate
 import metarelate.tests as tests
 from metarelate.fuseki import FusekiServer
 
-SCHEME_CF = '<http://www.metarelate.net/test/format/cf>'
-SCHEME_UM = '<http://www.metarelate.net/test/format/um>'
+SCHEME_CF = '<http://def.scitools.org.uk/cfdatamodel/Field>'
+SCHEME_UM = '<http://reference.metoffice.gov.uk/um/f3/UMField>'
 
 
 class TestFuseki(tests.MetarelateTestCase):
     @classmethod
     def setUpClass(cls):
         cls.fuseki = FusekiServer(test=True)
-#        cls.fuseki.load()
+        cls.fuseki.load()
         cls.fuseki.start()
 
     @classmethod
@@ -41,17 +41,11 @@ class TestFuseki(tests.MetarelateTestCase):
         cls.fuseki.stop()
 
     def test_retrieve_um_cf(self):
-        # Provide the full scheme URI.
         mappings = self.fuseki.retrieve_mappings(SCHEME_UM, SCHEME_CF)
         self.assertEqual(len(mappings), 1)
-        # Provide only the scheme notation.
-        mappings = self.fuseki.retrieve_mappings('um', 'cf')
-        self.assertEqual(len(mappings), 1)
+        imappings = self.fuseki.retrieve_mappings(SCHEME_CF, SCHEME_UM)
+        self.assertEqual(len(imappings), 1)
 
-    def test_dot_um_cf(self):
-        mappings = self.fuseki.retrieve_mappings(SCHEME_UM, SCHEME_CF)
-        for mapping in sorted(mappings, key=lambda mapping: mapping.uri.data):
-            self.check_dot(mapping)
 
 
 if __name__ == '__main__':

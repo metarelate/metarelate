@@ -59,30 +59,23 @@ class Test_attrs(tests.MetarelateTestCase):
 
     def test_setattr(self):
         prop = stock.property_cf_units()
-        ctype = '<http://def.cfconventions.org/datamodel/Field>'
+        ctype = '<http://def.scitools.org.uk/cfdatamodel/Field>'
         acomp = metarelate.Component(None, com_type=ctype,
                                      properties=[prop])
-        data = '<http://def.cfconventions.org/datamodel/standard_name>'
+        data = '<http://def.scitools.org.uk/cfdatamodel/standard_name>'
         notation = 'standard_name'
         ptype = metarelate.Item(data, notation)
-        data = '<http://def.cfconventions.org/standard_names/x_wind'
+        data = '<http://vocab.nerc.ac.uk/standard_name/x_wind'
         notation = 'x_wind'
         value = metarelate.Item(data, notation)
-        acomp.standard_name = metarelate.Property(None, ptype=ptype,
-                                                  closematch=value)
-        self.assertTrue(isinstance(acomp.standard_name, metarelate.Property))
+        acomp.standard_name = metarelate.StatementProperty(ptype,value)
+        self.assertTrue(isinstance(acomp.standard_name, 
+                                   metarelate.StatementProperty))
 
     def test_len(self):
         comp = stock.simple_component_cf()
         self.assertEqual(len(comp), 2)
 
-    def test_simple(self):
-        comp = stock.simple_component_cf()
-        self.assertTrue(comp.simple)
-
-    def test_compound(self):
-        comp = stock.compound_component_cf()
-        self.assertFalse(comp.simple)
 
 if __name__ == '__main__':
     unittest.main()

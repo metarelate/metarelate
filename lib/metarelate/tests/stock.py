@@ -25,60 +25,55 @@ import metarelate
 
 
 def property_cf_standard_name():
-    data = '<http://def.cfconventions.org/datamodel/standard_name>'
+    data = '<http://def.scitools.org.uk/cfdatamodel/standard_name>'
     notation = 'standard_name'
-    ptype = metarelate.Item(data, notation)
+    predicate = metarelate.Item(data, notation)
 
-    data = '<http://def.cfconventions.org/standard_names/' \
+    data = '<http://vocab.nerc.ac.uk/standard_name/' \
         'tendency_of_sea_ice_thickness_due_to_dynamics>'
     notation = 'tendency_of_sea_ice_thickness_due_to_dynamics'
-    value = metarelate.Item(data, notation)
+    rdfobject = metarelate.Item(data, notation)
 
-    uri = '<http://www.metarelate.net/test/property/test_p001'
-    return metarelate.Property(uri, ptype=ptype, closematch=value)
+    return metarelate.StatementProperty(predicate, rdfobject)
 
 def property2_cf_standard_name():
-    data = '<http://def.cfconventions.org/datamodel/standard_name>'
+    data = '<http://def.scitools.org.uk/cfdatamodel/standard_name>'
     notation = 'standard_name'
-    ptype = metarelate.Item(data, notation)
+    predicate = metarelate.Item(data, notation)
 
-    data = '<http://def.cfconventions.org/standard_names/x_wind'
+    data = '<http://vocab.nerc.ac.uk/standard_name/x_wind>'
     notation = 'x_wind'
-    value = metarelate.Item(data, notation)
+    rdfobject = metarelate.Item(data, notation)
 
-    uri = '<http://www.metarelate.net/test/property/test_p002'
-    return metarelate.Property(uri, ptype=ptype, closematch=value)
+    return metarelate.StatementProperty(predicate, rdfobject)
 
 def property_cf_units():
-    data = '<http://def.cfconventions.org/datamodel/units>'
+    data = '<http://def.scitools.org.uk/cfdatamodel/units>'
     notation = 'units'
     name = metarelate.Item(data, notation)
 
-    value = 'm s-1'#metarelate.Item(data='"m s-1"', notation='m s-1')
+    value = metarelate.Item('m s-1')
 
-    uri = '<http://www.metarelate.net/test/property/test_p003>'
-    return metarelate.Property(uri, ptype=name, value=value)
+    return metarelate.StatementProperty(name, value)
 
 
 def property_um_stash():
-    data = '<http://reference.metoffice.gov.uk/def/um/umdp/F3/stash>'
+    data = '<http://reference.metoffice.gov.uk/um/f3/stash>'
     notation = 'stash'
     name = metarelate.Item(data, notation)
 
-    data = '<http://reference.metoffice.gov.uk/def/um/stash/concept/' \
-        'm02s32i202>'
+    data = '<http://reference.metoffice.gov.uk/um/stash/m02s32i202>'
     notation = 'm02s32i202'
-    closematch = metarelate.Item(data, notation)
+    value = metarelate.Item(data, notation)
 
-    uri = '<http://www.metarelate.net/test/property/test_p004>'
-    return metarelate.Property(uri, ptype=name, closematch=closematch)
+    return metarelate.StatementProperty(name, value)
 
 
 def simple_component_cf():
     properties = [property_cf_standard_name(),
                   property_cf_units()]
     uri = '<http://www.metarelate.net/test/component/test_c001>'
-    ctype = '<http://def.cfconventions.org/datamodel/Field>'
+    ctype = '<http://def.scitools.org.uk/cfdatamodel/Field>'
     return metarelate.Component(uri, com_type=ctype,
                                 properties=properties)
 
@@ -86,21 +81,14 @@ def simple_component2_cf():
     properties = [property2_cf_standard_name(),
                   property_cf_units()]
     uri = '<http://www.metarelate.net/test/component/test_c002>'
-    ctype = '<http://def.cfconventions.org/datamodel/Field>'
+    ctype = '<http://def.scitools.org.uk/cfdatamodel/Field>'
     return metarelate.Component(uri, com_type=ctype,
                                 properties=properties)
 
 
-def compound_component_cf():
-    uri = '<http://www.metarelate.net/test/component/test_c003>'
-    ctype = '<http://def.cfconventions.org/datamodel/Field>'
-    return metarelate.Component(uri, com_type=ctype,
-                                components=[simple_component_cf(),
-                                            simple_component2_cf()])
-
 def simple_component_um():
     uri = '<http://www.metarelate.net/test/component/test_c002>'
-    ctype='<http://reference.metoffice.gov.uk/um/f3/stash>'
+    ctype='<http://reference.metoffice.gov.uk/um/f3/UMField>'
     return metarelate.Component(uri, com_type=ctype,
                                 properties=[property_um_stash()])
 

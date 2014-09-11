@@ -518,8 +518,8 @@ class Component(_DotMixin):
             edge.set_label(self.dot_escape(name))
             edge.set_fontsize(7)
         graph.add_edge(edge)
-        for comp in self.components:
-            comp.dot(graph, node, 'Component')
+        for property in self.properties:
+            property.dot(graph, node)#, 'Component')
         return node
 
     def populate_from_uri(self, fuseki_process):
@@ -992,21 +992,46 @@ class ComponentProperty(Property):
 
     def __repr__(self):
         return '{!r}:{!r}'.format(self.predicate, self.component)
-    # def as_rdf(self, fuseki_process=None):
-    #     return (self.predicate, self.rdfobject)
 
     def get_identifiers(self, fuseki_process):
         comp_ids = {}
         for prop in self.component.properties:
             careful_update(comp_ids, prop.get_identifiers(fuseki_process))
-        # import pdb; pdb.set_trace()
         identifiers = {self.predicate.notation: comp_ids}
-        newids = {}
-        for k,v in comp_ids.iteritems():
-            newkey = self.predicate.notation + '_' + k
-            newids[newkey] = v
         return identifiers
-        #return newids
+
+    def dot(self, graph, parent, name=None):
+        """
+        Generate a Dot digraph representation of this mapping property.
+
+        Args:
+         * graph:
+            The containing Dot graph.
+         * parent:
+            The parent Dot node of this property.
+
+        Kwargs:
+         * name:
+            Name of the relationship between the nodes.
+
+        """
+        items = []
+        items.append(self.predicate.dot())
+        items.append(self.component.dot())
+        items = ' '.join(items)
+        label = self.dot_escape('{}'.format(self.predicate.notation))
+        node = pydot.Node(label, label=items,
+                          style='filled',
+                          colorscheme='dark28', fillcolor='4',
+                          fontsize=8)
+        node.uri = self.uri.data
+        graph.add_node(node)
+        edge = pydot.Edge(parent, node,
+                          tailport='s', headport='n')
+        if name is not None:
+            edge.set_label(self.dot_escape(name))
+            edge.set_fontsize(7)
+        graph.add_edge(edge)
 
 
 class StatementProperty(Property):
@@ -1024,6 +1049,18 @@ class StatementProperty(Property):
                             'Item'.format(rdfobject))
         self.predicate = predicate
         self.rdfobject = rdfobject
+
+    def __eq__(self, other):
+        result = False
+        if isinstance(other, StatementProperty):
+            predres = self.predicate == other.predicate
+            objres = self.rdfobject == other.rdfobject
+            result = predres and objres
+        return result
+
+    def __ne__(self, other):
+        result = not self.__eq__(other)
+        return result
 
     def __repr__(self):
         return '{!r}:{!r}'.format(self.predicate, self.rdfobject)
@@ -1117,6 +1154,40 @@ class StatementProperty(Property):
     @property
     def notation(self):
         return self.rdfobject.notation
+
+    def dot(self, graph, parent, name=None):
+        """
+        Generate a Dot digraph representation of this mapping property.
+
+        Args:
+         * graph:
+            The containing Dot graph.
+         * parent:
+            The parent Dot node of this property.
+
+        Kwargs:
+         * name:
+            Name of the relationship between the nodes.
+
+        """
+        items = []
+        items.append(self.predicate.dot())
+        items.append(self.rdfobject.dot())
+        items = ' '.join(items)
+        label = self.dot_escape('{}_{}'.format(self.predicate.notation, 
+                                               self.rdfobject.notation))
+        node = pydot.Node(label, label=items,
+                          style='filled',
+                          colorscheme='dark28', fillcolor='4',
+                          fontsize=8)
+        node.uri = 'foo'
+        graph.add_node(node)
+        edge = pydot.Edge(parent, node,
+                          tailport='s', headport='n')
+        if name is not None:
+            edge.set_label(self.dot_escape(name))
+            edge.set_fontsize(7)
+        graph.add_edge(edge)
 
 
 class Item(_DotMixin, namedtuple('Item', 'data notation')):
