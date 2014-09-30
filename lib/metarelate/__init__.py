@@ -111,42 +111,47 @@ class Mapping(_DotMixin):
     :class:`Component` and a target :class:`Component`.
 
     """
-    def __init__(self, uri, source, target, invertible='"False"',
-                 editor=None, note=None, reason=None, replaces=None, 
-                 valuemaps=None, owners=None, watchers=None, status=None):
+    def __init__(self, uri=None, source=None, target=None,
+                 invertible='"False"', creator=None, note=None,
+                 replaces=None, valuemaps=None, rightsHolders=None, 
+                 contributors=None, dateAccepted=None):
         uri = Item(uri)
-        if not isinstance(source, Component):
+        if source is not None and not isinstance(source, Component):
             msg = 'Expected source {!r} object, got {!r}.'
             raise TypeError(msg.format(Component.__name__,
                                        type(source).__name__))
-        if not isinstance(target, Component):
+        if target is not None and not isinstance(target, Component):
             msg = 'Expected target {!r} object, got {!r}.'
             raise TypeError(msg.format(Component.__name__,
                                        type(target).__name__))
-        if owners and not isinstance(owners, list):
+        if rightsHolders and not isinstance(rightsHolders, list):
             msg = 'Expected target {!r} object, got {!r}.'
             raise TypeError(msg.format(list.__name__,
-                                       type(owners).__name__))
+                                       type(rightsHolders).__name__))
+        if contributors and not isinstance(contributors, list):
+            msg = 'Expected target {!r} object, got {!r}.'
+            raise TypeError(msg.format(list.__name__,
+                                       type(contributors).__name__))
         if valuemaps and not isinstance(valuemaps, list):
             msg = 'Expected target {!r} object, got {!r}.'
             raise TypeError(msg.format(list.__name__,
                                        type(valuemaps).__name__))
-        if watchers and not isinstance(watchers, list):
+        if dateAccepted is not None and not isinstance(dateAccepted, datetime):
             msg = 'Expected target {!r} object, got {!r}.'
             raise TypeError(msg.format(list.__name__,
-                                       type(watchers).__name__))
+                                       type(dateAccepted).__name__))
         self.uri = uri
         self.source = source
         self.target = target
         self.invertible = invertible
-        self.editor = editor
+        self.creator = creator
         self.note = note
-        self.reason = reason
         self.replaces = replaces
         self.valuemaps = valuemaps
-        self.owners = owners
-        self.watchers = watchers
-        self.status = status
+        self.rightsHolders = rightsHolders
+        self.contributors = contributors
+        self.dateAccepted = dateAccepted
+
 
     def __repr__(self):
         pstr = '{}\nSource:\n{!r}Target:\n{!r}'.format(self.uri, self.source, self.target)
@@ -205,45 +210,30 @@ class Mapping(_DotMixin):
         graph.add_subgraph(tgraph)
         return graph
 
-    def _check_status(self):
-        status = False
-        allowed = ['"Draft"', '"Proposed"', '"Approved"',
-                   '"Broken"', '"Deprecated"']
-        if self.status:
-            if self.status not in allowed:
-                msg = ('{} is not an allowed value'.format(self.status),
-                       ' for status please use one of {}'.format(allowed))
-                raise ValueError(msg)
-            status = True
-        return status
-
     def _podict(self):
         """
         Return a dictionary of predicates and objects for a rdf representation
 
         """
         podict = {}
-        podict['mr:source'] = self.source.uri.data
-        podict['mr:target']  = self.target.uri.data
+        if self.source is not None:
+            podict['mr:source'] = self.source.uri.data
+        if self.target is not None:
+            podict['mr:target']  = self.target.uri.data
         podict['mr:invertible'] = self.invertible
         podict['dc:date'] = ['"{}"^^xsd:dateTime'.format(datetime.now().isoformat())]
-        podict['dc:creator'] = self.editor
+        podict['dc:creator'] = self.creator
+        if self.contributors:
+            podict['dc:contributor'] = [cont.data for cont in self.contributors]
         if self.replaces:
             podict['dc:replaces'] = self.replaces
         if self.valuemaps:
             podict['mr:hasValueMap'] = [vmap.uri.data for vmap in self.valuemaps]
-        if self._check_status():
-            podict['mr:status'] = self.status
         if self.note:
             podict['skos:note'] = self.note
-        if self.reason:
-            podict['mr:reason'] = self.reason
-        # if self.owners:
-        #     podict['mr:owner'] = [owner for owner in self.owners]
-        # if self.watchers:
-        #     podict['mr:watcher'] = self.watchers
+        if self.dateAccepted:
+            podict['dc:dateAccepted'] = self.dateAccepted.isoformat()
         return podict
-
 
 
     def create_rdf(self, fuseki_process):
@@ -269,38 +259,34 @@ class Mapping(_DotMixin):
         return referrer
 
     @staticmethod
-    def sparql_retriever(uri, valid=True, rep=True):
+    def sparql_retriever(uri, rep=True):
         vstr = ''
-        if valid:
-            vstr += '\tFILTER (?status NOT IN ("Deprecated", "Broken"))'
         if rep:
             vstr += '\n\tMINUS {?mapping ^dc:replaces+ ?anothermap}'
-        qstr = '''SELECT ?mapping ?source ?target ?invertible ?replaces ?status
-                         ?note ?reason ?date ?creator ?inverted
-        (GROUP_CONCAT(DISTINCT(?owner); SEPARATOR = '&') AS ?owners)
-        (GROUP_CONCAT(DISTINCT(?watcher); SEPARATOR = '&') AS ?watchers)
+        qstr = '''SELECT ?mapping ?source ?target ?invertible ?replaces 
+                         ?note ?date ?creator ?invertible
+        (GROUP_CONCAT(DISTINCT(?rightsHolder); SEPARATOR = '&') AS ?rightsHolders)
+        (GROUP_CONCAT(DISTINCT(?contibutor); SEPARATOR = '&') AS ?contributors)
         (GROUP_CONCAT(DISTINCT(?valueMap); SEPARATOR = '&') AS ?valueMaps)
         WHERE {
         GRAPH <http://metarelate.net/mappings.ttl> {
         ?mapping mr:source ?source ;
              mr:target ?target ;
              mr:invertible ?invertible ;
-             mr:status ?status ;
-             mr:reason ?reason ;
              dc:date ?date ;
              dc:creator ?creator .
         BIND("False" AS ?inverted)
         OPTIONAL {?mapping dc:replaces ?replaces .}
         OPTIONAL {?mapping skos:note ?note .}
         OPTIONAL {?mapping mr:hasValueMap ?valueMap .}
-        OPTIONAL {?mapping mr:owner ?owner .}
-        OPTIONAL {?mapping mr:watcher ?watcher .}
+        OPTIONAL {?mapping dc:rightsHolder ?rightsHolder .}
+        OPTIONAL {?mapping dc:contributor ?contributor .}
         FILTER(?mapping = %s)
         %s
         }
         }
         GROUP BY ?mapping ?source ?target ?invertible ?replaces
-                 ?status ?note ?reason ?date ?creator ?inverted
+                 ?note ?date ?creator ?invertible
         ''' % (uri, vstr)
         return qstr
 
@@ -309,9 +295,10 @@ class Mapping(_DotMixin):
         subj_pref = 'http://www.metarelate.net/{}/mapping'
         subj_pref = subj_pref.format(site_config['fuseki_dataset'])
         allowed_preds = set(('mr:source', 'mr:target', 'mr:invertible',
-                                'dc:replaces', 'mr:hasValueMap', 'mr:status',
-                                'skos:note', 'mr:reason', 'dc:date', 'dc:creator',
-                                'mr:owner', 'mr:watcher'))
+                             'dc:replaces', 'mr:hasValueMap',
+                             'skos:note', 'dc:date', 'dc:creator',
+                             'dc:rightsHolder', 'dc:contributor', 'dc:rights',
+                             'dc:dateSubmitted', 'dc:dateAccepted'))
         preds = set(po_dict)
         if not preds.issubset(allowed_preds):
             ec = '''{}
@@ -320,7 +307,6 @@ class Mapping(_DotMixin):
             ec = ec.format(preds, allowed_preds)
             raise ValueError(ec)
         mandated_preds = set(('mr:source', 'mr:target', 'mr:invertible', 
-                                'mr:status',  'mr:reason',
                                 'dc:date', 'dc:creator'))
         if not preds.issuperset(mandated_preds):
             ec = '''{}
@@ -329,8 +315,8 @@ class Mapping(_DotMixin):
             ec = ec.format(preds, mandated_preds)
             raise ValueError(ec)
         singular_preds = set(('mr:source', 'mr:target', 'mr:invertible',
-                                 'dc:replaces', 'mr:status', 'skos:note',
-                                 'mr:reason', 'dc:date', 'dc:creator'))
+                                 'dc:replaces', 'skos:note',
+                                 'dc:date', 'dc:creator'))
         search_string = ''
         for pred in po_dict:
             if isinstance(po_dict[pred], list):
@@ -502,10 +488,11 @@ class Component(_DotMixin):
 
         """
         label = self.dot_escape('{}_{}'.format(parent.uri, self.uri.data))
-        if self.com_type:
-            nlabel = self.com_type.dot()
-        else:
-            nlabel = 'Component'
+        # if self.com_type:
+        #     nlabel = self.com_type.dot()
+        # else:
+        #     nlabel = 'Component'
+        nlabel = self.com_type
         node = pydot.Node(label, label=nlabel,
                           style='filled', peripheries='2',
                           colorscheme='dark28', fillcolor='3',
@@ -1015,17 +1002,20 @@ class ComponentProperty(Property):
             Name of the relationship between the nodes.
 
         """
-        items = []
-        items.append(self.predicate.dot())
-        items.append(self.component.dot())
-        items = ' '.join(items)
+        items = self.predicate.dot()
         label = self.dot_escape('{}'.format(self.predicate.notation))
         node = pydot.Node(label, label=items,
                           style='filled',
                           colorscheme='dark28', fillcolor='4',
                           fontsize=8)
-        node.uri = self.uri.data
+        node.uri = self.predicate.data
         graph.add_node(node)
+        cgraph = pydot.Cluster(self.predicate.notation, label=self.predicate.notation,
+                               labelloc='b',
+                               style='filled', color='grey')
+        anode = self.component.dot(cgraph, node)
+        graph.add_subgraph(cgraph)
+
         edge = pydot.Edge(parent, node,
                           tailport='s', headport='n')
         if name is not None:
@@ -1173,14 +1163,14 @@ class StatementProperty(Property):
         items = []
         items.append(self.predicate.dot())
         items.append(self.rdfobject.dot())
-        items = ' '.join(items)
-        label = self.dot_escape('{}_{}'.format(self.predicate.notation, 
-                                               self.rdfobject.notation))
+        items = ': '.join(items)
+        label = self.dot_escape('{}_{}'.format(self.predicate.data, 
+                                               self.rdfobject.data))
         node = pydot.Node(label, label=items,
                           style='filled',
                           colorscheme='dark28', fillcolor='4',
                           fontsize=8)
-        node.uri = 'foo'
+        node.uri = label
         graph.add_node(node)
         edge = pydot.Edge(parent, node,
                           tailport='s', headport='n')

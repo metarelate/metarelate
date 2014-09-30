@@ -40,25 +40,6 @@ Definition:
 Label: Mediator
 
 
-Property
---------
-
-URI: http://www.metarelate.net/predicates/index.html#Property
-
-Definition: 
-
-Label: Property
-
-
-Release
--------
-
-URI: http://www.metarelate.net/predicates/index.html#Release
-
-Definition: 
-
-Label: Release
-
 
 ScopedProperty
 ---------------
@@ -94,46 +75,6 @@ Label: ValueMap
 Properties
 ==========
 
-
-hasComponent
-------------
-
-URI: http://www.metarelate.net/predicates/index.html#hasComponent
-
-Definition: 
-
-Label: hasComponent
-
-
-hasFormat
-----------
-
-URI:  http://www.metarelate.net/predicates/index.html#hasFormat
-
-Definition: a data format which metarelate supports 
-
-Label: hasFormat
-
-
-hasProperty
-------------
-
-URI: http://www.metarelate.net/predicates/index.html#hasProperty
-
-Definition: 
-
-Label: hasProperty
-
-hasValueMap
------------
-
-URI:  http://www.metarelate.net/predicates/index.html#hasValueMap
-
-Definition: A valueMap for a mapping record
-
-Label:  hasValueMap
-
-
 invertible
 -----------
 
@@ -142,36 +83,6 @@ URI:  http://www.metarelate.net/predicates/index.html#invertible
 Definition: a boolean flag to indicate if the reciprocal relationship (target => source) is valid
 
 Label:  invertible
-
-
-name
-------
-
-URI:  http://www.metarelate.net/predicates/index.html#name
-
-Definition: The reference to the property name definition in the relevant namespace 
-
-Label: name
-
-
-object
----------
-
-URI:  http://www.metarelate.net/predicates/index.html#object
-
-Definition: The object of a mathematical operation
-
-Label: object
-
-
-operator
----------
-
-URI:  http://www.metarelate.net/predicates/index.html#operator
-
-Definition: The mathematical operator from the openMath definitions
-
-Label: operator
 
 
 owner
@@ -192,16 +103,6 @@ URI:  http://www.metarelate.net/predicates/index.html#reason
 Definition:
 
 Label:  reason
-
-
-saveCache
-----------
-
-URI:  http://www.metarelate.net/predicates/index.html#saveCache
-
-Definition: A flag to indicate that changes exist in the triple store which are not persistant on disk in ttl files.
-
-Label:  saveCache
 
 
 scope
@@ -234,16 +135,6 @@ Definition: the status of a mapping: 'Approved', 'Proposed', 'Draft', 'Broken', 
 Label:  status
 
 
-subject
----------
-
-URI:  http://www.metarelate.net/predicates/index.html#subject
-
-Definition: The subject of a mathematical operation
-
-Label:subject
-
-
 target
 --------
 
@@ -254,14 +145,13 @@ Definition: a metarelate concept which this mapping translates to
 Label:  target
 
 
-
-watcher 
+identifier
 ----------
 
-URI:  http://www.metarelate.net/predicates/index.html#watcher
+URI:  http://www.metarelate.net/predicates/index.html#identifier
 
-Definition: a metarelate collaborator who monitors a mapping
+Definition: a predicate which is used to identify this resource
 
-Label:  watcher
+Label:  identifier
 
 

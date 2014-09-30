@@ -12,103 +12,50 @@ digraph state {
         ];
 
 ## class definitions
-        broken [
-	label = "Broken|+ update(editor)|+ owners:many"
-	];
 
 	deprecated [
-	label = "Deprecated|+ read only|+ owners:many"
+	label = "Deprecated|+ read only"
 	];
 
         draft [
-	label = "Draft|+ update(editor)|+ owners:many"
-	];
-
-        proposed [
-	label = "Proposed|+ read only|+ owners:many"
+	label = "Draft|+ editable|+ contributor *"
 	];
 
         approved [
-	label = "Approved|+ read only|+ owners:many"
+	label = "Approved|+ read only|+ rightsHolder *|+ contributor *"
 	];
 
 
 
 ## cluster
 
-	subgraph cluster_1{ 
-	label = "Validated"
-   	draft -> proposed [
+   	draft -> approved [
 	arrowhead = "normal"
-	label = owners
+	label = contributor
 	color = blue
 	fontcolor = blue
 	];
-
-   	proposed -> approved [
-	arrowhead = "normal"
-	label = approver
-	color = blue
-	fontcolor = blue
-	];
-#	label = "Relationship State";
-	};
-
-
-## more relationship definitions
-
-   	broken -> draft [
-	arrowhead = "normal"
-	label = owners
-	color = blue
-	fontcolor = blue
-	];
-
-
-
-   	broken -> deprecated [ 
-	arrowhead = "normal"
-	label = owners
-	color = red
-	fontcolor = red
-	];
-
-   	draft -> deprecated [ 
-	arrowhead = "normal"
-	label = owners
-	color = red
-	fontcolor = red
-	];
-
-   	deprecated -> draft [ 
-	arrowhead = "normal"
-	label = owners
-	color = red
-	fontcolor = red
-	];
-
 
    	approved -> draft [
 	arrowhead = "normal"
-	label = owners
+	label = rightsHolders
 	color = red
 	fontcolor = red
 	];
 
-   	proposed -> draft [
+
+   	draft -> deprecated [ 
 	arrowhead = "normal"
-	label = approver
-	color = red
-	fontcolor = red
+	label = contributors
+	color = blue
+	fontcolor = blue
 	];
 
-   	draft -> broken [
+   	approved -> deprecated [
 	arrowhead = "normal"
-	label = owners
+	label = rightsHolders
 	color = red
 	fontcolor = red
 	];
-
-	
   
 }
