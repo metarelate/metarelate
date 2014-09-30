@@ -15,22 +15,35 @@ The structure of the RDF enables queries to be run on the contained data, using 
 
 The information structure is extensible, the structure is not fixed, but this description represents a minimum set which is required for the current set of queries used in the mapping manager.
 
-Information structure  
-======================
-
-.. graphviz:: records.dot
-
-
 Editing is Adding
 =================
 
 All editing of the information in the repository is additive.  Any edits made in a branch which delete content will not be merged into the main repository. 
 
+
+Information structure  
+======================
+
+A Mapping is a uniquely identified resource, consisting of a source and a target and optionally a set of valuemaps, plus a collection of context metadata statements.
+
+The 'mr:source', 'mr:target' and the 'mr:valueMaps' provide all the functional information about the Mapping resource.
+
+All other statements made by the Mapping resource are contextual, providing information on validity and enabling contacts to be made to manage change effectively.
+
+.. graphviz:: records.dot
+
+
+
 State
 =====
 
-A number of States are allowed for Mapping record instances.  One of the allowable edit operations is to replace a mapping record with an up-versioned record with a different state; in fact the operation is additive, a new record is created which references the replaced record using a hasPrevious attribute.  
+A number of states and state changes are recognised for Mapping instances.  
 
-This operation is a record state transition operation.
+When a mapping is created it is a draft mapping.  This may be updated by creating a new mapping which references the old Mapping resource using 'dc:replaces'.
+
+A mapping may be provided with a rights statement and a collection of rightsHolder organisations.  The rights statement will be a metarelate statement regarding the quality of the information.  Such a resource is then functionally frozen; only updates to the Mapping metadata, adding new contributors and rightsHolders, will be allowed unless all rightsHolders agree on the change.
+
+A mapping may be deprecated by a new mapping with no source or target, which replaces the deprecated mapping.
+
 
 .. graphviz:: state.dot
