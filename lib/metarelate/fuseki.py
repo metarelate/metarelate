@@ -26,8 +26,15 @@ import time
 import urllib
 import urllib2
 
+import requests
+from cachecontrol import CacheControl
+
 import metarelate
 import metarelate.prefixes as prefixes
+
+
+req_session = requests.session()
+cached_session = CacheControl(req_session)
 
 
 HEADER = '''#(C) British Crown Copyright 2012 - 2014 , Met Office 
@@ -407,11 +414,32 @@ class FusekiServer(object):
         return the results
         
         """
-        # base = 'http://127.0.0.1:3131/metOcean/query'
-        # pref = prefixes.Prefixes().sparql
-        # results = requests.get(base, params={'query':pref+aqstr, 'output':'json'})
         if not self.alive():
             self.restart()
+        # base = 'http://127.0.0.1:3131/metOcean/query'
+        # action = 'query'
+        # if update:
+        #     action='update'
+        # baseurl = "http://%s:%i%s/%s" % (self.host, self.port,
+        #                                   '/{}'.format(self._fuseki_dataset)
+        #                                   , action)
+        # pref = prefixes.Prefixes().sparql
+        # # results = requests.get(base, params={'query':pref+aqstr, 'output':'json'})
+        # results = cached_session.get(baseurl,
+        #                              params={'query':pref+query_string,
+        #                                      'output':output}, proxies={'http':''})#,
+        #                              #headers={'cache-control': 'max-age=3600'})
+        # if results.status_code != 200:
+        #     msg = ('Error connection to Fuseki server on {}.\n'
+        #           ' server returned {}\n'
+        #           '{}\n{}')
+        #     msg = msg.format(baseurl, results.status_code,
+        #                      pref, query_string)
+        #     raise RuntimeError(msg)
+        # if output == 'json':
+        #     return process_data(results.text)
+        # else:
+        #     return results.text
         # use null ProxyHandler to ignore proxy for localhost access
         proxy_support = urllib2.ProxyHandler({})
         opener = urllib2.build_opener(proxy_support)
@@ -441,8 +469,10 @@ class FusekiServer(object):
         try:
             data = opener.open(urllib2.Request(BASEURL), qstr).read()
         except urllib2.URLError as err:
-            ec = 'Error connection to Fuseki server on {}.\n server returned {}'
-            ec = ec.format(BASEURL, err)
+            ec = ('Error connection to Fuseki server on {}.\n'
+                  ' server returned {}\n'
+                  '{}\n{}')
+            ec = ec.format(BASEURL, err, pre.sparql, query_string)
             raise RuntimeError(ec)
         if output == "json":
             return process_data(data)
@@ -599,15 +629,63 @@ class FusekiServer(object):
             raise ValueError(ec)
         return results
 
-    def mapping_by_properties(self, prop_list):
-        results = self.run_query(mapping_by_properties(prop_list))
-        mapping = None
-        maps = set([r['mapping'] for r in results])
-        if not mapping:
-            mappings = maps
-        else:
-            mappings.intersection_update(maps)
-        return mappings
+    def find_valid_mapping(self, source, target):
+        """
+        Returns a mapping instance which links the source to the target,
+        or None, or an error if multiple mappings exist
+
+        Args:
+        source : a metarelate component, or None
+        target : a metarelate component, or None
+
+        """
+        if source is None:
+            source_uri = '?s'
+        elif not isinstance(source, metarelate.Component):
+            raise ValueError('source must be ametarelate Component or None')
+        if target is None:
+            target_uri = '?t'
+        elif not isinstance(target, metarelate.Component):
+            raise ValueError('target must be ametarelate Component or None')
+        result = None
+        if source is not None:
+            source_qstr, sinstr = source.creation_sparql()
+            source_uri = self.run_query(source_qstr)
+            if len(source_uri) > 1:
+                raise ValueError('Source Component exists in duplicate in store')
+            elif source_uri:
+                source_uri = source_uri[0]['component']
+                if source.uri.data != source_uri:
+                    raise ValueError('Source Component URI is different from '
+                                     'a duplicate Component in the store')
+        if target is not None:
+            target_qstr, instr = target.creation_sparql()
+            target_uri = self.run_query(target_qstr)
+            if len(target_uri) > 1:
+                raise ValueError('Target Component exists in duplicate in store')
+            elif target_uri:
+                target_uri = target_uri[0]['component']
+                if target.uri.data != target_uri:
+                    raise ValueError('Target Component URI is different from '
+                                     'a duplicate Component in the store')
+        if source_uri and target_uri:
+            map_qstr = ('SELECT ?mapping \n'
+                        'WHERE { \n'
+                        'GRAPH <http://metarelate.net/mappings.ttl> { \n'
+                        '?mapping mr:source %s ;\n'
+                        '\tmr:target %s .\n'
+                        'OPTIONAL {?mapping dc:replaces ?replaces .}\n'
+                        'MINUS {?mapping ^dc:replaces+ ?anothermap} \n'
+                        '}}' % (source_uri, target_uri)) 
+            map_ids = self.run_query(map_qstr)
+            if len(map_ids) > 1:
+                raise ValueError('multiple valid mapping for the same source'
+                                 ' and target')
+            elif map_ids:
+                result = map_ids[0]
+        return result
+                
+
 
 
 def process_data(jsondata):
@@ -646,7 +724,6 @@ def process_data(jsondata):
             resultslist.append(tmpdict)
     return resultslist
 
-
 def multiple_mappings(test_source=None):
     """
     returns all the mappings which map the same source to a different target
@@ -664,39 +741,33 @@ def multiple_mappings(test_source=None):
     (GROUP_CONCAT(DISTINCT(?value); SEPARATOR='&') AS ?signature)
     WHERE {
     GRAPH <http://metarelate.net/mappings.ttl> { {
-    ?amap mr:status ?astatus ;
-         mr:source ?asource ;
+    ?amap mr:source ?asource ;
          mr:target ?atarget . } 
     UNION 
         { 
     ?amap mr:invertible "True" ;
-         mr:status ?astatus ;
          mr:target ?asource ;
          mr:source ?atarget . } 
-    FILTER (?astatus NOT IN ("Deprecated", "Broken"))
     MINUS {?amap ^dc:replaces+ ?anothermap} %s
     } 
     GRAPH <http://metarelate.net/mappings.ttl> { {
-    ?bmap mr:status ?bstatus ;
-         mr:source ?bsource ;
+    ?bmap mr:source ?bsource ;
          mr:target ?btarget . } 
     UNION  
         { 
     ?bmap mr:invertible "True" ;
-         mr:status ?bstatus ;
          mr:target ?bsource ;
          mr:source ?btarget . } 
-    FILTER (?bstatus NOT IN ("Deprecated", "Broken"))
     MINUS {?bmap ^dc:replaces+ ?bnothermap}
     filter (?bmap != ?amap)
     filter (?bsource = ?asource)
     filter (?btarget != ?atarget)
     } 
     GRAPH <http://metarelate.net/concepts.ttl> {
-    ?asource mr:hasFormat ?asourceformat .
-    ?bsource mr:hasFormat ?bsourceformat .
-    ?atarget mr:hasFormat ?atargetformat .
-    ?btarget mr:hasFormat ?btargetformat .
+    ?asource rdf:type ?asourceformat .
+    ?bsource rdf:type ?bsourceformat .
+    ?atarget rdf:type ?atargetformat .
+    ?btarget rdf:type ?btargetformat .
     }
     filter (?btargetformat = ?atargetformat)
 
@@ -734,99 +805,99 @@ def multiple_mappings(test_source=None):
     return qstr
 
 
-def valid_vocab():
-    """
-    find all valid mapping and every property they reference
+# def valid_vocab():
+#     """
+#     find all valid mapping and every property they reference
 
-    """
-    qstr = '''
-    SELECT DISTINCT  ?amap 
-    (GROUP_CONCAT(DISTINCT(?vocab); SEPARATOR = '&') AS ?signature)
-    WHERE {      
-    GRAPH <http://metarelate.net/mappings.ttl> { {  
-    ?amap mr:status ?astatus ; 
-    FILTER (?astatus NOT IN ("Deprecated", "Broken")) 
-    MINUS {?amap ^dc:replaces+ ?anothermap}      }
-    { 
-    ?amap mr:source ?fc .      }
-    UNION {
-    ?amap mr:target ?fc .      } } 
-    GRAPH <http://metarelate.net/concepts.ttl> { {
-    ?fc mr:hasProperty ?prop . }
-    UNION {
-    ?fc mr:hasComponent|mr:hasProperty ?prop . }
-    UNION { 
-    ?fc mr:hasProperty|mr:hasComponent|mr:hasProperty ?prop .
-    }
-    { ?prop mr:name ?vocab . }
-    UNION {
-    ?prop mr:operator ?vocab . }
-    UNION {
-    ?prop rdf:value ?vocab . }
-    FILTER(ISURI(?vocab))
-    FILTER(!regex(str(?vocab), "computed_value#"))}
-    OPTIONAL {GRAPH ?g{?vocab ?p ?o .} }
-    FILTER(!BOUND(?g))      }
-    GROUP BY ?amap
-    '''
-    return qstr
+#     """
+#     qstr = '''
+#     SELECT DISTINCT  ?amap 
+#     (GROUP_CONCAT(DISTINCT(?vocab); SEPARATOR = '&') AS ?signature)
+#     WHERE {      
+#     GRAPH <http://metarelate.net/mappings.ttl> { {  
+#     ?amap mr:status ?astatus ; 
+#     FILTER (?astatus NOT IN ("Deprecated", "Broken")) 
+#     MINUS {?amap ^dc:replaces+ ?anothermap}      }
+#     { 
+#     ?amap mr:source ?fc .      }
+#     UNION {
+#     ?amap mr:target ?fc .      } } 
+#     GRAPH <http://metarelate.net/concepts.ttl> { {
+#     ?fc mr:hasProperty ?prop . }
+#     UNION {
+#     ?fc mr:hasComponent|mr:hasProperty ?prop . }
+#     UNION { 
+#     ?fc mr:hasProperty|mr:hasComponent|mr:hasProperty ?prop .
+#     }
+#     { ?prop mr:name ?vocab . }
+#     UNION {
+#     ?prop mr:operator ?vocab . }
+#     UNION {
+#     ?prop rdf:value ?vocab . }
+#     FILTER(ISURI(?vocab))
+#     FILTER(!regex(str(?vocab), "computed_value#"))}
+#     OPTIONAL {GRAPH ?g{?vocab ?p ?o .} }
+#     FILTER(!BOUND(?g))      }
+#     GROUP BY ?amap
+#     '''
+#     return qstr
 
 
-def mapping_by_properties(prop_list):
-    """
-    Return the mapping id's which contain all of the proerties
-    in the list of property dictionaries
+# def mapping_by_properties(prop_list):
+#     """
+#     Return the mapping id's which contain all of the proerties
+#     in the list of property dictionaries
     
-    """
-    fstr = ''
-    for prop_dict in prop_list:
-        name = prop_dict.get('mr:name')
-        op = prop_dict.get('mr:operator')
-        value = prop_dict.get('rdf:value')
-        if name:
-            fstr += '\tFILTER(?name = {})\n'.format(name)
-        if op:
-            fstr += '\tFILTER(?operator = {})\n'.format(op)
-        if value:
-            fstr += '\tFILTER(?value = {})\n'.format(value)
+#     """
+#     fstr = ''
+#     for prop_dict in prop_list:
+#         name = prop_dict.get('mr:name')
+#         op = prop_dict.get('mr:operator')
+#         value = prop_dict.get('rdf:value')
+#         if name:
+#             fstr += '\tFILTER(?name = {})\n'.format(name)
+#         if op:
+#             fstr += '\tFILTER(?operator = {})\n'.format(op)
+#         if value:
+#             fstr += '\tFILTER(?value = {})\n'.format(value)
             
-    qstr = '''SELECT DISTINCT ?mapping 
-    WHERE {
-    GRAPH <http://metarelate.net/mappings.ttl> {    
-    ?mapping rdf:type mr:Mapping ;
-             mr:source ?source ;
-             mr:target ?target ;
-             mr:status ?status ;
+#     qstr = '''SELECT DISTINCT ?mapping 
+#     WHERE {
+#     GRAPH <http://metarelate.net/mappings.ttl> {    
+#     ?mapping rdf:type mr:Mapping ;
+#              mr:source ?source ;
+#              mr:target ?target ;
+#              mr:status ?status ;
 
-    FILTER (?status NOT IN ("Deprecated", "Broken"))
-    MINUS {?mapping ^dc:replaces+ ?anothermap}
-    }
-    GRAPH <http://metarelate.net/concepts.ttl> { {
-    ?source mr:hasProperty ?property
-    }
-    UNION {
-    ?target mr:hasProperty ?property
-    }
-    UNION {
-    ?source mr:hasComponent/mr:hasProperty ?property
-    }
-    UNION {
-    ?target mr:hasComponent/mr:hasProperty ?property
-    }
-    UNION {
-    ?source mr:hasProperty/mr:hasComponent/mr:hasProperty ?property
-    }
-    UNION {
-    ?target mr:hasProperty/mr:hasComponent/mr:hasProperty ?property
-    }
-    ?property mr:name ?name .
-    OPTIONAL{?property rdf:value ?value . }
-    OPTIONAL{?property mr:operator ?operator . }
-    %s
-    }
-    }
-    ''' % fstr
-    return qstr
+#     FILTER (?status NOT IN ("Deprecated", "Broken"))
+#     MINUS {?mapping ^dc:replaces+ ?anothermap}
+#     }
+#     GRAPH <http://metarelate.net/concepts.ttl> { {
+#     ?source mr:hasProperty ?property
+#     }
+#     UNION {
+#     ?target mr:hasProperty ?property
+#     }
+#     UNION {
+#     ?source mr:hasComponent/mr:hasProperty ?property
+#     }
+#     UNION {
+#     ?target mr:hasComponent/mr:hasProperty ?property
+#     }
+#     UNION {
+#     ?source mr:hasProperty/mr:hasComponent/mr:hasProperty ?property
+#     }
+#     UNION {
+#     ?target mr:hasProperty/mr:hasComponent/mr:hasProperty ?property
+#     }
+#     ?property mr:name ?name .
+#     OPTIONAL{?property rdf:value ?value . }
+#     OPTIONAL{?property mr:operator ?operator . }
+#     %s
+#     }
+#     }
+#     ''' % fstr
+#     return qstr
 
 
 # def get_all_notation_note(fuseki_process, graph, debug=False):
@@ -846,15 +917,15 @@ def mapping_by_properties(prop_list):
 #     return results
 
 
-def _vocab_graphs():
-    """returns a list of the graphs which contain thirds party vocabularies """
-    vocab_graphs = []
-    vocab_graphs.append('<http://metarelate.net/formats.ttl>')
-    vocab_graphs.append('<http://um/umdpF3.ttl>')
-    vocab_graphs.append('<http://um/stashconcepts.ttl>')
-    vocab_graphs.append('<http://um/fieldcode.ttl>')
-    vocab_graphs.append('<http://cf/cf-model.ttl>')
-    vocab_graphs.append('<http://cf/cf-standard-name-table.ttl>')
-    vocab_graphs.append('<http://grib/apikeys.ttl>')
-    vocab_graphs.append('<http://openmath/ops.ttl>')
-    return vocab_graphs
+# def _vocab_graphs():
+#     """returns a list of the graphs which contain thirds party vocabularies """
+#     vocab_graphs = []
+#     vocab_graphs.append('<http://metarelate.net/formats.ttl>')
+#     vocab_graphs.append('<http://um/umdpF3.ttl>')
+#     vocab_graphs.append('<http://um/stashconcepts.ttl>')
+#     vocab_graphs.append('<http://um/fieldcode.ttl>')
+#     vocab_graphs.append('<http://cf/cf-model.ttl>')
+#     vocab_graphs.append('<http://cf/cf-standard-name-table.ttl>')
+#     vocab_graphs.append('<http://grib/apikeys.ttl>')
+#     vocab_graphs.append('<http://openmath/ops.ttl>')
+#     return vocab_graphs

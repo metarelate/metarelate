@@ -19,12 +19,13 @@ from collections import Iterable, MutableMapping, namedtuple
 from datetime import datetime
 import hashlib
 import os
-import requests
 import urlparse
 import time
 import warnings
 
 import pydot
+import requests
+from cachecontrol import CacheControl
 from requests.exceptions import ConnectionError
 
 from metarelate.config import update
@@ -38,6 +39,10 @@ site_config = {
 }
 
 update(site_config)
+
+req_session = requests.session()
+cached_session = CacheControl(req_session)
+
 
 def careful_update(adict, bdict):
     if not set(adict.keys()).isdisjoint(set(bdict.keys())):
@@ -54,12 +59,14 @@ def get_notation(uri):
     if uri.startswith('<') and uri.endswith('>'):
         uri = uri.lstrip('<').rstrip('>')
     if uri.startswith('http://'):
-        try:
-            r = requests.get(uri, headers={'Accept':'application/ld+json'})
-        except requests.exceptions.ConnectionError, e:
-            warning.warn('connection failure on {}; retrying.'.format(uri))
-            time.sleep(0.5)
-            r = requests.get(uri, headers={'Accept':'application/ld+json'})
+        r = cached_session.get(uri, headers={'Accept':'application/ld+json',
+                                             'cache-control': 'max-age=3600'})
+        # try:
+        #     r = requests.get(uri, headers={'Accept':'application/ld+json'})
+        # except requests.exceptions.ConnectionError, e:
+        #     warnings.warn('connection failure on {}; retrying.'.format(uri))
+        #     time.sleep(0.5)
+        #     r = requests.get(uri, headers={'Accept':'application/ld+json'})
         if r.status_code == 200:
             try:
                 result = r.json().get('skos:notation')
@@ -116,32 +123,7 @@ class Mapping(_DotMixin):
     def __init__(self, uri=None, source=None, target=None,
                  invertible='"False"', creator=None, note=None,
                  replaces=None, valuemaps=None, rightsHolders=None, 
-                 contributors=None, dateAccepted=None):
-        uri = Item(uri)
-        if source is not None and not isinstance(source, Component):
-            msg = 'Expected source {!r} object, got {!r}.'
-            raise TypeError(msg.format(Component.__name__,
-                                       type(source).__name__))
-        if target is not None and not isinstance(target, Component):
-            msg = 'Expected target {!r} object, got {!r}.'
-            raise TypeError(msg.format(Component.__name__,
-                                       type(target).__name__))
-        if rightsHolders and not isinstance(rightsHolders, list):
-            msg = 'Expected target {!r} object, got {!r}.'
-            raise TypeError(msg.format(list.__name__,
-                                       type(rightsHolders).__name__))
-        if contributors and not isinstance(contributors, list):
-            msg = 'Expected target {!r} object, got {!r}.'
-            raise TypeError(msg.format(list.__name__,
-                                       type(contributors).__name__))
-        if valuemaps and not isinstance(valuemaps, list):
-            msg = 'Expected target {!r} object, got {!r}.'
-            raise TypeError(msg.format(list.__name__,
-                                       type(valuemaps).__name__))
-        if dateAccepted is not None and not isinstance(dateAccepted, datetime):
-            msg = 'Expected target {!r} object, got {!r}.'
-            raise TypeError(msg.format(list.__name__,
-                                       type(dateAccepted).__name__))
+                 rights=None, contributors=None, dateAccepted=None):
         self.uri = uri
         self.source = source
         self.target = target
@@ -150,10 +132,118 @@ class Mapping(_DotMixin):
         self.note = note
         self.replaces = replaces
         self.valuemaps = valuemaps
+        self.rights = rights
         self.rightsHolders = rightsHolders
         self.contributors = contributors
         self.dateAccepted = dateAccepted
 
+    @property
+    def source(self):
+        return self._source
+    @source.setter
+    def source(self, asource):
+        if asource is not None:
+            if not isinstance(asource, Component):
+                msg = 'Expected source {!r} object, got {!r}.'
+                raise TypeError(msg.format(Component.__name__,
+                                           type(asource).__name__))
+        self._source = asource
+
+    @property
+    def target(self):
+        return self._target
+    @target.setter
+    def target(self, atarget):
+        if atarget is not None:
+            if not isinstance(atarget, Component):
+                msg = 'Expected target {!r} object, got {!r}.'
+                raise TypeError(msg.format(Component.__name__,
+                                           type(atarget).__name__))
+        self._target = atarget
+
+    @property
+    def dateAccepted(self):
+            return self._dateAccepted
+    @dateAccepted.setter
+    def dateAccepted(self, adateAccepted):
+        if adateAccepted is not None:
+            if not isinstance(adateAccepted, datetime):
+                msg = 'Expected {!r} object, got {!r}.'
+                raise TypeError(msg.format(datetime.__name__,
+                                           type(adateAccepted).__name__))
+        self._dateAccepted = adateAccepted
+
+    @property
+    def valuemaps(self):
+        return self._valuemaps
+    @valuemaps.setter
+    def valuemaps(self, somevmaps):
+        if somevmaps is None:
+            somevmaps = []
+        for vm in somevmaps:
+            if not isinstance(vm, ValueMap):
+                msg = 'Expected {!r} object, got {!r}.'
+                raise TypeError(msg.format(ValueMap.__name__,
+                                           type(vm).__name__))
+        self._valuemaps = somevmaps
+
+    @property
+    def uri(self):
+        return self._uri
+    @uri.setter
+    def uri(self, auri):
+        if auri is not None:
+            self._uri = Item(auri)
+        else:
+            self._uri = None
+
+    @property
+    def creator(self):
+        return self._creator
+    @creator.setter
+    def creator(self, acreator):
+        if acreator is not None:
+            self._creator = Item(acreator)
+        else:
+            self._creator = None
+
+    @property
+    def replaces(self):
+        return self._replaces
+    @replaces.setter
+    def replaces(self, areplaces):
+        if areplaces is not None:
+            self._replaces = Item(areplaces)
+        else:
+            self._replaces = None
+
+    @property
+    def rights(self):
+        return self._rights
+    @rights.setter
+    def rights(self, arights):
+        if arights is not None:
+            self._rights = Item(arights)
+        else:
+            self._rights = None
+
+    @property
+    def rightsHolders(self):
+        return self._rightsHolders
+    @rightsHolders.setter
+    def rightsHolders(self, somerightsHolders):
+        if somerightsHolders is None:
+            somerightsHolders = []
+        self._rightsHolders = [Item(rh) for rh in somerightsHolders]
+
+    @property
+    def contributors(self):
+        return self._contributors
+    @contributors.setter
+    def contributors(self, somecontributors):
+        if somecontributors is None:
+            somecontributors = []
+        self._contributors = [Item(c) for c in somecontributors]
 
     def __repr__(self):
         pstr = '{}\nSource:\n{!r}Target:\n{!r}'.format(self.uri, self.source, self.target)
@@ -224,17 +314,21 @@ class Mapping(_DotMixin):
             podict['mr:target']  = self.target.uri.data
         podict['mr:invertible'] = self.invertible
         podict['dc:date'] = ['"{}"^^xsd:dateTime'.format(datetime.now().isoformat())]
-        podict['dc:creator'] = self.creator
-        if self.contributors:
-            podict['dc:contributor'] = [cont.data for cont in self.contributors]
-        if self.replaces:
-            podict['dc:replaces'] = self.replaces
+        podict['dc:creator'] = self.creator.data
         if self.valuemaps:
             podict['mr:hasValueMap'] = [vmap.uri.data for vmap in self.valuemaps]
         if self.note:
             podict['skos:note'] = self.note
         if self.dateAccepted:
             podict['dc:dateAccepted'] = self.dateAccepted.isoformat()
+        if self.replaces:
+            podict['dc:replaces'] = self.replaces.data
+        if self.rights:
+            podict['dc:rights'] = self.rights.data
+        if self.rightsHolders:
+            podict['dc:rightsHolders'] = [rh.data for rh in self.rightsHolders]
+        if self.contributors:
+            podict['dc:contributor'] = [cont.data for cont in self.contributors]
         return podict
 
 
@@ -260,13 +354,37 @@ class Mapping(_DotMixin):
         ## what about other attributes?? not implemented yet
         return referrer
 
-    @staticmethod
-    def sparql_retriever(uri, rep=True):
+    def populate_from_uri(self, fuseki_process):
+        elements, = fuseki_process.run_query(self.sparql_retriever())
+        # fragile? by design? use .get for less fragile more silent error code?
+        self.source = Component(elements['source'])
+        self.target = Component(elements['target'])
+        self.date = elements['date']
+        self.creator = elements['creator']
+        self.invertible = elements['invertible']
+        if elements.get('replaces'):
+            self.replaces = elements['replaces']
+        if elements.get('note'):
+            self.note = elements['note']
+        if elements.get('valuemaps'):
+            self.valuemaps = elements['valuemaps']
+        if elements.get('rights'):
+            self.rights = elements['rights']
+        if elements.get('rightsHolders'):
+            self.rightsHolder = elements['rightsHolders']
+        if elements.get('contributors'):
+            self.contributors = elements['contributors']
+        if elements.get('dateAccepted'):
+            self.dateAccepted = elements['dateAccepted']
+
+    # @staticmethod
+    # def sparql_retriever(uri, rep=True):
+    def sparql_retriever(self, rep=True):
         vstr = ''
         if rep:
             vstr += '\n\tMINUS {?mapping ^dc:replaces+ ?anothermap}'
         qstr = '''SELECT ?mapping ?source ?target ?invertible ?replaces 
-                         ?note ?date ?creator ?invertible
+                         ?note ?date ?creator ?rights ?dateAccepted
         (GROUP_CONCAT(DISTINCT(?rightsHolder); SEPARATOR = '&') AS ?rightsHolders)
         (GROUP_CONCAT(DISTINCT(?contibutor); SEPARATOR = '&') AS ?contributors)
         (GROUP_CONCAT(DISTINCT(?valueMap); SEPARATOR = '&') AS ?valueMaps)
@@ -277,19 +395,20 @@ class Mapping(_DotMixin):
              mr:invertible ?invertible ;
              dc:date ?date ;
              dc:creator ?creator .
-        BIND("False" AS ?inverted)
         OPTIONAL {?mapping dc:replaces ?replaces .}
         OPTIONAL {?mapping skos:note ?note .}
         OPTIONAL {?mapping mr:hasValueMap ?valueMap .}
+        OPTIONAL {?mapping dc:rightsHolder ?rights .}
         OPTIONAL {?mapping dc:rightsHolder ?rightsHolder .}
         OPTIONAL {?mapping dc:contributor ?contributor .}
+        OPTIONAL {?mapping dc:dateAccepted ?dateAccepted .}
         FILTER(?mapping = %s)
         %s
         }
         }
         GROUP BY ?mapping ?source ?target ?invertible ?replaces
-                 ?note ?date ?creator ?invertible
-        ''' % (uri, vstr)
+                 ?note ?date ?creator ?rights ?dateAccepted
+        ''' % (self.uri.data, vstr)
         return qstr
 
     @staticmethod
@@ -1194,33 +1313,33 @@ class Item(_DotMixin, namedtuple('Item', 'data notation')):
         if data is None and notation is None:
             res = None
         else:
-            if isinstance(data, str):
-                if data.startswith('http'):
-                    new_data = '<{}>'.format(data)
-                elif data.startswith('<'):
-                    new_data = data
-                elif data.startswith('"'):
-                    new_data = data
-                else:
-                    new_data = '"{}"'.format(data)
-            else:
-                new_data = data
-            new_notation = None
             if isinstance(data, Item):
-                new_data = data.data
-                new_notation = data.notation
-            if notation is not None:
-                if isinstance(notation, basestring) and len(notation) > 1 and \
-                        notation.startswith('"') and notation.endswith('"'):
-                    notation = notation[1:-1]
-                new_notation = notation
-            #else:
-                #look up notation
-                #but it's immutable
-                #so write a func in fuseki which takes a notation free Item
-                #and returns an Item with its notation
-                #pass
-            res = super(Item, cls).__new__(cls, new_data, new_notation)
+                res = data
+            else:
+                if isinstance(data, str):
+                    if data.startswith('http'):
+                        new_data = '<{}>'.format(data)
+                    elif data.startswith('<'):
+                        new_data = data
+                    elif data.startswith('"'):
+                        new_data = data
+                    else:
+                        new_data = '"{}"'.format(data)
+                else:
+                    new_data = data
+                new_notation = None
+                if notation is not None:
+                    if isinstance(notation, basestring) and len(notation) > 1 and \
+                            notation.startswith('"') and notation.endswith('"'):
+                        notation = notation[1:-1]
+                    new_notation = notation
+                #else:
+                    #look up notation
+                    #but it's immutable
+                    #so write a func in fuseki which takes a notation free Item
+                    #and returns an Item with its notation
+                    #pass
+                res = super(Item, cls).__new__(cls, new_data, new_notation)
         return res
 
     def is_uri(self):
