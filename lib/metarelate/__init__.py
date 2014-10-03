@@ -22,6 +22,7 @@ import os
 import requests
 import urlparse
 import time
+import warnings
 
 import pydot
 from requests.exceptions import ConnectionError
@@ -56,6 +57,7 @@ def get_notation(uri):
         try:
             r = requests.get(uri, headers={'Accept':'application/ld+json'})
         except requests.exceptions.ConnectionError, e:
+            warning.warn('connection failure on {}; retrying.'.format(uri))
             time.sleep(0.5)
             r = requests.get(uri, headers={'Accept':'application/ld+json'})
         if r.status_code == 200:
@@ -513,7 +515,8 @@ class Component(_DotMixin):
         statements = fuseki_process.run_query(self.sparql_retriever())
         for statement in statements:
             if statement.get('p') == '<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>':
-                self.com_type = statement.get('o')
+                self.com_type = Item(statement.get('o'),
+                                     get_notation(statement.get('o')))
             else:
                 data = statement.get('p')
                 notation = get_notation(statement.get('p'))
