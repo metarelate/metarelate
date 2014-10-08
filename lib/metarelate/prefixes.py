@@ -57,12 +57,10 @@ class Prefixes(dict):
         'moumdpF3' : 'http://reference.metoffice.gov.uk/um/f3/',
         'moumdpC4' : 'http://reference.metoffice.gov.uk/um/c4/',
         'moumdpC4Pseud' : 'http://reference.metoffice.gov.uk/um/c4/pseudo/',
-        'cfsn'     : 'http://def.cfconventions.org/standard_names/' ,
-        'cfm'      : 'http://def.cfconventions.org/datamodel/' ,
-        'gribapi'  : 'http://def.ecmwf.int/api/grib/keys/',
         'openmathr1' : 'http://www.openmath.org/cd/relation1.xhtml#',
         'openmatha1' : 'http://www.openmath.org/cd/arith1.xhtml#',
         'cfnames' : 'http://vocab.nerc.ac.uk/standard_name/',
+        'cfmodel' : 'http://def.scitools.org.uk/cfdatamodel/',
         }
         self.update(prefixd)
 

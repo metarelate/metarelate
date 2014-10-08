@@ -19,12 +19,13 @@ from collections import Iterable, MutableMapping, namedtuple
 from datetime import datetime
 import hashlib
 import os
-import requests
 import urlparse
 import time
 import warnings
 
 import pydot
+import requests
+from cachecontrol import CacheControl
 from requests.exceptions import ConnectionError
 
 from metarelate.config import update
@@ -38,6 +39,10 @@ site_config = {
 }
 
 update(site_config)
+
+req_session = requests.session()
+cached_session = CacheControl(req_session)
+
 
 def careful_update(adict, bdict):
     if not set(adict.keys()).isdisjoint(set(bdict.keys())):
@@ -54,12 +59,14 @@ def get_notation(uri):
     if uri.startswith('<') and uri.endswith('>'):
         uri = uri.lstrip('<').rstrip('>')
     if uri.startswith('http://'):
+        heads = {'Accept':'application/ld+json',
+                 'cache-control': 'max-age=3600'}
         try:
-            r = requests.get(uri, headers={'Accept':'application/ld+json'})
+            r = cached_session.get(uri, headers=heads)
         except requests.exceptions.ConnectionError, e:
-            warning.warn('connection failure on {}; retrying.'.format(uri))
-            time.sleep(0.5)
-            r = requests.get(uri, headers={'Accept':'application/ld+json'})
+            warnings.warn('connection failure on {}; retrying.'.format(uri))
+            time.sleep(0.2)
+            r = cached_session.get(uri, headers=heads)
         if r.status_code == 200:
             try:
                 result = r.json().get('skos:notation')
@@ -116,32 +123,7 @@ class Mapping(_DotMixin):
     def __init__(self, uri=None, source=None, target=None,
                  invertible='"False"', creator=None, note=None,
                  replaces=None, valuemaps=None, rightsHolders=None, 
-                 contributors=None, dateAccepted=None):
-        uri = Item(uri)
-        if source is not None and not isinstance(source, Component):
-            msg = 'Expected source {!r} object, got {!r}.'
-            raise TypeError(msg.format(Component.__name__,
-                                       type(source).__name__))
-        if target is not None and not isinstance(target, Component):
-            msg = 'Expected target {!r} object, got {!r}.'
-            raise TypeError(msg.format(Component.__name__,
-                                       type(target).__name__))
-        if rightsHolders and not isinstance(rightsHolders, list):
-            msg = 'Expected target {!r} object, got {!r}.'
-            raise TypeError(msg.format(list.__name__,
-                                       type(rightsHolders).__name__))
-        if contributors and not isinstance(contributors, list):
-            msg = 'Expected target {!r} object, got {!r}.'
-            raise TypeError(msg.format(list.__name__,
-                                       type(contributors).__name__))
-        if valuemaps and not isinstance(valuemaps, list):
-            msg = 'Expected target {!r} object, got {!r}.'
-            raise TypeError(msg.format(list.__name__,
-                                       type(valuemaps).__name__))
-        if dateAccepted is not None and not isinstance(dateAccepted, datetime):
-            msg = 'Expected target {!r} object, got {!r}.'
-            raise TypeError(msg.format(list.__name__,
-                                       type(dateAccepted).__name__))
+                 rights=None, contributors=None, dateAccepted=None):
         self.uri = uri
         self.source = source
         self.target = target
@@ -150,10 +132,118 @@ class Mapping(_DotMixin):
         self.note = note
         self.replaces = replaces
         self.valuemaps = valuemaps
+        self.rights = rights
         self.rightsHolders = rightsHolders
         self.contributors = contributors
         self.dateAccepted = dateAccepted
 
+    @property
+    def source(self):
+        return self._source
+    @source.setter
+    def source(self, asource):
+        if asource is not None:
+            if not isinstance(asource, Component):
+                msg = 'Expected source {!r} object, got {!r}.'
+                raise TypeError(msg.format(Component.__name__,
+                                           type(asource).__name__))
+        self._source = asource
+
+    @property
+    def target(self):
+        return self._target
+    @target.setter
+    def target(self, atarget):
+        if atarget is not None:
+            if not isinstance(atarget, Component):
+                msg = 'Expected target {!r} object, got {!r}.'
+                raise TypeError(msg.format(Component.__name__,
+                                           type(atarget).__name__))
+        self._target = atarget
+
+    @property
+    def dateAccepted(self):
+            return self._dateAccepted
+    @dateAccepted.setter
+    def dateAccepted(self, adateAccepted):
+        if adateAccepted is not None:
+            if not isinstance(adateAccepted, datetime):
+                msg = 'Expected {!r} object, got {!r}.'
+                raise TypeError(msg.format(datetime.__name__,
+                                           type(adateAccepted).__name__))
+        self._dateAccepted = adateAccepted
+
+    @property
+    def valuemaps(self):
+        return self._valuemaps
+    @valuemaps.setter
+    def valuemaps(self, somevmaps):
+        if somevmaps is None:
+            somevmaps = []
+        for vm in somevmaps:
+            if not isinstance(vm, ValueMap):
+                msg = 'Expected {!r} object, got {!r}.'
+                raise TypeError(msg.format(ValueMap.__name__,
+                                           type(vm).__name__))
+        self._valuemaps = somevmaps
+
+    @property
+    def uri(self):
+        return self._uri
+    @uri.setter
+    def uri(self, auri):
+        if auri is not None:
+            self._uri = Item(auri)
+        else:
+            self._uri = None
+
+    @property
+    def creator(self):
+        return self._creator
+    @creator.setter
+    def creator(self, acreator):
+        if acreator is not None:
+            self._creator = Item(acreator)
+        else:
+            self._creator = None
+
+    @property
+    def replaces(self):
+        return self._replaces
+    @replaces.setter
+    def replaces(self, areplaces):
+        if areplaces is not None:
+            self._replaces = Item(areplaces)
+        else:
+            self._replaces = None
+
+    @property
+    def rights(self):
+        return self._rights
+    @rights.setter
+    def rights(self, arights):
+        if arights is not None:
+            self._rights = Item(arights)
+        else:
+            self._rights = None
+
+    @property
+    def rightsHolders(self):
+        return self._rightsHolders
+    @rightsHolders.setter
+    def rightsHolders(self, somerightsHolders):
+        if somerightsHolders is None:
+            somerightsHolders = []
+        self._rightsHolders = [Item(rh) for rh in somerightsHolders]
+
+    @property
+    def contributors(self):
+        return self._contributors
+    @contributors.setter
+    def contributors(self, somecontributors):
+        if somecontributors is None:
+            somecontributors = []
+        self._contributors = [Item(c) for c in somecontributors]
 
     def __repr__(self):
         pstr = '{}\nSource:\n{!r}Target:\n{!r}'.format(self.uri, self.source, self.target)
@@ -224,17 +314,21 @@ class Mapping(_DotMixin):
             podict['mr:target']  = self.target.uri.data
         podict['mr:invertible'] = self.invertible
         podict['dc:date'] = ['"{}"^^xsd:dateTime'.format(datetime.now().isoformat())]
-        podict['dc:creator'] = self.creator
-        if self.contributors:
-            podict['dc:contributor'] = [cont.data for cont in self.contributors]
-        if self.replaces:
-            podict['dc:replaces'] = self.replaces
+        podict['dc:creator'] = self.creator.data
         if self.valuemaps:
             podict['mr:hasValueMap'] = [vmap.uri.data for vmap in self.valuemaps]
         if self.note:
             podict['skos:note'] = self.note
         if self.dateAccepted:
             podict['dc:dateAccepted'] = self.dateAccepted.isoformat()
+        if self.replaces:
+            podict['dc:replaces'] = self.replaces.data
+        if self.rights:
+            podict['dc:rights'] = self.rights.data
+        if self.rightsHolders:
+            podict['dc:rightsHolders'] = [rh.data for rh in self.rightsHolders]
+        if self.contributors:
+            podict['dc:contributor'] = [cont.data for cont in self.contributors]
         return podict
 
 
@@ -260,13 +354,35 @@ class Mapping(_DotMixin):
         ## what about other attributes?? not implemented yet
         return referrer
 
-    @staticmethod
-    def sparql_retriever(uri, rep=True):
+    def populate_from_uri(self, fuseki_process):
+        elements, = fuseki_process.run_query(self.sparql_retriever())
+        # fragile? by design? use .get for less fragile more silent error code?
+        self.source = Component(elements['source'])
+        self.target = Component(elements['target'])
+        self.date = elements['date']
+        self.creator = elements['creator']
+        self.invertible = elements['invertible']
+        if elements.get('replaces'):
+            self.replaces = elements['replaces']
+        if elements.get('note'):
+            self.note = elements['note']
+        if elements.get('valuemaps'):
+            self.valuemaps = elements['valuemaps']
+        if elements.get('rights'):
+            self.rights = elements['rights']
+        if elements.get('rightsHolders'):
+            self.rightsHolder = elements['rightsHolders']
+        if elements.get('contributors'):
+            self.contributors = elements['contributors']
+        if elements.get('dateAccepted'):
+            self.dateAccepted = elements['dateAccepted']
+
+    def sparql_retriever(self, rep=True):
         vstr = ''
         if rep:
             vstr += '\n\tMINUS {?mapping ^dc:replaces+ ?anothermap}'
         qstr = '''SELECT ?mapping ?source ?target ?invertible ?replaces 
-                         ?note ?date ?creator ?invertible
+                         ?note ?date ?creator ?rights ?dateAccepted
         (GROUP_CONCAT(DISTINCT(?rightsHolder); SEPARATOR = '&') AS ?rightsHolders)
         (GROUP_CONCAT(DISTINCT(?contibutor); SEPARATOR = '&') AS ?contributors)
         (GROUP_CONCAT(DISTINCT(?valueMap); SEPARATOR = '&') AS ?valueMaps)
@@ -277,19 +393,20 @@ class Mapping(_DotMixin):
              mr:invertible ?invertible ;
              dc:date ?date ;
              dc:creator ?creator .
-        BIND("False" AS ?inverted)
         OPTIONAL {?mapping dc:replaces ?replaces .}
         OPTIONAL {?mapping skos:note ?note .}
         OPTIONAL {?mapping mr:hasValueMap ?valueMap .}
+        OPTIONAL {?mapping dc:rightsHolder ?rights .}
         OPTIONAL {?mapping dc:rightsHolder ?rightsHolder .}
         OPTIONAL {?mapping dc:contributor ?contributor .}
+        OPTIONAL {?mapping dc:dateAccepted ?dateAccepted .}
         FILTER(?mapping = %s)
         %s
         }
         }
         GROUP BY ?mapping ?source ?target ?invertible ?replaces
-                 ?note ?date ?creator ?invertible
-        ''' % (uri, vstr)
+                 ?note ?date ?creator ?rights ?dateAccepted
+        ''' % (self.uri.data, vstr)
         return qstr
 
     @staticmethod
@@ -490,10 +607,6 @@ class Component(_DotMixin):
 
         """
         label = self.dot_escape('{}_{}'.format(parent.uri, self.uri.data))
-        # if self.com_type:
-        #     nlabel = self.com_type.dot()
-        # else:
-        #     nlabel = 'Component'
         nlabel = self.com_type
         node = pydot.Node(label, label=nlabel,
                           style='filled', peripheries='2',
@@ -508,7 +621,7 @@ class Component(_DotMixin):
             edge.set_fontsize(7)
         graph.add_edge(edge)
         for property in self.properties:
-            property.dot(graph, node)#, 'Component')
+            property.dot(graph, node)
         return node
 
     def populate_from_uri(self, fuseki_process):
@@ -535,7 +648,6 @@ class Component(_DotMixin):
                     self.properties.append(StatementProperty(predicate, 
                                                              rdfobject))
 
-    # @staticmethod
     def sparql_retriever(self):
         qstr = ('SELECT ?component ?p ?o '
                 'WHERE {GRAPH <http://metarelate.net/concepts.ttl> {'
@@ -547,7 +659,6 @@ class Component(_DotMixin):
                 '}}' % self.uri.data)
         return qstr
 
-    # @staticmethod
     def sparql_creator(self, po_dict):
         subj_pref = 'http://www.metarelate.net/{}/component'
         subj_pref = subj_pref.format(site_config['fuseki_dataset'])
@@ -653,315 +764,8 @@ class Component(_DotMixin):
 
 class Property(_DotMixin):
     """
-    Represents a named tuple property participating in a :class:`Mapping`
-    relationship.
-
-    A property is immutable and must have a *name*, but it may also have
-    additional meta-data representing its associated *value* and *operator*
-    i.e. *standard_name = air_temperature*, where *name* is "standard_name",
-    *operator* is "=". and *value* is "air_temperature".
-
-    A :class:`Property` member that participated in a :class:`Mapping`
-    relationship must be contained within a :class:`PropertyComponent`.
-
-    A property is deemed as either *simple* or *compound*:
-
-     * A property is *simple* iff its *value* references a :class:`Item`.
-     * A property is *compound* iff its *value* references a
-       :class:`PropertyComponent`.
-
+    Abstract Property class
     """
-
-    ## ToDo reconsider this class in light of StatementProperty and ComponentProperty
-    def __init__(self, uri=None, predicate=None, ptype=None, closematch=None, defby=None,
-                 value=None, name=None, operator=None):#, component=None):
-        self.uri = Item(uri)
-        if predicate is None:
-            self.predicate = Item('mr:hasProperty', 'hasProperty')
-        elif isinstance(predicate, Item):
-            self.predicate = predicate
-        else:
-            raise TypeError('{!r} is not an Item'.format(predicate))
-        self.ptype = Item(ptype)
-        self.closematch = Item(closematch)
-        self.definedby = Item(defby)
-        if name is not None and ptype is not None:
-            raise ValueError('A name a ptype may not both be defined for'
-                                 'a Property')
-        self.name = Item(name)
-        # if isinstance(value, (Item, basestring)):
-        #     new_value = Item(value)
-        # el
-        if value is None:
-            new_value = value
-        elif isinstance(value, int) or isinstance(value, float):
-            new_value = value
-        elif isinstance(value, str):
-            new_value = '"{}"'.format(value)
-        else:
-            msg = 'Invalid value, got {!r}.'
-            raise TypeError(msg.format(type(value).__name__))
-        self.value = new_value
-        self.operator = Item(operator)
-        #self.component = Item(component)
-
-    ## careful here
-    # @property
-    # def notation(self):
-    #     return self.ptype.notation
-
-    def __eq__(self, other):
-        result = NotImplemented
-        if isinstance(other, Property):
-            result = self.uri == other.uri and \
-                self.name == other.name and \
-                self.value == other.value and \
-                self.operator == other.operator and \
-                self.ptype == other.ptype and \
-                self.closematch == other.closematch and \
-                self.definedby == other.definedby and \
-                self.component == other.component
-        elif self.simple and isinstance(other, (Item, basestring)):
-            result = self.value == other
-        return result
-
-    def __ne__(self, other):
-        result = self.__eq__(other)
-        if result is not NotImplemented:
-            result = not result
-        return result
-
-    def __repr__(self):
-        fmt = '{cls}(uri={self.uri!r}, {ptype}{cm}{db}{name}{value}{operator})'
-        value = operator = component = name = ptype = cm = db = ''
-        if self.ptype is not None:
-            ptype = ', type={!r}'.format(self.ptype)
-        if self.closematch is not None:
-            cm = ', closeMatch={!r}'.format(self.closematch)
-        if self.definedby is not None:
-            db = ', definedBy={!r}'.format(self.definedby)
-        if self.name is not None:
-            name = ', name={!r}'.format(self.name)
-        if self.value is not None:
-            value = ', value={!r}'.format(self.value)
-        if self.operator is not None:
-            operator = ', operator={!r}'.format(self.operator)
-        return fmt.format(self=self, cls=type(self).__name__,
-                          ptype=ptype, name=name,
-                          cm=cm, db=db,
-                          value=value, operator=operator)
-
-    @property
-    def simple(self):
-        return isinstance(self.value, Item) or self.value is None
-
-    @property
-    def compound(self):
-        return not self.simple
-
-    @property
-    def complete(self):
-        return self.simple and self.value is not None and self.value.complete
-
-    def _podict(self):
-        """
-        Return a dictionary of predicates and objects for a rdf representation
-
-        """
-        podict = {}
-        if self.name:
-            podict['mr:name'] = self.name.data
-        if self.value:
-            podict['rdf:value'] = self.value
-        # if self.component:
-        #     podict['mr:hasComponent'] = self.component.data
-        if self.operator:
-            podict['mr:operator'] = self.operator.data
-        if self.ptype:
-            podict['rdf:type'] = self.ptype.data
-        if self.closematch:
-            podict['skos:closeMatch'] = self.closematch.data
-        if self.definedby:
-            podict['rdfs:isDefinedBy'] = self.definedby.data
-        return podict
-
-    def creation_sparql(self):
-        """
-        return SPARQL string for creation of a Property
-
-        """
-        return self.sparql_creator(self._podict())
-
-    def as_rdf(self, fuseki_process):
-        return(self.predicate, self._create_rdf(fuseki_process))
-
-    def _create_rdf(self, fuseki_process):
-        """
-        create the rdf representation using the provided fuseki process
-
-        """
-        qstr, instr = self.creation_sparql()
-        result = fuseki_process.create(qstr, instr)
-        self.uri = Item(result['property'])
-
-    def dot(self, graph, parent, name=None):
-        """
-        Generate a Dot digraph representation of this mapping property.
-
-        Args:
-         * graph:
-            The containing Dot graph.
-         * parent:
-            The parent Dot node of this property.
-
-        Kwargs:
-         * name:
-            Name of the relationship between the nodes.
-
-        """
-        items = []
-        if self.ptype is not None:
-            items.append(self.ptype.dot())
-        if self.closematch is not None:
-            items.append(self.closematch.dot())
-        if self.definedby is not None:
-            items.append(self.definedby.dot())
-        if self.name is not None:
-            items.append(self.name.dot())
-        if self.operator is not None:
-            items.append(self.operator.dot())
-        if self.value is not None and isinstance(self.value, Item):
-            items.append(self.value.dot())
-        items = ' '.join(items)
-        label = self.dot_escape('{}_{}'.format(parent.uri, self.uri.data))
-        node = pydot.Node(label, label=items,
-                          style='filled',
-                          colorscheme='dark28', fillcolor='4',
-                          fontsize=8)
-        node.uri = self.uri.data
-        graph.add_node(node)
-        edge = pydot.Edge(parent, node,
-                          tailport='s', headport='n')
-        if name is not None:
-            edge.set_label(self.dot_escape(name))
-            edge.set_fontsize(7)
-        graph.add_edge(edge)
-
-        if self.value is not None and not isinstance(self.value, Item):
-            # This property references a component.
-            self.value.dot(graph, node, 'Component')
-
-    @staticmethod
-    def sparql_retriever(uri):
-        qstr = '''SELECT ?property ?name ?operator ?component
-                         ?closematch ?ptype ?defby
-        (GROUP_CONCAT(?avalue; SEPARATOR='&') AS ?value)
-        WHERE {
-        GRAPH <http://metarelate.net/concepts.ttl> {
-            OPTIONAL {?property mr:name ?name .}
-            OPTIONAL {?property rdf:value ?avalue .}
-            OPTIONAL {?property mr:operator ?operator . }
-            OPTIONAL {?property mr:hasComponent ?component . }
-            OPTIONAL {?property skos:closeMatch ?closematch .}
-            OPTIONAL {?property rdf:type ?ptype .}
-            OPTIONAL {?property rdfs:isDefinedBy ?defby .}
-            FILTER(?property = %s)
-            FILTER(?ptype != mr:Property)
-            }
-            {SELECT ?property WHERE {
-            GRAPH <http://metarelate.net/concepts.ttl> {
-            ?property rdf:type mr:Property .
-            }}}
-        }
-        GROUP BY ?property ?name ?operator ?component
-        ''' % uri
-        return qstr
-
-    @staticmethod
-    def sparql_creator(po_dict):
-        qstr = ''
-        instr = ''
-        allowed_predicates = set(('rdf:type', 'mr:name', 'rdf:value',
-                                'mr:operator', 'mr:hasComponent',
-                                'skos:closeMatch', 'rdfs:isDefinedBy'))
-        single_predicates = set(('mr:name', 'mr:operator', 'mr:hasComponent'))
-        preds = set(po_dict)
-        if not preds.issubset(allowed_predicates):
-            ec = '{} is not a subset of the allowed predicates set '\
-                 'for a value record {}'
-            ec = ec.format(preds, allowed_predicates)
-            raise ValueError(ec)
-        subj_pref = 'http://www.metarelate.net/{}/property'
-        subj_pref = subj_pref.format(site_config['fuseki_dataset'])
-        count_string = ''
-        search_string = ''
-        filter_string = ''
-        assign_string = ''
-        block_string = ''
-        for pred in allowed_predicates.intersection(preds):
-            if isinstance(po_dict[pred], list):
-                if len(po_dict[pred]) != 1 and pred in single_predicates:
-                    ec = 'get_property only accepts 1 statement per predicate {}'
-                    ec = ec.format(str(po_dict))
-                    raise ValueError(ec)
-                else:
-                    counter = 0
-                    for obj in po_dict[pred]:
-                        search_string += '''
-                        %s %s ;''' % (pred, obj)
-                        counter +=1
-                    assign_string += '''
-                    %s ?%s ;''' % (pred, pred.split(':')[-1])
-                    count_string += '''COUNT(DISTINCT(?%(p)s)) AS ?%(p)ss
-                    ''' % {'p':pred.split(':')[-1]}
-                    filter_string += '''
-                    FILTER(?%ss = %i)''' % (pred.split(':')[-1], counter)
-            else:
-                search_string += '''
-                %s %s ;''' % (pred, po_dict[pred])
-                assign_string += '''
-                %s ?%s ;''' % (pred, pred.split(':')[-1])
-                count_string += '''(COUNT(DISTINCT(?%(p)s)) AS ?%(p)ss)
-                ''' % {'p':pred.split(':')[-1]}
-                filter_string += '''
-                FILTER(?%ss = %i)''' % (pred.split(':')[-1], 1)
-        for pred in allowed_predicates.difference(preds):
-            block_string += '\n\t OPTIONAL{?property %s ?%s .}' % (pred, pred.split(':')[-1])
-            block_string += '\n\t FILTER(!BOUND(?%s))' % pred.split(':')[-1]
-        if search_string != '':
-            qstr = '''SELECT ?property
-            WHERE { {
-            SELECT ?property        
-            %(count)s
-            WHERE{
-            GRAPH <http://metarelate.net/concepts.ttl> {
-            ?property %(assign)s %(search)s
-            .
-            %(block)s
-            FILTER(?type != mr:Property)
-            }
-            {SELECT ?property WHERE {
-            GRAPH <http://metarelate.net/concepts.ttl> {
-            ?property rdf:type mr:Property .
-            }}}
-            }
-            GROUP BY ?property
-            }
-            %(filter)s
-            }
-            ''' % {'count':count_string,'assign':assign_string,
-                   'search':search_string, 'filter':filter_string,
-                   'block':block_string}
-            sha1 = make_hash(po_dict)
-            instr = '''INSERT DATA {
-            GRAPH <http://metarelate.net/concepts.ttl> {
-            <%s/%s> rdf:type mr:Property ;
-                    %s
-            mr:saveCache "True" .
-            }
-            }
-            ''' % (subj_pref, sha1, search_string)
-        return qstr, instr
 
 
 class ComponentProperty(Property):
@@ -1194,33 +998,33 @@ class Item(_DotMixin, namedtuple('Item', 'data notation')):
         if data is None and notation is None:
             res = None
         else:
-            if isinstance(data, str):
-                if data.startswith('http'):
-                    new_data = '<{}>'.format(data)
-                elif data.startswith('<'):
-                    new_data = data
-                elif data.startswith('"'):
-                    new_data = data
-                else:
-                    new_data = '"{}"'.format(data)
-            else:
-                new_data = data
-            new_notation = None
             if isinstance(data, Item):
-                new_data = data.data
-                new_notation = data.notation
-            if notation is not None:
-                if isinstance(notation, basestring) and len(notation) > 1 and \
-                        notation.startswith('"') and notation.endswith('"'):
-                    notation = notation[1:-1]
-                new_notation = notation
-            #else:
-                #look up notation
-                #but it's immutable
-                #so write a func in fuseki which takes a notation free Item
-                #and returns an Item with its notation
-                #pass
-            res = super(Item, cls).__new__(cls, new_data, new_notation)
+                res = data
+            else:
+                if isinstance(data, str):
+                    if data.startswith('http'):
+                        new_data = '<{}>'.format(data)
+                    elif data.startswith('<'):
+                        new_data = data
+                    elif data.startswith('"'):
+                        new_data = data
+                    else:
+                        new_data = '"{}"'.format(data)
+                else:
+                    new_data = data
+                new_notation = None
+                if notation is not None:
+                    if isinstance(notation, basestring) and len(notation) > 1 and \
+                            notation.startswith('"') and notation.endswith('"'):
+                        notation = notation[1:-1]
+                    new_notation = notation
+                #else:
+                    #look up notation
+                    #but it's immutable
+                    #so write a func in fuseki which takes a notation free Item
+                    #and returns an Item with its notation
+                    #pass
+                res = super(Item, cls).__new__(cls, new_data, new_notation)
         return res
 
     def is_uri(self):
@@ -1617,7 +1421,6 @@ class Contact(object):
             ec = ec.format(preds, allowed_preds)
             raise ValueError(ec)
         scheme = po_dict['skos:inScheme'].split('/')[-1].rstrip('>')
-        #print scheme
         search_string = ''
         for pred in po_dict:
             if isinstance(po_dict[pred], list):
@@ -1649,5 +1452,4 @@ class Contact(object):
              mr:saveCache "True" .
              } }
         ''' % (scheme, po_hash, search_string)
-        #print scheme, po_hash, search_string
         return qstr, instr
