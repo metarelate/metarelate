@@ -27,15 +27,9 @@ import urllib
 import urllib2
 
 import requests
-#from cachecontrol import CacheControl
 
 import metarelate
 import metarelate.prefixes as prefixes
-
-
-req_session = requests.session()
-cached_session = CacheControl(req_session)
-
 
 HEADER = '''#(C) British Crown Copyright 2012 - 2014 , Met Office 
 #
@@ -422,8 +416,9 @@ class FusekiServer(object):
                                           '/{}'.format(self._fuseki_dataset)
                                           , action)
         pref = prefixes.Prefixes().sparql
-        results = requests.get(base, proxies={'http':''},
-                               params={'query':pref+aqstr, 'output':'json'})
+        results = requests.get(baseurl, proxies={'http':''},
+                               params={'query':pref+query_string,
+                                       'output':'json'})
         if results.status_code != 200:
             msg = ('Error connection to Fuseki server on {}.\n'
                   ' server returned {}\n'
