@@ -12,7 +12,9 @@ Dependencies
 * Fuseki - http://jena.apache.org/documentation/serving_data/
 * Python - http://python.org/
 * Django - https://www.djangoproject.com/
-* curl
+* Requests - https://pypi.python.org/pypi/requests
+* CacheControl - https://pypi.python.org/pypi/CacheControl/0.10.4
+
 
 Installation
 ------------
@@ -25,10 +27,7 @@ Installation
     2. Unpack the archive
 * Python - http://python.org/
     1. install Python = 2.7
-* Django - https://www.djangoproject.com/
-    1. install Django >= 1.5
-* pydot - https://code.google.com/p/pydot/
-    1. install pydot >= 1.0
+    2. install python dependencies
 * Configure the metarelate metarelate software
     1. lib/metarelate/etc/site.config provides paths to libraries and static data
     2. see lib/metarelate/etc/README.md

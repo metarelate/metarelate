@@ -27,7 +27,7 @@ import urllib
 import urllib2
 
 import requests
-from cachecontrol import CacheControl
+#from cachecontrol import CacheControl
 
 import metarelate
 import metarelate.prefixes as prefixes
@@ -379,7 +379,6 @@ class FusekiServer(object):
 
         """
         self.clean()
-        #graphs = os.path.join(self._static_dir, '*')
         graphs = os.path.join(self._static_dir, 'metarelate.net')
         for ingraph in glob.glob(graphs):
             graph = ingraph.split('/')[-1]
@@ -416,101 +415,26 @@ class FusekiServer(object):
         """
         if not self.alive():
             self.restart()
-        # base = 'http://127.0.0.1:3131/metOcean/query'
-        # action = 'query'
-        # if update:
-        #     action='update'
-        # baseurl = "http://%s:%i%s/%s" % (self.host, self.port,
-        #                                   '/{}'.format(self._fuseki_dataset)
-        #                                   , action)
-        # pref = prefixes.Prefixes().sparql
-        # # results = requests.get(base, params={'query':pref+aqstr, 'output':'json'})
-        # results = cached_session.get(baseurl,
-        #                              params={'query':pref+query_string,
-        #                                      'output':output}, proxies={'http':''})#,
-        #                              #headers={'cache-control': 'max-age=3600'})
-        # if results.status_code != 200:
-        #     msg = ('Error connection to Fuseki server on {}.\n'
-        #           ' server returned {}\n'
-        #           '{}\n{}')
-        #     msg = msg.format(baseurl, results.status_code,
-        #                      pref, query_string)
-        #     raise RuntimeError(msg)
-        # if output == 'json':
-        #     return process_data(results.text)
-        # else:
-        #     return results.text
-        # use null ProxyHandler to ignore proxy for localhost access
-        proxy_support = urllib2.ProxyHandler({})
-        opener = urllib2.build_opener(proxy_support)
-        urllib2.install_opener(opener)
-        pre = prefixes.Prefixes()
-        if debug == True:
-            k=0
-            for j, line in enumerate(pre.sparql.split('\n')):
-                print j,line
-                k+=1
-            for i, line in enumerate(query_string.split('\n')):
-                print i+k, line
+        action = 'query'
         if update:
-            action = 'update'
-            qstr = urllib.urlencode([
-                (action, "%s %s" % (pre.sparql, query_string))])
-        else:
-            action = 'query'
-            qstr = urllib.urlencode([
-                (action, "%s %s" % (pre.sparql, query_string)),
-                ("output", output),
-                ("stylesheet","/static/xml-to-html-links.xsl")])
-        BASEURL = "http://%s:%i%s/%s?" % (self.host, self.port,
+            action='update'
+        baseurl = "http://%s:%i%s/%s" % (self.host, self.port,
                                           '/{}'.format(self._fuseki_dataset)
                                           , action)
-        data = ''
-        try:
-            data = opener.open(urllib2.Request(BASEURL), qstr).read()
-        except urllib2.URLError as err:
-            ec = ('Error connection to Fuseki server on {}.\n'
+        pref = prefixes.Prefixes().sparql
+        results = requests.get(base, proxies={'http':''},
+                               params={'query':pref+aqstr, 'output':'json'})
+        if results.status_code != 200:
+            msg = ('Error connection to Fuseki server on {}.\n'
                   ' server returned {}\n'
                   '{}\n{}')
-            ec = ec.format(BASEURL, err, pre.sparql, query_string)
-            raise RuntimeError(ec)
-        if output == "json":
-            return process_data(data)
-        elif output == "text":
-            return data
+            msg = msg.format(baseurl, results.status_code,
+                             pref, query_string)
+            raise RuntimeError(msg)
+        if output == 'json':
+            return process_data(results.text)
         else:
-            return data
-
-    # def get_label(self, subject, debug=False):
-    #     """
-    #     return the skos:notation for a subject, if it exists
-
-    #     """
-    #     subject = str(subject)
-    #     if not subject.startswith('<') and not subject.startswith('"'):
-    #         subj_str = '"{}"'.format(subject)
-    #     else:
-    #         subj_str = subject
-    #     qstr = ''' SELECT ?notation 
-    #     WHERE { {'''
-    #     for graph in _vocab_graphs():
-    #         qstr += '\n\tGRAPH %s {' % graph
-    #         qstr += '\n\t?s skos:notation ?notation . }}\n\tUNION {'
-    #     qstr = qstr.rstrip('\n\tUNION {')
-    #     qstr += '\n\tFILTER(?s = %(sub)s) }' % {'sub':subj_str}
-    #     results = self.run_query(qstr, debug=debug)
-    #     if len(results) == 0:
-    #         hash_split = subject.split('#')
-    #         if len(hash_split) == 2 and hash_split[1].endswith('>'):
-    #             label = hash_split[1].rstrip('>')
-    #         else:
-    #             # raise ValueError('{} returns no notation'.format(subject))
-    #             label = subject
-    #     elif len(results) >1:
-    #         raise ValueError('{} returns multiple notation'.format(subject))
-    #     else:
-    #         label = results[0]['notation']
-    #     return label
+            return results.text
 
     def get_contacts(self, register, debug=False):
         """
@@ -709,7 +633,6 @@ def process_data(jsondata):
                         val = '<{}>'.format(val)
                     else:
                         val = ['<{}>'.format(v) for v in val.split('&')]
-                    # val = ['<{}>'.format(v) for v in val.split('&')]
                 else:
                     try:
                         int(val)
@@ -804,128 +727,3 @@ def multiple_mappings(test_source=None):
     ''' % tm_filter
     return qstr
 
-
-# def valid_vocab():
-#     """
-#     find all valid mapping and every property they reference
-
-#     """
-#     qstr = '''
-#     SELECT DISTINCT  ?amap 
-#     (GROUP_CONCAT(DISTINCT(?vocab); SEPARATOR = '&') AS ?signature)
-#     WHERE {      
-#     GRAPH <http://metarelate.net/mappings.ttl> { {  
-#     ?amap mr:status ?astatus ; 
-#     FILTER (?astatus NOT IN ("Deprecated", "Broken")) 
-#     MINUS {?amap ^dc:replaces+ ?anothermap}      }
-#     { 
-#     ?amap mr:source ?fc .      }
-#     UNION {
-#     ?amap mr:target ?fc .      } } 
-#     GRAPH <http://metarelate.net/concepts.ttl> { {
-#     ?fc mr:hasProperty ?prop . }
-#     UNION {
-#     ?fc mr:hasComponent|mr:hasProperty ?prop . }
-#     UNION { 
-#     ?fc mr:hasProperty|mr:hasComponent|mr:hasProperty ?prop .
-#     }
-#     { ?prop mr:name ?vocab . }
-#     UNION {
-#     ?prop mr:operator ?vocab . }
-#     UNION {
-#     ?prop rdf:value ?vocab . }
-#     FILTER(ISURI(?vocab))
-#     FILTER(!regex(str(?vocab), "computed_value#"))}
-#     OPTIONAL {GRAPH ?g{?vocab ?p ?o .} }
-#     FILTER(!BOUND(?g))      }
-#     GROUP BY ?amap
-#     '''
-#     return qstr
-
-
-# def mapping_by_properties(prop_list):
-#     """
-#     Return the mapping id's which contain all of the proerties
-#     in the list of property dictionaries
-    
-#     """
-#     fstr = ''
-#     for prop_dict in prop_list:
-#         name = prop_dict.get('mr:name')
-#         op = prop_dict.get('mr:operator')
-#         value = prop_dict.get('rdf:value')
-#         if name:
-#             fstr += '\tFILTER(?name = {})\n'.format(name)
-#         if op:
-#             fstr += '\tFILTER(?operator = {})\n'.format(op)
-#         if value:
-#             fstr += '\tFILTER(?value = {})\n'.format(value)
-            
-#     qstr = '''SELECT DISTINCT ?mapping 
-#     WHERE {
-#     GRAPH <http://metarelate.net/mappings.ttl> {    
-#     ?mapping rdf:type mr:Mapping ;
-#              mr:source ?source ;
-#              mr:target ?target ;
-#              mr:status ?status ;
-
-#     FILTER (?status NOT IN ("Deprecated", "Broken"))
-#     MINUS {?mapping ^dc:replaces+ ?anothermap}
-#     }
-#     GRAPH <http://metarelate.net/concepts.ttl> { {
-#     ?source mr:hasProperty ?property
-#     }
-#     UNION {
-#     ?target mr:hasProperty ?property
-#     }
-#     UNION {
-#     ?source mr:hasComponent/mr:hasProperty ?property
-#     }
-#     UNION {
-#     ?target mr:hasComponent/mr:hasProperty ?property
-#     }
-#     UNION {
-#     ?source mr:hasProperty/mr:hasComponent/mr:hasProperty ?property
-#     }
-#     UNION {
-#     ?target mr:hasProperty/mr:hasComponent/mr:hasProperty ?property
-#     }
-#     ?property mr:name ?name .
-#     OPTIONAL{?property rdf:value ?value . }
-#     OPTIONAL{?property mr:operator ?operator . }
-#     %s
-#     }
-#     }
-#     ''' % fstr
-#     return qstr
-
-
-# def get_all_notation_note(fuseki_process, graph, debug=False):
-#     """
-#     return all names, skos:notes and skos:notations from the stated graph
-#     """
-#     qstr = '''SELECT ?name ?notation ?units
-#     WHERE
-#     {GRAPH <%s>{
-#     ?name skos:note ?units ;
-#           skos:notation ?notation .
-#     }
-#     }
-#     order by ?name
-#     ''' % graph
-#     results = fuseki_process.run_query(qstr, debug=debug)
-#     return results
-
-
-# def _vocab_graphs():
-#     """returns a list of the graphs which contain thirds party vocabularies """
-#     vocab_graphs = []
-#     vocab_graphs.append('<http://metarelate.net/formats.ttl>')
-#     vocab_graphs.append('<http://um/umdpF3.ttl>')
-#     vocab_graphs.append('<http://um/stashconcepts.ttl>')
-#     vocab_graphs.append('<http://um/fieldcode.ttl>')
-#     vocab_graphs.append('<http://cf/cf-model.ttl>')
-#     vocab_graphs.append('<http://cf/cf-standard-name-table.ttl>')
-#     vocab_graphs.append('<http://grib/apikeys.ttl>')
-#     vocab_graphs.append('<http://openmath/ops.ttl>')
-#     return vocab_graphs
