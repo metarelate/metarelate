@@ -15,13 +15,15 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with metarelate. If not, see <http://www.gnu.org/licenses/>.
 
-
+from collections import deque
 import glob
 import json
 import os
+from Queue import Queue
 import socket
 import subprocess
 import sys
+from threading import Thread
 import time
 import urllib
 import urllib2
@@ -51,6 +53,9 @@ HEADER = '''#(C) British Crown Copyright 2012 - 2014 , Met Office
 
 PRE = prefixes.Prefixes()
 
+# maximum number of threads for multi-thrteading code
+MAXTHREADS = 64
+
 # Configure the Apache Jena environment.
 if metarelate.site_config.get('jena_dir') is not None:
     os.environ['JENAROOT'] = metarelate.site_config['jena_dir']
@@ -66,6 +71,33 @@ else:
     msg = 'The Apache Fuseki SPARQL server has not been configured ' \
         'for metarelate.'
     raise ValueError(msg)
+
+
+class WorkerThread(Thread):
+    """
+    A :class:threading.Thread which moves objects from an input queue to an
+    output deque using a 'dowork' method, as defined by a subclass.
+
+    """
+    def __init__(self, aqueue, adeque, fu_p):
+        self.queue = aqueue
+        self.deque = adeque
+        self.fuseki_process = fu_p
+        Thread.__init__(self)
+        self.daemon = True
+    def run(self):
+        while not self.queue.empty():
+            resource = self.queue.get()
+            self.dowork(resource)
+            self.deque.append(resource)
+            self.queue.task_done()
+
+class MappingPopulateWorker(WorkerThread):
+    """
+    WorkerThread for populating a Mapping instance from its URI.
+    """
+    def dowork(self, resource):
+        resource.populate_from_uri(self.fuseki_process)
 
 
 class FusekiServer(object):
@@ -479,12 +511,13 @@ class FusekiServer(object):
         if not (sourcetype.is_uri() and targettype.is_uri()):
             raise ValueError('sourcetype and targettype must both be URIs')
 
-        qstr = ('SELECT ?mapping ?source ?target ?inverted '
+        qstr = ('SELECT ?mapping ?source ?target ?invertible ?inverted '
                 '''(GROUP_CONCAT(DISTINCT(?valueMap); SEPARATOR = '&') AS ?valueMaps) '''
                 'WHERE {  '
                 'GRAPH <http://metarelate.net/mappings.ttl> { { '
                 '?mapping mr:source ?source ; '
                 'mr:target ?target ; '
+                'mr:invertible ?invertible .'
                 'BIND("False" AS ?inverted) '
                 'OPTIONAL {?mapping mr:hasValueMap ?valueMap . } '
                 'MINUS {?mapping ^dc:replaces+ ?anothermap} '
@@ -493,6 +526,7 @@ class FusekiServer(object):
                 '         mr:target ?source ; '
                 '         mr:invertible "True" . '
                 'BIND("True" AS ?inverted) '
+                'BIND("True" AS ?invertible) '
                 'OPTIONAL {?mapping mr:hasValueMap ?valueMap . } '
                 'MINUS {?mapping ^dc:replaces+ ?anothermap} '
                 '} } '
@@ -500,22 +534,20 @@ class FusekiServer(object):
                 '?source rdf:type %s . '
                 '?target rdf:type %s . '
                 '}} '
-                'GROUP BY ?mapping ?source ?target ?inverted '
+                'GROUP BY ?mapping ?source ?target ?inverted ?invertible '
                 'ORDER BY ?mapping') % (sourcetype.data, targettype.data)
-        mappings = self.run_query(qstr)
-        mapping_list = []
-        for mapping in mappings:
-            mapping_list.append(self.structured_mapping(mapping))
+        map_templates = self.run_query(qstr)
+        mapping_list = deque()
+        mapping_queue = Queue()
+        for mt in map_templates:
+            mapping_queue.put(metarelate.Mapping(mt.get('mapping'),
+                                                 invertible=mt.get('invertible'),
+                                                 inverted=mt.get('inverted')))
+        for i in range(MAXTHREADS):
+            MappingPopulateWorker(mapping_queue, mapping_list, self).start()
+        mapping_queue.join()
         return mapping_list
 
-    def structured_mapping(self, template):
-        uri = template.get('mapping')
-        source = metarelate.Component(template.get('source'))
-        source.populate_from_uri(self)
-        target = metarelate.Component(template.get('target'))
-        target.populate_from_uri(self)
-        return metarelate.Mapping(uri, source, target)
-    
     def retrieve(self, qstr, debug=False):
         """
         Return a record from the provided id
