@@ -394,8 +394,8 @@ class FusekiServer(object):
 
         """
         failures = {}
-        mm_string = 'The following mappings are ambiguous, providing multiple '\
-                    'targets in the same format for a particular source'
+        mm_string = ('The following mappings are ambiguous, providing multiple'
+                    ' targets in the same format for a particular source')
         failures[mm_string] = self.run_query(multiple_mappings())
         invalid_vocab = 'The following mappings contain an undeclared URI'
         failures[invalid_vocab] = self.run_query(valid_vocab())
@@ -409,21 +409,26 @@ class FusekiServer(object):
         """
         if not self.alive():
             self.restart()
-        action = 'query'
+        pref = prefixes.Prefixes().sparql
+        baseurl = "http://{}:{}/{}/".format(self.host, self.port,
+                                           self._fuseki_dataset)
         if update:
             action='update'
-        baseurl = "http://%s:%i%s/%s" % (self.host, self.port,
-                                          '/{}'.format(self._fuseki_dataset)
-                                          , action)
-        pref = prefixes.Prefixes().sparql
-        results = requests.get(baseurl, proxies={'http':''},
-                               params={'query':pref+query_string,
-                                       'output':'json'})
+            qparams={'update': pref+query_string}
+            url = baseurl + action
+            results = requests.post(url, proxies={'http':''},
+                                    data=qparams)
+        else:
+            action = 'query'
+            qparams={'query': pref+query_string, 'output': 'json'}
+            url = baseurl + action
+            results = requests.get(url, proxies={'http':''},
+                                   params=qparams)
         if results.status_code != 200:
             msg = ('Error connection to Fuseki server on {}.\n'
                   ' server returned {}\n'
                   '{}\n{}')
-            msg = msg.format(baseurl, results.status_code,
+            msg = msg.format(url, results.status_code,
                              pref, query_string)
             raise RuntimeError(msg)
         if output == 'json':
