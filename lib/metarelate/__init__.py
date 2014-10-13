@@ -45,6 +45,11 @@ cached_session = CacheControl(req_session)
 
 
 def careful_update(adict, bdict):
+    """
+    Carefully updates a dictionary with another dictionary, raising a
+    ValueError if keys are shared.
+    
+    """
     if not set(adict.keys()).isdisjoint(set(bdict.keys())):
         raise ValueError('adict shares keys with bdict')
     else:
@@ -82,7 +87,7 @@ def get_notation(uri):
         result = uri
     if isinstance(result, unicode):
         result = str(result)
-    return result 
+    return result
 
 
 class _DotMixin(object):
@@ -123,7 +128,8 @@ class Mapping(_DotMixin):
     def __init__(self, uri=None, source=None, target=None,
                  invertible='"False"', creator=None, note=None,
                  replaces=None, valuemaps=None, rightsHolders=None, 
-                 rights=None, contributors=None, dateAccepted=None):
+                 rights=None, contributors=None, dateAccepted=None,
+                 inverted='"False"'):
         self.uri = uri
         self.source = source
         self.target = target
@@ -136,6 +142,7 @@ class Mapping(_DotMixin):
         self.rightsHolders = rightsHolders
         self.contributors = contributors
         self.dateAccepted = dateAccepted
+        self.inverted = inverted
 
     @property
     def source(self):
@@ -356,26 +363,43 @@ class Mapping(_DotMixin):
 
     def populate_from_uri(self, fuseki_process):
         elements, = fuseki_process.run_query(self.sparql_retriever())
-        # fragile? by design? use .get for less fragile more silent error code?
-        self.source = Component(elements['source'])
-        self.target = Component(elements['target'])
-        self.date = elements['date']
-        self.creator = elements['creator']
-        self.invertible = elements['invertible']
+        if self.inverted == '"True"':
+            if self.invertible != '"True"':
+                raise ValueError('A mapping may not be inverted but not '
+                                 'invertible')
+            self.source = Component(elements.get('target'))
+            self.target = Component(elements.get('source'))
+        else:
+            self.source = Component(elements.get('source'))
+            self.target = Component(elements.get('target'))
+        self.source.populate_from_uri(fuseki_process)
+        self.target.populate_from_uri(fuseki_process)
+        self.date = elements.get('date')
+        self.creator = elements.get('creator')
+        self.invertible = elements.get('invertible')
         if elements.get('replaces'):
-            self.replaces = elements['replaces']
+            self.replaces = elements.get('replaces')
         if elements.get('note'):
-            self.note = elements['note']
+            self.note = elements.get('note')
         if elements.get('valuemaps'):
-            self.valuemaps = elements['valuemaps']
+            self.valuemaps = elements.get('valuemaps')
         if elements.get('rights'):
-            self.rights = elements['rights']
+            self.rights = elements.get('rights')
         if elements.get('rightsHolders'):
-            self.rightsHolder = elements['rightsHolders']
+            self.rightsHolder = elements.get('rightsHolders')
         if elements.get('contributors'):
-            self.contributors = elements['contributors']
+            self.contributors = elements.get('contributors')
         if elements.get('dateAccepted'):
-            self.dateAccepted = elements['dateAccepted']
+            self.dateAccepted = elements.get('dateAccepted')
+
+    def get_identifiers(self, fuseki_process):
+        source_ids = {}
+        for prop in self.source.properties:
+            careful_update(source_ids, prop.get_identifiers(fuseki_process))
+        target_ids = {}
+        for prop in self.target.properties:
+            careful_update(target_ids, prop.get_identifiers(fuseki_process))
+        return (source_ids, target_ids)
 
     def sparql_retriever(self, rep=True):
         vstr = ''
