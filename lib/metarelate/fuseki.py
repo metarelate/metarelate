@@ -88,8 +88,11 @@ class WorkerThread(Thread):
     def run(self):
         while not self.queue.empty():
             resource = self.queue.get()
-            self.dowork(resource)
-            self.deque.append(resource)
+            try:
+                self.dowork(resource)
+                self.deque.append(resource)
+            except Exception, e:
+                print e
             self.queue.task_done()
 
 class MappingPopulateWorker(WorkerThread):
