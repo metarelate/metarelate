@@ -71,7 +71,7 @@ def get_notation(uri):
         except requests.exceptions.ConnectionError, e:
             warnings.warn('connection failure on {}; retrying.'.format(uri))
             time.sleep(0.2)
-            r = cached_session.get(uri, headers=heads)
+            r = req_session.get(uri, headers=heads)
         if r.status_code == 200:
             try:
                 result = r.json().get('skos:notation')
