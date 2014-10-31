@@ -252,7 +252,7 @@ class Mapping(_DotMixin):
         self._contributors = [Item(c) for c in somecontributors]
 
     def __repr__(self):
-        pstr = '{}\nSource:\n{!r}Target:\n{!r}'.format(self.uri, self.source, self.target)
+        pstr = '{}\nSource:\n{!r}\nTarget:\n{!r}'.format(self.uri, self.source, self.target)
         return pstr
 
     def __eq__(self, other):
@@ -292,7 +292,7 @@ class Mapping(_DotMixin):
                                labelloc='b',
                                style='filled', color='lightgrey')
         snode = self.source.dot(sgraph, node)
-        edge = pydot.Edge(node, snode,
+        edge = pydot.Edge(node, snode, dir='back',
                           label='Concept', fontsize=7,
                           tailport='s', headport='n')
         graph.add_edge(edge)
@@ -306,6 +306,15 @@ class Mapping(_DotMixin):
                           tailport='s', headport='n')
         graph.add_edge(edge)
         graph.add_subgraph(tgraph)
+        if self.invertible == '"True"':
+            edge = pydot.Edge(node, snode,
+                              label='Concept', fontsize=7,
+                              tailport='s', headport='n')
+            graph.add_edge(edge)
+            edge = pydot.Edge(node, tnode, dir="back",
+                              label='Concept', fontsize=7,
+                              tailport='s', headport='n')
+            graph.add_edge(edge)
         return graph
 
     def _podict(self):
@@ -448,8 +457,7 @@ class Mapping(_DotMixin):
             {}'''
             ec = ec.format(preds, allowed_preds)
             raise ValueError(ec)
-        mandated_preds = set(('mr:source', 'mr:target', 'mr:invertible', 
-                                'dc:date', 'dc:creator'))
+        mandated_preds = set(('mr:invertible', 'dc:date', 'dc:creator'))
         if not preds.issuperset(mandated_preds):
             ec = '''{}
             is not a superset of the mandated predicates set for a mapping record
@@ -630,19 +638,16 @@ class Component(_DotMixin):
 
         """
         label = self.dot_escape('{}_{}'.format(parent.uri, self.uri.data))
-        nlabel = self.com_type
+        nlabel = self.dot_escape(self.com_type.data)
         node = pydot.Node(label, label=nlabel,
                           style='filled', peripheries='2',
                           colorscheme='dark28', fillcolor='3',
                           fontsize=8)
-        node.uri = self.uri.data
+        node.uri = self.dot_escape(self.uri.data)
         graph.add_node(node)
-        edge = pydot.Edge(parent, node,
-                          tailport='s', headport='n')
         if name is not None:
             edge.set_label(self.dot_escape(name))
             edge.set_fontsize(7)
-        graph.add_edge(edge)
         for property in self.properties:
             property.dot(graph, node)
         return node

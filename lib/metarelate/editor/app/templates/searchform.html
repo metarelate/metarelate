@@ -1,0 +1,63 @@
+
+{% extends "base.html" %}
+{% load dict_keys %}
+
+
+<!-- https://github.com/elo80ka/django-dynamic-formset -->
+{% block title %}: {{ title }}{% endblock %}
+
+{% block head %}
+<script type="text/javascript" src="/static/js/jquery.min.js"></script>
+<script type="text/javascript" src="/static/js/RelatedObjectLookups.js"></script> 
+<script type="text/javascript" src="/static/js/jquery.js"></script>
+<script type="text/javascript" src="/static/js/jquery.formset.js"></script> 
+
+       <script type="text/javascript">
+           $(function() {
+	       $('#id_forms_table tbody tr').formset({})
+	   });
+       </script>
+
+
+{% endblock %}
+
+
+{% block content %}
+
+<p>The time is {% current_time "%Y-%m-%d %I:%M %p" %}.</p>
+
+
+    <form action="" method="post">
+    <input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} value="Search"/>
+    {{ formset.management_form }}
+    {% csrf_token %}
+
+
+<table id="id_forms_table" border="1" cellpadding="0" cellspacing="5" class="recordtable">
+
+
+
+  <tr> <td>
+
+	{% for sform in formset %}
+      <tr id="{{ form.prefix }}-row" class="form-container">
+        <td>{{ sform.as_p }}
+        </td>
+      </tr>
+      {% endfor %}
+  </td>
+
+  <td>
+
+
+
+  </td>
+  </tr>
+</table>
+
+
+
+
+
+
+{% endblock %}

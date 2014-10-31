@@ -32,24 +32,28 @@
 
 {% block content %}
 
-
-{% if search %}
 <p>
-<a href="{{ search.url }}"> {{ search.label }} </a>
+<a href="{% url 'search' %}"> search </a>
 <p>
-{% endif %}
-
-{% if create %}
-<p>
-<a href="{{ create.url }}"> {{ create.label }} </a>
-<p>
-{% endif %}
 
 
-{% if exact %}
-<a href="{{ exact.url }}"> {{ exact.label }} </a>
-<p>
-{% endif %}
+<!-- {% if search %} -->
+<!-- <p> -->
+<!-- <a href="{{ search.url }}"> {{ search.label }} </a> -->
+<!-- <p> -->
+<!-- {% endif %} -->
+
+<!-- {% if create %} -->
+<!-- <p> -->
+<!-- <a href="{{ create.url }}"> {{ create.label }} </a> -->
+<!-- <p> -->
+<!-- {% endif %} -->
+
+
+<!-- {% if exact %} -->
+<!-- <a href="{{ exact.url }}"> {{ exact.label }} </a> -->
+<!-- <p> -->
+<!-- {% endif %} -->
 
 
 {% if form %}

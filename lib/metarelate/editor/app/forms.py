@@ -37,6 +37,53 @@ from metarelate.editor.settings import fuseki_process
 
 DS = metarelate.site_config['fuseki_dataset']
 
+
+class MappingMetadata(forms.Form):
+    readonly=True
+    _uri = forms.CharField(required=False,
+                          widget=forms.TextInput(attrs={'readonly':readonly, 'size':'100%'}))
+    invertible = forms.CharField(required=False,
+                          widget=forms.TextInput(attrs={'readonly':readonly, 'size':'100%'}))
+    _creator = forms.CharField(required=False,
+                          widget=forms.TextInput(attrs={'readonly':readonly, 'size':'100%'}))
+    note = forms.CharField(required=False,
+                          widget=forms.TextInput(attrs={'readonly':readonly, 'size':'100%'}))
+    _replaces = forms.CharField(required=False,
+                          widget=forms.TextInput(attrs={'readonly':readonly, 'size':'100%'}))
+    _valuemaps = forms.CharField(required=False,
+                          widget=forms.TextInput(attrs={'readonly':readonly, 'size':'100%'}))
+    _rights = forms.CharField(required=False,
+                          widget=forms.TextInput(attrs={'readonly':readonly, 'size':'100%'}))
+    _rightsHolders = forms.CharField(required=False,
+                          widget=forms.TextInput(attrs={'readonly':readonly, 'size':'100%'}))
+    _contributors = forms.CharField(required=False,
+                          widget=forms.TextInput(attrs={'readonly':readonly, 'size':'100%'}))
+    _dateAccepted = forms.CharField(required=False,
+                          widget=forms.TextInput(attrs={'readonly':readonly, 'size':'100%'}))
+
+
+class SearchStatement(forms.Form):
+    predicate = forms.CharField(required=False, 
+                                widget=forms.TextInput(attrs={'size':'100%'}))
+    rdfobject = forms.CharField(required=False, 
+                                widget=forms.TextInput(attrs={'size':'100%'}))
+
+
+# class Search(forms.Form):
+#     statements = formset_factory(SearchStatement)
+#     # additive_search = forms.BooleanField(required=False)
+#     def __init__(self, *args, **kwargs):
+#         super(Search, self).__init__(*args, **kwargs)
+#         # self.statements = formset_factory(SearchStatement)
+
+    
+
+
+#class SearchStatements(forms.Form):
+    
+
+
+
 def get_states():
     """
     Helper method to return valid states.
