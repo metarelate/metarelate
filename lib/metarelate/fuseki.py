@@ -54,7 +54,7 @@ HEADER = '''#(C) British Crown Copyright 2012 - 2014 , Met Office
 PRE = prefixes.Prefixes()
 
 # maximum number of threads for multi-thrteading code
-MAXTHREADS = 64
+MAXTHREADS = metarelate.site_config.get('num_workers')
 
 # Configure the Apache Jena environment.
 if metarelate.site_config.get('jena_dir') is not None:
@@ -88,8 +88,11 @@ class WorkerThread(Thread):
     def run(self):
         while not self.queue.empty():
             resource = self.queue.get()
-            self.dowork(resource)
-            self.deque.append(resource)
+            try:
+                self.dowork(resource)
+                self.deque.append(resource)
+            except Exception, e:
+                print e
             self.queue.task_done()
 
 class MappingPopulateWorker(WorkerThread):
@@ -544,13 +547,18 @@ class FusekiServer(object):
         map_templates = self.run_query(qstr)
         mapping_list = deque()
         mapping_queue = Queue()
+        mq = 0
         for mt in map_templates:
             mapping_queue.put(metarelate.Mapping(mt.get('mapping'),
                                                  invertible=mt.get('invertible'),
                                                  inverted=mt.get('inverted')))
+            mq += 1
         for i in range(MAXTHREADS):
             MappingPopulateWorker(mapping_queue, mapping_list, self).start()
         mapping_queue.join()
+        if len(mapping_list) != mq:
+            msg = '{} entries in mapping_list, expected {}'
+            raise ValueError(msg.format(len(mapping_list), mq))
         return mapping_list
 
     def retrieve(self, qstr, debug=False):
