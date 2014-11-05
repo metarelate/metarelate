@@ -17,6 +17,7 @@
 
 from collections import deque
 import glob
+from inspect import getmembers, isfunction
 import json
 import os
 from Queue import Queue
@@ -27,11 +28,18 @@ from threading import Thread
 import time
 import urllib
 import urllib2
+import sys
 
 import requests
 
 import metarelate
 import metarelate.prefixes as prefixes
+
+dpdir = metarelate.site_config['static_dir'].rstrip('staticData')
+
+sys.path.append(os.path.join(dpdir, 'lib'))
+
+import metarelate_metocean.validation
 
 HEADER = '''#(C) British Crown Copyright 2012 - 2014 , Met Office 
 #
@@ -432,9 +440,21 @@ class FusekiServer(object):
         mm_string = ('The following mappings are ambiguous, providing multiple'
                     ' targets in the same format for a particular source')
         failures[mm_string] = self.run_query(multiple_mappings())
-        invalid_vocab = 'The following mappings contain an undeclared URI'
-        failures[invalid_vocab] = self.run_query(valid_vocab())
+
+        vtests = [o[0] for o in getmembers(metarelate_metocean.validation) if isfunction(o[1]) 
+                  and not o[0].startswith('_')]
+
+        for vtest in vtests:
+            res = metarelate_metocean.validation.__dict__[vtest].__call__(self)
+            metarelate.careful_update(failures, res)
+
         return failures
+
+    def search(self, statements):#, additive):
+        results = {}
+        query_string = mapping_search(statements)#, additive)
+        results['search results'] = self.run_query(query_string)
+        return results
 
     def run_query(self, query_string, output='json', update=False, debug=False):
         """
@@ -734,36 +754,55 @@ def multiple_mappings(test_source=None):
     }
     filter (?btargetformat = ?atargetformat)
 
-    OPTIONAL { GRAPH <http://metarelate.net/formats.ttl> {
-    ?atargetformat <http://www.metarelate.net/vocabulary/index.html#subFormat> ?asubtargetpref .
-    ?btargetformat <http://www.metarelate.net/vocabulary/index.html#subFormat> ?bsubtargetpref .
-    } 
-    GRAPH <http://metarelate.net/concepts.ttl> {
-    ?atarget mr:hasProperty ?asubprop .
-    ?asubprop mr:name ?asubtargetpref ;
-          rdf:value ?asubswitch .
-    ?btarget mr:hasProperty ?bsubprop .
-    ?bsubprop mr:name ?bsubtargetpref ;
-          rdf:value ?bsubswitch .
-    } }
-    filter (?asubswitch = ?bsubswitch)
-
-    GRAPH <http://metarelate.net/concepts.ttl> { {
-    ?asource mr:hasProperty ?prop . }
-    UNION {
-    ?atarget mr:hasProperty ?prop . }
-    UNION {
-    ?asource mr:hasComponent|mr:hasProperty ?prop . }
-    UNION {
-    ?atarget mr:hasComponent|mr:hasProperty ?prop . }
-    UNION { 
-    ?asource mr:hasProperty|mr:hasComponent|mr:hasProperty ?prop . }
-    UNION { 
-    ?atarget mr:hasProperty|mr:hasComponent|mr:hasProperty ?prop . }
-    OPTIONAL { ?prop rdf:value ?value . }
-    } }
+    }
     GROUP BY ?amap ?asource ?atarget ?bmap ?bsource ?btarget
     ORDER BY ?asource
     ''' % tm_filter
     return qstr
 
+# def range_component_mapping():
+#     qstr = ('SELECT ?amap\n'
+#             'WHERE\n'
+#             'GRAPH <http://metarelate.net/concepts.ttl> {\n'
+#             '?aconcept ?p ?o .\n'
+#             '?p rdfs:range ?range .\n'
+#             '?o rdf:type ?otype .\n'
+#             '} }\n'
+#             '\n'
+#             '')
+#     return qstr
+
+def mapping_search(statements=None):#, additive=False):
+    """"""
+    if statements is None:
+        statements = []
+    statement_strings = []
+    for i, statement in enumerate(statements):
+        
+        inpred = statement.get('predicate')
+        if inpred:
+            pred = '<{}>'.format(inpred)
+        else:
+            pred = '?{}pred'.format(i)
+        inobj = statement.get('rdfobject')
+        if inobj:
+            rdfobj = '<{}>'.format(inobj)
+        else:
+            rdfobj = '?{}obj'.format(i)
+        ststring = '{?aconcept %(p)s %(o)s .}' % {'p':pred, 'o':rdfobj}
+        statement_strings.append(ststring)
+    statements = '\nUNION\n'.join(statement_strings)
+    query_string = ('SELECT DISTINCT ?amap \n'
+                    'WHERE { \n'
+                    'GRAPH <http://metarelate.net/concepts.ttl> { \n'
+                    '%s\n'
+                    '} \n'
+                    'GRAPH <http://metarelate.net/mappings.ttl> { \n'
+                    '{?amap mr:target ?aconcept . }\n'
+                    'UNION\n'
+                    '{?amap mr:source ?aconcept . }\n'
+                    'MINUS {?amap ^dc:replaces+ ?anothermap} \n'
+                    '}}' % statements)
+            
+    return query_string
+            
