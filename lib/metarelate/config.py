@@ -28,12 +28,14 @@ import warnings
 _SECTION_FUSEKI = 'fuseki'
 _SECTION_RESOURCE = 'resource'
 _SECTION_SYSTEM = 'system'
+_SECTION_THREADING = 'threading'
 
 # metarelate configuration option defaults.
 _DEFAULT_FUSEKI_PORT = 3131
 _DEFAULT_FUSEKI_TEST_PORT = 3636
 _DEFAULT_FUSEKI_TIMEOUT_ATTEMPTS = 1000
 _DEFAULT_FUSEKI_TIMEOUT_SLEEP = 0.1
+_DEFAULT_WORKERS = 8
 
 # environment variable prefix
 ENV_PREF = 'METARELATE_'
@@ -212,6 +214,20 @@ def update(config):
                 warnings.warn(msg.format(_SECTION_FUSEKI, option,
                                          _DEFAULT_FUSEKI_TIMEOUT_ATTEMPTS))
                 config[option] = _DEFAULT_FUSEKI_TIMEOUT_ATTEMPTS
+
+            option = 'num_workers'
+            result = _get_option(parser, _SECTION_THREADING, option)
+            try:
+                config[option] = int(result)
+            except ValueError:
+                msg = ('Metarelate Configuration - Ignoring invalid num_workers '
+                       'for threadin. Section {!r}, '
+                       'option {!r}. Defaulting to {} attempts.')
+                warnings.warn(msg.format(_SECTION_THREADING, option,
+                                         _DEFAULT_WORKERS))
+                config[option] = _DEFAULT_WORKERS
+                
+            
         else:
             msg = 'Metarelate Configuration - Missing configuration file {!r}'
             warnings.warn(msg.format(config_file))

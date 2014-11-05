@@ -68,10 +68,9 @@ def get_notation(uri):
                  'cache-control': 'max-age=3600'}
         try:
             r = cached_session.get(uri, headers=heads)
-        except requests.exceptions.ConnectionError, e:
-            warnings.warn('connection failure on {}; retrying.'.format(uri))
+        except (requests.exceptions.ConnectionError, AttributeError), e:
             time.sleep(0.2)
-            r = req_session.get(uri, headers=heads)
+            r = requests.get(uri, headers=heads)
         if r.status_code == 200:
             try:
                 result = r.json().get('skos:notation')

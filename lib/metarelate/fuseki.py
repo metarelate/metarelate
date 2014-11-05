@@ -54,7 +54,7 @@ HEADER = '''#(C) British Crown Copyright 2012 - 2014 , Met Office
 PRE = prefixes.Prefixes()
 
 # maximum number of threads for multi-thrteading code
-MAXTHREADS = 4
+MAXTHREADS = metarelate.site_config.get('num_workers')
 
 # Configure the Apache Jena environment.
 if metarelate.site_config.get('jena_dir') is not None:
