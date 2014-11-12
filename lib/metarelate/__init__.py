@@ -144,6 +144,18 @@ class Mapping(_DotMixin):
         self.inverted = inverted
 
     @property
+    def shaid(self):
+        result = None
+        if self.uri is not None:
+            result = self.uri.data.split('/')[-1].rstrip('>')
+        return result
+    @shaid.setter
+    def shaid(self, shaid):
+        subj_pref = 'http://www.metarelate.net/{}/mapping/'
+        subj_pref = subj_pref.format(site_config['fuseki_dataset'])
+        self.uri = Item(subj_pref + str(shaid))
+
+    @property
     def source(self):
         return self._source
     @source.setter
@@ -502,7 +514,7 @@ class Mapping(_DotMixin):
 
 class Component(_DotMixin):
     """
-    A Component is a typed identifiable collection of metadata.
+    A Component is a typed, identifiable collection of metadata.
     
     One may be an identified as a source or target for a mapping.
 
@@ -522,6 +534,13 @@ class Component(_DotMixin):
                 raise TypeError('one of the properties is a {}, not '
                                 'a metarelate Property'.format(type(prop)))
         self.properties = properties
+
+    @property
+    def shaid(self):
+        result = None
+        if self.uri is not None:
+            result = self.uri.data.split('/')[-1].rstrip('>')
+        return result
 
     def __eq__(self, other):
         result = NotImplemented
@@ -599,6 +618,10 @@ class Component(_DotMixin):
             raise ValueError('A property named {} already exists'.format(key))
         elif key in self._okeys():
             self.__dict__[key] = value
+        elif key == 'shaid':
+            subj_pref = 'http://www.metarelate.net/{}/component/'
+            subj_pref = subj_pref.format(site_config['fuseki_dataset'])
+            self.uri = Item(subj_pref + str(value))
         else:
             if isinstance(value, Property):
                 self.properties.append(value)
@@ -677,6 +700,8 @@ class Component(_DotMixin):
                                                              rdfobject))
 
     def sparql_retriever(self):
+        if self.uri is None:
+            raise ValueError('URI required, None found')
         qstr = ('SELECT ?component ?p ?o '
                 'WHERE {GRAPH <http://metarelate.net/concepts.ttl> {'
                 '?component ?p ?o ; '
