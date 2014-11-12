@@ -645,7 +645,7 @@ class Component(_DotMixin):
     def compound(self):
         return not self.simple
 
-    def dot(self, graph, parent, name=None):
+    def dot(self, graph=None, parent=None, name=None):
         """
         Generate a Dot digraph representation of this mapping component.
 
@@ -660,6 +660,14 @@ class Component(_DotMixin):
             Name of the relationship between the nodes.
 
         """
+        _returngraph = False
+        if graph is None and parent is None:
+            graph = pydot.Dot(graph_type='digraph',
+                              label='Metarelate',
+                              labelloc='t', labeljust='l',
+                              fontsize=15)
+            parent = Mapping(Item('',''))
+            _returngraph = True
         label = self.dot_escape('{}_{}'.format(parent.uri, self.uri.data))
         nlabel = self.dot_escape(self.com_type.data)
         node = pydot.Node(label, label=nlabel,
@@ -673,7 +681,11 @@ class Component(_DotMixin):
             edge.set_fontsize(7)
         for property in self.properties:
             property.dot(graph, node)
-        return node
+        if _returngraph:
+            result = graph
+        else:
+            result = node
+        return result
 
     def populate_from_uri(self, fuseki_process):
         statements = fuseki_process.run_query(self.sparql_retriever())
