@@ -170,7 +170,6 @@ def invalid_mappings(request):
         for inv_map in inv_mappings:
             muri = inv_map['amap']
             mapping = metarelate.Mapping(muri)
-            mapping.populate_from_uri(fuseki_process)
             url = reverse('mapping', kwargs={'mapping_id':mapping.shaid})
             sig = inv_map.get('signature', [])
             label = []
