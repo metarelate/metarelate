@@ -45,9 +45,21 @@ from metarelate.editor.settings import fuseki_process
 from metarelate.editor.settings import ROOTUSER
 
 def home(request):
+    context = RequestContext(request)
+    response = render_to_response('home.html', context)
+    return response
+
+def homegraph(request):
+    response = HttpResponse(content_type="image/svg+xml")
+    graph = fuseki_process.summary_graph()
+    response.write(graph.create_svg(prog='circo'))
+    return response
+    
+
+def controlpanel(request):
     """
-    returns a view for the editor homepage
-    a control panel for interacting with the triple store
+    returns a view for the editor control panelhomepage
+    for interacting with the triple store
     and reporting on status
     
     """

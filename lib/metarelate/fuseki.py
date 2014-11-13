@@ -668,8 +668,32 @@ class FusekiServer(object):
             elif map_ids:
                 result = map_ids[0]
         return result
-                
 
+    def summary_graph(self):
+        qstr = ('SELECT ?fromformat ?toformat (count(?mapping) as ?mappings) '
+                'WHERE { '
+                'GRAPH <http://metarelate.net/mappings.ttl> { '
+                '?mapping rdf:type mr:Mapping . '
+                'MINUS {?mapping ^dc:replaces+ ?anothermap} '
+                '{?mapping mr:source ?source ; '
+                ' mr:target ?target .} '
+                'UNION '
+                '{?mapping mr:invertible "True" ; '
+                ' mr:source ?target ; '
+                ' mr:target ?source .} '
+                '}'
+                'GRAPH <http://metarelate.net/concepts.ttl> { '
+                '?source rdf:type ?fromformat . '
+                '?target rdf:type ?toformat . '
+                'FILTER(?toformat !=  '
+                '<http://www.metarelate.net/vocabulary/index.html#Component>) '
+                'FILTER(?fromformat != '
+                '<http://www.metarelate.net/vocabulary/index.html#Component>) '
+                '}} '
+                'group by ?fromformat ?toformat')
+        results = self.run_query(qstr)
+        summary = metarelate.BaseSummary(results)
+        return summary.dot()
 
 
 def process_data(jsondata):

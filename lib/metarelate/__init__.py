@@ -118,6 +118,40 @@ class _DotMixin(object):
         return label
 
 
+class BaseSummary(_DotMixin):
+    """"""
+    def __init__(self, results):
+        self.results = results
+    def dot(self):
+        graph = pydot.Dot(graph_type='digraph',
+                          label='Metarelate {}'.format(site_config['fuseki_dataset']),
+                          labelloc='t', labeljust='l',
+                          fontsize=15)
+
+        for result in self.results:
+            fnode = pydot.Node(self.dot_escape(result.get('fromformat')),
+                               label=result.get('fromformat'),
+                               peripheries='2',
+                               style='filled',
+                               colorscheme='dark28', fillcolor='3',
+                               fontsize=8)
+            tnode = pydot.Node(self.dot_escape(result.get('toformat')),
+                               label=result.get('toformat'),
+                               peripheries='2',
+                               style='filled',
+                               colorscheme='dark28', fillcolor='3',
+                               fontsize=8)
+            fnode.uri = result.get('fromformat')
+            tnode.uri = result.get('toformat')
+            graph.add_node(fnode)
+            graph.add_node(tnode)
+            fedge = pydot.Edge(fnode, tnode,
+                               shape='curve', labeldistance='2',
+                               fontsize=11, headlabel=result.get('mappings'))
+            graph.add_edge(fedge)
+        return graph
+        
+
 class Mapping(_DotMixin):
     """
     Represents an mapping relationship between a source
