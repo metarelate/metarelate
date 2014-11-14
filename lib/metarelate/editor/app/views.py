@@ -52,7 +52,7 @@ def home(request):
 def homegraph(request):
     response = HttpResponse(content_type="image/svg+xml")
     graph = fuseki_process.summary_graph()
-    response.write(graph.create_svg(prog='circo'))
+    response.write(graph.create_svg())
     return response
     
 

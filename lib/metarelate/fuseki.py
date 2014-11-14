@@ -670,30 +670,53 @@ class FusekiServer(object):
         return result
 
     def summary_graph(self):
-        qstr = ('SELECT ?fromformat ?toformat (count(?mapping) as ?mappings) '
+        qstr = ('SELECT ?mapping ?source ?target ?sourceformat '
+                '?targetformat ?invertible ' 
                 'WHERE { '
                 'GRAPH <http://metarelate.net/mappings.ttl> { '
                 '?mapping rdf:type mr:Mapping . '
                 'MINUS {?mapping ^dc:replaces+ ?anothermap} '
-                '{?mapping mr:source ?source ; '
-                ' mr:target ?target .} '
-                'UNION '
-                '{?mapping mr:invertible "True" ; '
-                ' mr:source ?target ; '
-                ' mr:target ?source .} '
+                '?mapping mr:source ?source ; '
+                ' mr:target ?target ; '
+                ' mr:invertible ?invertible . '
                 '}'
                 'GRAPH <http://metarelate.net/concepts.ttl> { '
-                '?source rdf:type ?fromformat . '
-                '?target rdf:type ?toformat . '
-                'FILTER(?toformat !=  '
+                '?source rdf:type ?sourceformat . '
+                '?target rdf:type ?targetformat . '
+                'FILTER(?sourceformat !=  '
                 '<http://www.metarelate.net/vocabulary/index.html#Component>) '
-                'FILTER(?fromformat != '
+                'FILTER(?targetformat != '
                 '<http://www.metarelate.net/vocabulary/index.html#Component>) '
-                '}} '
-                'group by ?fromformat ?toformat')
+                '}} ')
         results = self.run_query(qstr)
-        summary = metarelate.BaseSummary(results)
+        summary = metarelate.KBaseSummary(results)
         return summary.dot()
+
+    # def _summary_graph(self):
+    #     qstr = ('SELECT ?fromformat ?toformat (count(?mapping) as ?mappings) '
+    #             'WHERE { '
+    #             'GRAPH <http://metarelate.net/mappings.ttl> { '
+    #             '?mapping rdf:type mr:Mapping . '
+    #             'MINUS {?mapping ^dc:replaces+ ?anothermap} '
+    #             '{?mapping mr:source ?source ; '
+    #             ' mr:target ?target .} '
+    #             'UNION '
+    #             '{?mapping mr:invertible "True" ; '
+    #             ' mr:source ?target ; '
+    #             ' mr:target ?source .} '
+    #             '}'
+    #             'GRAPH <http://metarelate.net/concepts.ttl> { '
+    #             '?source rdf:type ?fromformat . '
+    #             '?target rdf:type ?toformat . '
+    #             'FILTER(?toformat !=  '
+    #             '<http://www.metarelate.net/vocabulary/index.html#Component>) '
+    #             'FILTER(?fromformat != '
+    #             '<http://www.metarelate.net/vocabulary/index.html#Component>) '
+    #             '}} '
+    #             'group by ?fromformat ?toformat')
+    #     results = self.run_query(qstr)
+    #     summary = metarelate.BaseSummary(results)
+    #     return summary.dot()
 
 
 def process_data(jsondata):

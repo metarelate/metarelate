@@ -109,47 +109,96 @@ class _DotMixin(object):
         def escape(label, symbol):
             result = []
             for text in label.split(symbol):
-                if len(text) == 0:
-                    text = '\%s' % symbol
+                # if len(text) == 0:
+                #     text = '\%s' % symbol
                 result.append(text)
             return ''.join(result)
-        for symbol in ['<', '>', ':']:
+        for symbol in ['<', '>', ':', '.', '/', '-']:
             label = escape(label, symbol)
         return label
 
 
-class BaseSummary(_DotMixin):
-    """"""
+class KBaseSummary(_DotMixin):
+    """Summary of the knowledge base"""
     def __init__(self, results):
         self.results = results
     def dot(self):
+        alabel = 'Metarelate {}'.format(site_config['fuseki_dataset'])
         graph = pydot.Dot(graph_type='digraph',
-                          label='Metarelate {}'.format(site_config['fuseki_dataset']),
+                          label=alabel,
                           labelloc='t', labeljust='l',
-                          fontsize=15)
-
+                          fontsize=15, rankdir='LR', layout='dot')
+        subgraphs = {}
         for result in self.results:
-            fnode = pydot.Node(self.dot_escape(result.get('fromformat')),
-                               label=result.get('fromformat'),
-                               peripheries='2',
-                               style='filled',
-                               colorscheme='dark28', fillcolor='3',
-                               fontsize=8)
-            tnode = pydot.Node(self.dot_escape(result.get('toformat')),
-                               label=result.get('toformat'),
-                               peripheries='2',
-                               style='filled',
-                               colorscheme='dark28', fillcolor='3',
-                               fontsize=8)
-            fnode.uri = result.get('fromformat')
-            tnode.uri = result.get('toformat')
-            graph.add_node(fnode)
-            graph.add_node(tnode)
-            fedge = pydot.Edge(fnode, tnode,
-                               shape='curve', labeldistance='2',
-                               fontsize=11, headlabel=result.get('mappings'))
-            graph.add_edge(fedge)
+            # mapping sourceformat targetformat invible
+            #slabel = 'source{}'.format(self.dot_escape(result.get('mapping')))
+            slabel = self.dot_escape(result.get('source'))
+            snode  = pydot.Node(slabel, label = ' ',
+                                height='0.1',width='0.1', fixedsize='true',
+                                style='filled',
+                                colorscheme='dark28', fillcolor='1',
+                                fontsize=1)
+            if result.get('sourceformat') not in subgraphs:
+                sglabel = self.dot_escape(result.get('sourceformat'))
+                sgraph = pydot.Cluster(sglabel, label=result.get('sourceformat'),
+                                       style='filled', color='lightgrey')
+                subgraphs[result.get('sourceformat')] = sgraph
+            subgraphs[result.get('sourceformat')].add_node(snode)
+            #tlabel = 'target{}'.format(self.dot_escape(result.get('mapping')))
+            tlabel = self.dot_escape(result.get('target'))
+            tnode  = pydot.Node(tlabel, label = ' ',
+                                height='0.1',width='0.1', fixedsize='true',
+                                style='filled',
+                                colorscheme='dark28', fillcolor='3',
+                                fontsize=1)
+            if result.get('targetformat') not in subgraphs:
+                tglabel = self.dot_escape(result.get('targetformat'))
+                tgraph = pydot.Cluster(tglabel, label=result.get('targetformat'),
+                                       style='filled', color='lightgrey')
+                subgraphs[result.get('targetformat')] = tgraph
+            subgraphs[result.get('targetformat')].add_node(tnode)
+            anedge = pydot.Edge(snode, tnode, arrowhead='open')
+            graph.add_edge(anedge)
+            if result.get('invertible') == '"True"':
+                revedge = pydot.Edge(tnode, snode)
+                graph.add_edge(revedge)                
+        for k,g in subgraphs.iteritems():
+            graph.add_subgraph(g)
+        graph.write_dot('/tmp/mydot.dot')
         return graph
+
+# class BaseSummary(_DotMixin):
+#     """"""
+#     def __init__(self, results):
+#         self.results = results
+#     def dot(self):
+#         graph = pydot.Dot(graph_type='digraph',
+#                           label='Metarelate {}'.format(site_config['fuseki_dataset']),
+#                           labelloc='t', labeljust='l',
+#                           fontsize=15)
+
+#         for result in self.results:
+#             fnode = pydot.Node(self.dot_escape(result.get('fromformat')),
+#                                label=result.get('fromformat'),
+#                                peripheries='2',
+#                                style='filled',
+#                                colorscheme='dark28', fillcolor='3',
+#                                fontsize=8)
+#             tnode = pydot.Node(self.dot_escape(result.get('toformat')),
+#                                label=result.get('toformat'),
+#                                peripheries='2',
+#                                style='filled',
+#                                colorscheme='dark28', fillcolor='3',
+#                                fontsize=8)
+#             fnode.uri = result.get('fromformat')
+#             tnode.uri = result.get('toformat')
+#             graph.add_node(fnode)
+#             graph.add_node(tnode)
+#             fedge = pydot.Edge(fnode, tnode,
+#                                shape='curve', labeldistance='2',
+#                                fontsize=11, headlabel=result.get('mappings'))
+#             graph.add_edge(fedge)
+#         return graph
         
 
 class Mapping(_DotMixin):
