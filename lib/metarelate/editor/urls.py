@@ -31,4 +31,5 @@ urlpatterns = patterns('',
     url(r'^mappingviewgraph/(?P<mapping_id>[^/]+)/$', 'metarelate.editor.app.views.mapping_view_graph', name='mapping_view_graph'),
     url(r'^component/(?P<component_id>[^/]+)/$', 'metarelate.editor.app.views.component', name='component'),
     url(r'^componentviewgraph/(?P<component_id>[^/]+)/$', 'metarelate.editor.app.views.component_view_graph', name='component_view_graph'),
+    url(r'^retrievemappings/$', 'metarelate.editor.app.views.retrieve_mappings', name='retrieve_mappings'),
 )

@@ -526,7 +526,7 @@ class FusekiServer(object):
         results = self.run_query(qstr, debug=debug)
         return results
 
-    def retrieve_mappings(self, sourcetype, targettype):
+    def retrieve_mapping_templates(self, sourcetype, targettype):
         """
         return the format specific mappings for a particular source
         and target component type
@@ -565,6 +565,18 @@ class FusekiServer(object):
                 'GROUP BY ?mapping ?source ?target ?inverted ?invertible '
                 'ORDER BY ?mapping') % (sourcetype.data, targettype.data)
         map_templates = self.run_query(qstr)
+        return json.dumps(map_templates)
+
+    def retrieve_mappings(self, sourcetype, targettype, kbase_uri=None):
+        if uri is None:
+            templates = self.retrieve_mapping_templates(sourcetype, targettype)
+        else:
+            sourcetype = metarelate.Item(sourcetype)
+            targettype = metarelate.Item(targettype)
+            query = {'source':sourcetype.data, 'target':targettype.data}
+            ## check how to pass query params to request
+            templates = requests.get(kbase_uri, query)
+        map_templates = json.loads(templates)
         mapping_list = deque()
         mapping_queue = Queue()
         mq = 0
@@ -836,9 +848,9 @@ def mapping_search(statements=None):#, additive=False):
             rdfobj = '<{}>'.format(inobj)
         else:
             rdfobj = '?{}obj'.format(i)
-        ststring = '{?aconcept %(p)s %(o)s .}' % {'p':pred, 'o':rdfobj}
+        ststring = '?aconcept %(p)s %(o)s .' % {'p':pred, 'o':rdfobj}
         statement_strings.append(ststring)
-    statements = '\nUNION\n'.join(statement_strings)
+    statements = '\n'.join(statement_strings)
     query_string = ('SELECT DISTINCT ?amap \n'
                     'WHERE { \n'
                     'GRAPH <http://metarelate.net/concepts.ttl> { \n'

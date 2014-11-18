@@ -117,6 +117,30 @@ def url_qstr(path, **kwargs):
     """
     return path + '?' + urllib.urlencode(kwargs)
 
+def retrieve_mappings(request):
+    # send back json string
+    #requestor_path = request.GET.get('ref', '')
+    #requestor = urllib.unquote(requestor_path).decode('utf8')
+    #import pdb; pdb.set_trace()
+    #if requestor == '':
+    #    requestor = '{}'
+    #requestor = json.loads(requestor)
+    ## need a source and a target
+    # if not requestor.get('source') of requestor.get('target'):
+    ### but, do we want to throw an exception, or do we want to return a 404??
+    ### to ponder
+    #     return HttpResponse(404)
+    # else:
+    sourcetype = metarelate.Item(request.GET.get('source'))
+    targettype = metarelate.Item(request.GET.get('target'))
+    response = HttpResponse(content_type="")
+    map_templates = json.dumps('{}')
+    try:
+        map_templates = fuseki_process.retrieve_mapping_templates(sourcetype, targettype)
+    except Exception:
+        pass
+    response.write(map_templates)
+    return response
 
 def mapping_view_graph(request, mapping_id):
     """"""
