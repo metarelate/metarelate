@@ -35,11 +35,6 @@ import requests
 import metarelate
 import metarelate.prefixes as prefixes
 
-dpdir = metarelate.site_config['static_dir'].rstrip('staticData')
-
-sys.path.append(os.path.join(dpdir, 'lib'))
-
-import metarelate_metocean.validation
 
 HEADER = '''#(C) British Crown Copyright 2012 - 2014 , Met Office 
 #
@@ -128,11 +123,14 @@ class FusekiServer(object):
             static_key = 'test_{}'.format(static_key)
             tdb_key = 'test_{}'.format(tdb_key)
         
-        if metarelate.site_config.get(static_key) is None:
-            msg = 'The {}static data directory for the Apache Jena database' \
-                'has not been configured for metarelate.'
-            raise ValueError(msg.format('test ' if test else ''))
-        else:
+        # if metarelate.site_config.get(static_key) is None:
+        #     msg = 'The {}static data directory for the Apache Jena database' \
+        #         'has not been configured for metarelate.'
+        #     raise ValueError(msg.format('test ' if test else ''))
+        # else:
+            # self._static_dir = metarelate.site_config[static_key]
+        self._static_dir = '/dev/null'
+        if metarelate.site_config.get(static_key) is not None:
             self._static_dir = metarelate.site_config[static_key]
 
         if metarelate.site_config.get(tdb_key) is None:
@@ -441,12 +439,20 @@ class FusekiServer(object):
                     ' targets in the same format for a particular source')
         failures[mm_string] = self.run_query(multiple_mappings())
 
-        vtests = [o[0] for o in getmembers(metarelate_metocean.validation) if isfunction(o[1]) 
-                  and not o[0].startswith('_')]
+        static_dir = metarelate.site_config.get('static_dir')
+        if static_dir:
+            dpdir = metarelate.site_config['static_dir'].rstrip('staticData')
 
-        for vtest in vtests:
-            res = metarelate_metocean.validation.__dict__[vtest].__call__(self)
-            metarelate.careful_update(failures, res)
+            sys.path.append(os.path.join(dpdir, 'lib'))
+
+            import metarelate_metocean.validation
+
+            vtests = [o[0] for o in getmembers(metarelate_metocean.validation) if isfunction(o[1]) 
+                      and not o[0].startswith('_')]
+
+            for vtest in vtests:
+                res = metarelate_metocean.validation.__dict__[vtest].__call__(self)
+                metarelate.careful_update(failures, res)
 
         return failures
 
@@ -568,7 +574,7 @@ class FusekiServer(object):
         return json.dumps(map_templates)
 
     def retrieve_mappings(self, sourcetype, targettype, kbase_uri=None):
-        if uri is None:
+        if kbase_uri is None:
             templates = self.retrieve_mapping_templates(sourcetype, targettype)
         else:
             sourcetype = metarelate.Item(sourcetype)
