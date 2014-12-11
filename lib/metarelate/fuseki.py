@@ -112,7 +112,9 @@ class FusekiServer(object):
     an Apache Jena triple store database and Fuseki SPARQL server.
     
     """
-    def __init__(self, host='localhost', test=False):
+    def __init__(self, host='localhost', test=False, update=True):
+
+        self.update=update
 
         self._jena_dir = metarelate.site_config['jena_dir']
         self._fuseki_dir = metarelate.site_config['fuseki_dir']
@@ -178,10 +180,11 @@ class FusekiServer(object):
             os.chdir(nohup_dir)
             args = ['nohup',
                     os.path.join(self._fuseki_dir, 'fuseki-server'),
-                    '--loc={}'.format(self._tdb_dir),
-                    '--update',
-                    '--port={}'.format(self.port),
-                    '/{}'.format(self._fuseki_dataset)]
+                    '--loc={}'.format(self._tdb_dir)]
+            if self.update:
+                args.append('--update')
+            args.append('--port={}'.format(self.port))
+            args.append('/{}'.format(self._fuseki_dataset))
             self._process = subprocess.Popen(args)
             os.chdir(cwd)
             for attempt in xrange(metarelate.site_config['timeout_attempts']):
@@ -244,9 +247,9 @@ class FusekiServer(object):
             result = True
         except socket.error:
             pass
-        if result and self._process is None:
-            msg = 'There is currently another service on port {!r}.'
-            raise RuntimeError(msg.format(self.port))
+        # if result and self._process is None:
+        #     msg = 'There is currently another service on port {!r}.'
+        #     raise RuntimeError(msg.format(self.port))
         return result
 
     def clean(self):
@@ -428,6 +431,7 @@ class FusekiServer(object):
                             insubgraph]
                 print ' '.join(tdb_load)
                 subprocess.check_call(tdb_load)
+        self.start()
 
     def validate(self):
         """
@@ -468,8 +472,8 @@ class FusekiServer(object):
         return the results
         
         """
-        if not self.alive():
-            self.restart()
+        # if not self.alive():
+        #     self.restart()
         pref = prefixes.Prefixes().sparql
         baseurl = "http://{}:{}/{}/".format(self.host, self.port,
                                            self._fuseki_dataset)

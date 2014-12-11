@@ -19,6 +19,7 @@ from collections import Iterable, MutableMapping, namedtuple
 from datetime import datetime
 import hashlib
 import os
+import urllib
 import urlparse
 import time
 import warnings
@@ -113,9 +114,10 @@ class _DotMixin(object):
                 #     text = '\%s' % symbol
                 result.append(text)
             return ''.join(result)
-        for symbol in ['<', '>', ':', '.', '/', '-']:
+        for symbol in ['<', '>', ':', '.', '/', '-', '"']:
             label = escape(label, symbol)
         return label
+        # return urllib.quote(label, '')
 
 
 class KBaseSummary(_DotMixin):
@@ -376,28 +378,26 @@ class Mapping(_DotMixin):
                           labelloc='t', labeljust='l',
                           fontsize=15)
         label = self.dot_escape(self.uri.data)
-        node = pydot.Node(label, label='Mapping',
+        node = pydot.Node(label, label=self.uri.data,
                           shape='box', peripheries='2',
                           style='filled',
                           colorscheme='dark28', fillcolor='1',
                           fontsize=8)
         node.uri = self.uri.data
         graph.add_node(node)
-        sgraph = pydot.Cluster('Source', label='Source Concept',
+        sgraph = pydot.Cluster('Source', label=self.source.com_type.data,
                                labelloc='b',
                                style='filled', color='lightgrey')
         snode = self.source.dot(sgraph, node)
         edge = pydot.Edge(node, snode, dir='back',
-                          label='Concept', fontsize=7,
                           tailport='s', headport='n')
         graph.add_edge(edge)
         graph.add_subgraph(sgraph)
-        tgraph = pydot.Cluster('Target', label='Target Concept',
+        tgraph = pydot.Cluster('Target', label=self.target.com_type.data,
                                labelloc='b',
                                style='filled', color='lightgrey')
         tnode = self.target.dot(tgraph, node)
         edge = pydot.Edge(node, tnode,
-                          label='Concept', fontsize=7,
                           tailport='s', headport='n')
         graph.add_edge(edge)
         graph.add_subgraph(tgraph)
@@ -751,8 +751,10 @@ class Component(_DotMixin):
                               fontsize=15)
             parent = Mapping(Item('',''))
             _returngraph = True
-        label = self.dot_escape('{}_{}'.format(parent.uri, self.uri.data))
-        nlabel = self.dot_escape(self.com_type.data)
+        # label = self.dot_escape('{}_{}'.format(parent.uri, self.uri.data))
+        # nlabel = self.dot_escape(self.com_type.data)
+        label = self.dot_escape(self.uri.data)
+        nlabel = self.uri.data
         node = pydot.Node(label, label=nlabel,
                           style='filled', peripheries='2',
                           colorscheme='dark28', fillcolor='3',
@@ -977,7 +979,9 @@ class ComponentProperty(Property):
             edge.set_label(self.dot_escape(name))
             edge.set_fontsize(7)
         graph.add_edge(edge)
-
+        edge = pydot.Edge(node, anode,
+                          tailport='s', headport='n')
+        graph.add_edge(edge)
 
 class StatementProperty(Property):
     """
@@ -1119,6 +1123,8 @@ class StatementProperty(Property):
         items.append(self.predicate.dot())
         items.append(self.rdfobject.dot())
         items = ': '.join(items)
+        items = '\n'.join([self.predicate.data.strip('<>'), 
+                           self.rdfobject.data.strip('<>')])
         label = self.dot_escape('{}_{}'.format(self.predicate.data, 
                                                self.rdfobject.data))
         node = pydot.Node(label, label=items,
@@ -1129,9 +1135,10 @@ class StatementProperty(Property):
         graph.add_node(node)
         edge = pydot.Edge(parent, node,
                           tailport='s', headport='n')
-        if name is not None:
-            edge.set_label(self.dot_escape(name))
-            edge.set_fontsize(7)
+        # name = 'hmmm'
+        # if name is not None:
+        #     edge.set_label(self.dot_escape(name))
+        #     edge.set_fontsize(7)
         graph.add_edge(edge)
 
 
@@ -1226,7 +1233,7 @@ class Item(_DotMixin, namedtuple('Item', 'data notation')):
 
     def dot(self):
         """
-        Return a Dot escaped string representation of the mapping item.
+        Return a string representation of the mapping item.
 
         If the skos notation is available, this has priority.
 
@@ -1234,10 +1241,10 @@ class Item(_DotMixin, namedtuple('Item', 'data notation')):
             String.
 
         """
-        label = self.dot_escape(self.data)
+        label = self.data
         if self.notation is not None:
-            label = self.dot_escape(str(self.notation))
-        return label
+            label = self.notation
+        return self.dot_escape(label)
 
 
 # class ValueMap(object):
