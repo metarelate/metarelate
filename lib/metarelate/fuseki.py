@@ -846,24 +846,33 @@ def mapping_search(statements=None):#, additive=False):
     if statements is None:
         statements = []
     statement_strings = []
+    filter_strings = []
     for i, statement in enumerate(statements):
         
         inpred = statement.get('predicate')
-        if inpred:
-            pred = '<{}>'.format(inpred)
-        else:
-            pred = '?{}pred'.format(i)
+        # if inpred:
+        #     pred = '<{}>'.format(inpred)
+        # else:
+        #     pred = '?{}pred'.format(i)
+        pred = '?{}pred'.format(i)
         inobj = statement.get('rdfobject')
-        if inobj:
-            rdfobj = '<{}>'.format(inobj)
-        else:
-            rdfobj = '?{}obj'.format(i)
+        # if inobj:
+        #     rdfobj = '<{}>'.format(inobj)
+        # else:
+        #     rdfobj = '?{}obj'.format(i)
+        rdfobj = '?{}obj'.format(i)
         ststring = '?aconcept %(p)s %(o)s .' % {'p':pred, 'o':rdfobj}
         statement_strings.append(ststring)
+        fstring = 'FILTER(regex(str(?{}pred), "{}"))'.format(i, inpred)
+        filter_strings.append(fstring)
+        fstring = 'FILTER(regex(str(?{}obj), "{}"))'.format(i, inobj)
+        filter_strings.append(fstring)
     statements = '\n'.join(statement_strings)
+    filters = '\n'.join(filter_strings)
     query_string = ('SELECT DISTINCT ?amap \n'
                     'WHERE { \n'
                     'GRAPH <http://metarelate.net/concepts.ttl> { \n'
+                    '%s\n'
                     '%s\n'
                     '} \n'
                     'GRAPH <http://metarelate.net/mappings.ttl> { \n'
@@ -871,7 +880,7 @@ def mapping_search(statements=None):#, additive=False):
                     'UNION\n'
                     '{?amap mr:source ?aconcept . }\n'
                     'MINUS {?amap ^dc:replaces+ ?anothermap} \n'
-                    '}}' % statements)
+                    '}}' % (statements, filters))
             
     return query_string
             
