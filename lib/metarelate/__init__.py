@@ -109,14 +109,97 @@ class _DotMixin(object):
         def escape(label, symbol):
             result = []
             for text in label.split(symbol):
-                if len(text) == 0:
-                    text = '\%s' % symbol
+                # if len(text) == 0:
+                #     text = '\%s' % symbol
                 result.append(text)
             return ''.join(result)
-        for symbol in ['<', '>', ':']:
+        for symbol in ['<', '>', ':', '.', '/', '-']:
             label = escape(label, symbol)
         return label
 
+
+class KBaseSummary(_DotMixin):
+    """Summary of the knowledge base"""
+    def __init__(self, results):
+        self.results = results
+    def dot(self):
+        alabel = 'Metarelate {}'.format(site_config['fuseki_dataset'])
+        graph = pydot.Dot(graph_type='digraph',
+                          label=alabel,
+                          labelloc='t', labeljust='l',
+                          fontsize=15, rankdir='LR', layout='dot')
+        subgraphs = {}
+        for result in self.results:
+            # mapping sourceformat targetformat invible
+            #slabel = 'source{}'.format(self.dot_escape(result.get('mapping')))
+            slabel = self.dot_escape(result.get('source'))
+            snode  = pydot.Node(slabel, label = ' ',
+                                height='0.1',width='0.1', fixedsize='true',
+                                style='filled',
+                                colorscheme='dark28', fillcolor='1',
+                                fontsize=1)
+            if result.get('sourceformat') not in subgraphs:
+                sglabel = self.dot_escape(result.get('sourceformat'))
+                sgraph = pydot.Cluster(sglabel, label=result.get('sourceformat'),
+                                       style='filled', color='lightgrey')
+                subgraphs[result.get('sourceformat')] = sgraph
+            subgraphs[result.get('sourceformat')].add_node(snode)
+            #tlabel = 'target{}'.format(self.dot_escape(result.get('mapping')))
+            tlabel = self.dot_escape(result.get('target'))
+            tnode  = pydot.Node(tlabel, label = ' ',
+                                height='0.1',width='0.1', fixedsize='true',
+                                style='filled',
+                                colorscheme='dark28', fillcolor='3',
+                                fontsize=1)
+            if result.get('targetformat') not in subgraphs:
+                tglabel = self.dot_escape(result.get('targetformat'))
+                tgraph = pydot.Cluster(tglabel, label=result.get('targetformat'),
+                                       style='filled', color='lightgrey')
+                subgraphs[result.get('targetformat')] = tgraph
+            subgraphs[result.get('targetformat')].add_node(tnode)
+            anedge = pydot.Edge(snode, tnode, arrowhead='open')
+            graph.add_edge(anedge)
+            if result.get('invertible') == '"True"':
+                revedge = pydot.Edge(tnode, snode)
+                graph.add_edge(revedge)                
+        for k,g in subgraphs.iteritems():
+            graph.add_subgraph(g)
+        graph.write_dot('/tmp/mydot.dot')
+        return graph
+
+# class BaseSummary(_DotMixin):
+#     """"""
+#     def __init__(self, results):
+#         self.results = results
+#     def dot(self):
+#         graph = pydot.Dot(graph_type='digraph',
+#                           label='Metarelate {}'.format(site_config['fuseki_dataset']),
+#                           labelloc='t', labeljust='l',
+#                           fontsize=15)
+
+#         for result in self.results:
+#             fnode = pydot.Node(self.dot_escape(result.get('fromformat')),
+#                                label=result.get('fromformat'),
+#                                peripheries='2',
+#                                style='filled',
+#                                colorscheme='dark28', fillcolor='3',
+#                                fontsize=8)
+#             tnode = pydot.Node(self.dot_escape(result.get('toformat')),
+#                                label=result.get('toformat'),
+#                                peripheries='2',
+#                                style='filled',
+#                                colorscheme='dark28', fillcolor='3',
+#                                fontsize=8)
+#             fnode.uri = result.get('fromformat')
+#             tnode.uri = result.get('toformat')
+#             graph.add_node(fnode)
+#             graph.add_node(tnode)
+#             fedge = pydot.Edge(fnode, tnode,
+#                                shape='curve', labeldistance='2',
+#                                fontsize=11, headlabel=result.get('mappings'))
+#             graph.add_edge(fedge)
+#         return graph
+        
 
 class Mapping(_DotMixin):
     """
@@ -142,6 +225,18 @@ class Mapping(_DotMixin):
         self.contributors = contributors
         self.dateAccepted = dateAccepted
         self.inverted = inverted
+
+    @property
+    def shaid(self):
+        result = None
+        if self.uri is not None:
+            result = self.uri.data.split('/')[-1].rstrip('>')
+        return result
+    @shaid.setter
+    def shaid(self, shaid):
+        subj_pref = 'http://www.metarelate.net/{}/mapping/'
+        subj_pref = subj_pref.format(site_config['fuseki_dataset'])
+        self.uri = Item(subj_pref + str(shaid))
 
     @property
     def source(self):
@@ -502,7 +597,7 @@ class Mapping(_DotMixin):
 
 class Component(_DotMixin):
     """
-    A Component is a typed identifiable collection of metadata.
+    A Component is a typed, identifiable collection of metadata.
     
     One may be an identified as a source or target for a mapping.
 
@@ -522,6 +617,13 @@ class Component(_DotMixin):
                 raise TypeError('one of the properties is a {}, not '
                                 'a metarelate Property'.format(type(prop)))
         self.properties = properties
+
+    @property
+    def shaid(self):
+        result = None
+        if self.uri is not None:
+            result = self.uri.data.split('/')[-1].rstrip('>')
+        return result
 
     def __eq__(self, other):
         result = NotImplemented
@@ -599,6 +701,10 @@ class Component(_DotMixin):
             raise ValueError('A property named {} already exists'.format(key))
         elif key in self._okeys():
             self.__dict__[key] = value
+        elif key == 'shaid':
+            subj_pref = 'http://www.metarelate.net/{}/component/'
+            subj_pref = subj_pref.format(site_config['fuseki_dataset'])
+            self.uri = Item(subj_pref + str(value))
         else:
             if isinstance(value, Property):
                 self.properties.append(value)
@@ -622,7 +728,7 @@ class Component(_DotMixin):
     def compound(self):
         return not self.simple
 
-    def dot(self, graph, parent, name=None):
+    def dot(self, graph=None, parent=None, name=None):
         """
         Generate a Dot digraph representation of this mapping component.
 
@@ -637,6 +743,14 @@ class Component(_DotMixin):
             Name of the relationship between the nodes.
 
         """
+        _returngraph = False
+        if graph is None and parent is None:
+            graph = pydot.Dot(graph_type='digraph',
+                              label='Metarelate',
+                              labelloc='t', labeljust='l',
+                              fontsize=15)
+            parent = Mapping(Item('',''))
+            _returngraph = True
         label = self.dot_escape('{}_{}'.format(parent.uri, self.uri.data))
         nlabel = self.dot_escape(self.com_type.data)
         node = pydot.Node(label, label=nlabel,
@@ -650,7 +764,11 @@ class Component(_DotMixin):
             edge.set_fontsize(7)
         for property in self.properties:
             property.dot(graph, node)
-        return node
+        if _returngraph:
+            result = graph
+        else:
+            result = node
+        return result
 
     def populate_from_uri(self, fuseki_process):
         statements = fuseki_process.run_query(self.sparql_retriever())
@@ -677,6 +795,8 @@ class Component(_DotMixin):
                                                              rdfobject))
 
     def sparql_retriever(self):
+        if self.uri is None:
+            raise ValueError('URI required, None found')
         qstr = ('SELECT ?component ?p ?o '
                 'WHERE {GRAPH <http://metarelate.net/concepts.ttl> {'
                 '?component ?p ?o ; '

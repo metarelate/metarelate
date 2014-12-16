@@ -45,9 +45,21 @@ from metarelate.editor.settings import fuseki_process
 from metarelate.editor.settings import ROOTUSER
 
 def home(request):
+    context = RequestContext(request)
+    response = render_to_response('home.html', context)
+    return response
+
+def homegraph(request):
+    response = HttpResponse(content_type="image/svg+xml")
+    graph = fuseki_process.summary_graph()
+    response.write(graph.create_svg())
+    return response
+    
+
+def controlpanel(request):
     """
-    returns a view for the editor homepage
-    a control panel for interacting with the triple store
+    returns a view for the editor control panelhomepage
+    for interacting with the triple store
     and reporting on status
     
     """
@@ -105,28 +117,74 @@ def url_qstr(path, **kwargs):
     """
     return path + '?' + urllib.urlencode(kwargs)
 
+def retrieve_mappings(request):
+    # send back json string
+    #requestor_path = request.GET.get('ref', '')
+    #requestor = urllib.unquote(requestor_path).decode('utf8')
+    #import pdb; pdb.set_trace()
+    #if requestor == '':
+    #    requestor = '{}'
+    #requestor = json.loads(requestor)
+    ## need a source and a target
+    # if not requestor.get('source') of requestor.get('target'):
+    ### but, do we want to throw an exception, or do we want to return a 404??
+    ### to ponder
+    #     return HttpResponse(404)
+    # else:
+    sourcetype = metarelate.Item(request.GET.get('source'))
+    targettype = metarelate.Item(request.GET.get('target'))
+    response = HttpResponse(content_type="")
+    map_templates = json.dumps('{}')
+    try:
+        map_templates = fuseki_process.retrieve_mapping_templates(sourcetype, targettype)
+    except Exception:
+        pass
+    response.write(map_templates)
+    return response
 
 def mapping_view_graph(request, mapping_id):
     """"""
-    maproot = '<http://www.metarelate.net/metOcean/mapping/{}>'
-    mapping = metarelate.Mapping(maproot.format(mapping_id))
+    mapping = metarelate.Mapping(None)
+    mapping.shaid = mapping_id
     mapping.populate_from_uri(fuseki_process)
     response = HttpResponse(content_type="image/svg+xml")
     graph = mapping.dot()
     response.write(graph.create_svg())
     return response
 
-def mapping_view(request):
+def mapping(request, mapping_id):
     """"""
-    requestor_path = request.GET.get('ref', '')
-    requestor_path = urllib.unquote(requestor_path).decode('utf8')
-    mapping = metarelate.Mapping(requestor_path)
+    mapping = metarelate.Mapping(None)
+    mapping.shaid = mapping_id
     mapping.populate_from_uri(fuseki_process)
-    shaid = requestor_path.split('/')[-1].rstrip('>')
+    shaid = mapping.shaid
     form = forms.MappingMetadata(initial=mapping.__dict__)
     con_dict = {'mapping':mapping, 'shaid':shaid, 'form':form}
     context = RequestContext(request, con_dict)
     response = render_to_response('viewmapping.html', context)
+    return response
+
+
+def component_view_graph(request, component_id):
+    """"""
+    component = metarelate.Component(None)
+    component.shaid = component_id
+    component.populate_from_uri(fuseki_process)
+    response = HttpResponse(content_type="image/svg+xml")
+    graph = component.dot()
+    response.write(graph.create_svg())
+    return response
+
+def component(request, component_id):
+    """"""
+    component = metarelate.Component(None)
+    component.shaid = component_id
+    component.populate_from_uri(fuseki_process)
+    shaid = component.shaid
+    #form = forms.ComponentMetadata(initial=component.__dict__)
+    con_dict = {'component':component, 'shaid':shaid}#, 'form':form}
+    context = RequestContext(request, con_dict)
+    response = render_to_response('viewcomponent.html', context)
     return response
 
 
@@ -148,8 +206,7 @@ def invalid_mappings(request):
         for inv_map in inv_mappings:
             muri = inv_map['amap']
             mapping = metarelate.Mapping(muri)
-            mapping.populate_from_uri(fuseki_process)
-            url = url_qstr(reverse('mapping_view'), ref=muri)
+            url = reverse('mapping', kwargs={'mapping_id':mapping.shaid})
             sig = inv_map.get('signature', [])
             label = []
             if isinstance(sig, list):

@@ -97,12 +97,13 @@ def update(config):
             env_var = ENV_PREF + option.upper()
             if os.environ.has_key(env_var):
                 result = os.environ[env_var]
-            if result is None:
-                msg = ('Metarelate Configuration - Missing static data '
-                       'directory: environment variable {!r} for the Apache '
-                       'Jena triple store database.')
-                raise ValueError(msg.format(env_var))
-            else:
+            # if result is None:
+            #     msg = ('Metarelate Configuration - Missing static data '
+            #            'directory: environment variable {!r} for the Apache '
+            #            'Jena triple store database.')
+            #     raise ValueError(msg.format(env_var))
+            # else:
+            if result is not None:
                 config[option] = result
 
             option = 'data_project'
