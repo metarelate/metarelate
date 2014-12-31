@@ -389,20 +389,20 @@ class FusekiServer(object):
                     ' targets in the same format for a particular source')
         failures[mm_string] = self.run_query(multiple_mappings(graph=graph))
 
-        static_dir = metarelate.site_config.get('static_dir')
-        if static_dir:
-            dpdir = metarelate.site_config['static_dir'].rstrip('staticData')
+        # static_dir = metarelate.site_config.get('static_dir')
+        # if static_dir:
+        #     dpdir = metarelate.site_config['static_dir'].rstrip('staticData')
 
-            sys.path.append(os.path.join(dpdir, 'lib'))
+        #     sys.path.append(os.path.join(dpdir, 'lib'))
 
-            import metarelate_metocean.validation
+        #     import metarelate_metocean.validation
 
-            vtests = [o[0] for o in getmembers(metarelate_metocean.validation) if isfunction(o[1]) 
-                      and not o[0].startswith('_')]
+        #     vtests = [o[0] for o in getmembers(metarelate_metocean.validation) if isfunction(o[1]) 
+        #               and not o[0].startswith('_')]
 
-            for vtest in vtests:
-                res = metarelate_metocean.validation.__dict__[vtest].__call__(self)
-                metarelate.careful_update(failures, res)
+        #     for vtest in vtests:
+        #         res = metarelate_metocean.validation.__dict__[vtest].__call__(self)
+        #         metarelate.careful_update(failures, res)
 
         return failures
 
@@ -719,8 +719,8 @@ def multiple_mappings(test_source=None, graph=None):
     """
     gstr = ''
     if graph:
-        gstr = ('FROM NAMED <http://metarelate.net/{}mappings.ttl>'
-                'FROM NAMED <http://metarelate.net/{}concepts.ttl>'
+        gstr = ('FROM NAMED <http://metarelate.net/{}/mappings.ttl>'
+                'FROM NAMED <http://metarelate.net/{}/concepts.ttl>'
                 ''.format(graph, graph))
     tm_filter = ''
     if test_source:
