@@ -166,6 +166,7 @@ def controlpanel(request):
         con_dict['mappings'] = branch_mappings
         con_dict['control'] = {'control':'control'}
         con_dict['form'] = form
+        con_dict['branch'] = branch
         context = RequestContext(request, con_dict)
         response = render_to_response('main.html', context)
     return response

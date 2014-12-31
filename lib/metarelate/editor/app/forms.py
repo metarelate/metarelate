@@ -527,8 +527,10 @@ class HomeForm(forms.Form):
             print  'cached changes saved'
             fuseki_process.save()
         elif self.data.has_key('validate'):
+            #import pdb; pdb.set_trace()
+            graph = self.data.get('validate')
             print 'validate triplestore'
-            self.cleaned_data['validation'] = fuseki_process.validate()
+            self.cleaned_data['validation'] = fuseki_process.validate(graph)
         return self.cleaned_data
 
 

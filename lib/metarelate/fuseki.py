@@ -379,7 +379,7 @@ class FusekiServer(object):
                 subprocess.check_call(tdb_load)
         self.start()
 
-    def validate(self):
+    def validate(self, graph=None):
         """
         run the validation queries
 
@@ -387,7 +387,7 @@ class FusekiServer(object):
         failures = {}
         mm_string = ('The following mappings are ambiguous, providing multiple'
                     ' targets in the same format for a particular source')
-        failures[mm_string] = self.run_query(multiple_mappings())
+        failures[mm_string] = self.run_query(multiple_mappings(graph=graph))
 
         static_dir = metarelate.site_config.get('static_dir')
         if static_dir:
@@ -710,13 +710,18 @@ def process_data(jsondata):
             resultslist.append(tmpdict)
     return resultslist
 
-def multiple_mappings(test_source=None):
+def multiple_mappings(test_source=None, graph=None):
     """
     returns all the mappings which map the same source to a different target
     where the targets are the same format
     filter to a single test mapping with test_map
     
     """
+    gstr = ''
+    if graph:
+        gstr = ('FROM NAMED <http://metarelate.net/{}mappings.ttl>'
+                'FROM NAMED <http://metarelate.net/{}concepts.ttl>'
+                ''.format(graph, graph))
     tm_filter = ''
     if test_source:
         pattern = '<http.*>'
@@ -725,6 +730,9 @@ def multiple_mappings(test_source=None):
             tm_filter = '\n\tFILTER(?asource = {})'.format(test_source)
     qstr = '''SELECT ?amap ?asource ?atarget ?bmap ?bsource ?btarget
     (GROUP_CONCAT(DISTINCT(?value); SEPARATOR='&') AS ?signature)
+    FROM NAMED <http://metarelate.net/mappings.ttl>
+    FROM NAMED <http://metarelate.net/concepts.ttl>
+    %s
     WHERE {
     GRAPH <http://metarelate.net/mappings.ttl> { {
     ?amap mr:source ?asource ;
@@ -735,8 +743,7 @@ def multiple_mappings(test_source=None):
          mr:target ?asource ;
          mr:source ?atarget . } 
     MINUS {?amap ^dc:replaces+ ?anothermap} %s
-    } 
-    GRAPH <http://metarelate.net/mappings.ttl> { {
+    {
     ?bmap mr:source ?bsource ;
          mr:target ?btarget . } 
     UNION  
@@ -760,7 +767,7 @@ def multiple_mappings(test_source=None):
     }
     GROUP BY ?amap ?asource ?atarget ?bmap ?bsource ?btarget
     ORDER BY ?asource
-    ''' % tm_filter
+    ''' % (gstr, tm_filter)
     return qstr
 
 # def range_component_mapping():
