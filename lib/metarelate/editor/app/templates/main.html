@@ -68,7 +68,7 @@
 <p>
 <input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="save" value="Persist the Triplestore changes to the Static Data Store"/>
 <p>
-<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="validate" value="{{ branch }}"/>
+<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="validate" value="{{ branch }}" label="Validate"/>
 
 
 {% if mappings %}
