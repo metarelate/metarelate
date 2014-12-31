@@ -61,14 +61,29 @@
 <h2>Control Panel</h2>
 <form action="" method="post">
 
-<p>
-<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="load" value="Load Data from Static Data to the local Triplestore"/>
-<p>
-<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="revert" value="Revert the Triplestore to the  Static Data State"/>
+<!-- <p> -->
+<!-- <input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="load" value="Load Data from Static Data to the local Triplestore"/> -->
+<!-- <p> -->
+<!-- <input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="revert" value="Revert the Triplestore to the  Static Data State"/> -->
 <p>
 <input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="save" value="Persist the Triplestore changes to the Static Data Store"/>
 <p>
 <input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="validate" value="Validate the state of the Triplestore"/>
+
+
+{% if mappings %}
+
+{% for mapping in mappings %}
+
+    <ul>
+    <li><a href="{{ mapping.url }}">{{ mapping.label }}</a></li>
+    </ul>
+
+
+{% endfor %}
+
+{% endif %}
+
 
 
 {% if invalid %}

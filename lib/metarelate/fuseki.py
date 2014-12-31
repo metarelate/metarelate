@@ -339,7 +339,22 @@ class FusekiServer(object):
     #         results = results + result
     #     return results
 
-    # def query_branch(branch):
+    def query_branch(self, branch=None):
+        """
+        return the mappings which are valid in the provided graph
+        """
+        map_ids = []
+        if branch is not None:
+            map_qstr = ('SELECT ?mapping \n'
+                        'WHERE { \n'
+                        'GRAPH <http://metarelate.net/%s/mappings.ttl> { \n'
+                        '?mapping rdf:type mr:Mapping .\n'
+                        # why this optional??
+                        'OPTIONAL {?mapping dc:replaces ?replaces .}\n'
+                        'MINUS {?mapping ^dc:replaces+ ?anothermap} \n'
+                        '}}' % branch)
+            map_ids = self.run_query(map_qstr)
+        return map_ids
 
     def load(self):
         """

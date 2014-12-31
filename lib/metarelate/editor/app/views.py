@@ -134,32 +134,20 @@ def controlpanel(request):
     and reporting on status
     
     """
-    #persist = fuseki_process.query_cache()
-    persist = []
-    # branch = None
-    # persist = fuseki_process.query_branch(branch)
-    cache_status = '{} statements in the local triple store are' \
-                   ' flagged as not existing in the persistent ' \
-                   'StaticData store'.format(len(persist))
-    print_string = ''
-    for r in persist:
-        if len(r.keys()) == 3 and r.has_key('s') and \
-            r.has_key('p') and r.has_key('o'):
-            print_string += '%s\n' % r['s']
-            print_string += '\t%s\n' % r['p']
-            print_string += '\t\t%s\n' % r['o']
-            print_string += '\n'
-        else:
-            for k,v in r.iteritems():
-                print_string += '%s %s\n' (k, v)
-            print_string += '\n'
-    cache_state = print_string
-    #find cached mappings
-    edited_mappings = set()
-    for r in persist:
-        map_str = '<http://www.metarelate.net/metOcean/mapping/'
-        if r.has_key('s') and r['s'].startswith(map_str):
-            edited_mappings.add(r['s'])
+    branch_path = request.GET.get('branch', '')
+    branch = urllib.unquote(branch_path).decode('utf8')
+    branch_mappings = []
+    if branch:
+        branch_mappings = fuseki_process.query_branch(branch)
+        branch_mappings = [bm['mapping'].rstrip('>').lstrip('<') for bm in
+                           branch_mappings]
+        branch_mappings = [bm.split('http://www.metarelate.net/metOcean/mapping/')[-1]
+                           for bm in
+                           branch_mappings]
+        branch_mappings = [reverse(mapping, kwargs={'mapping_id':bm}) 
+                           for bm in branch_mappings]
+        branch_mappings = [{'url':'{}?branch={}'.format(bm, branch),
+                            'label':bm} for bm in branch_mappings] 
     if request.method == 'POST':
         form = forms.HomeForm(request.POST)
         if form.is_valid():
@@ -173,9 +161,9 @@ def controlpanel(request):
                 reload(forms)
                 response = HttpResponseRedirect(url)
     else:
-        form = forms.HomeForm(initial={'cache_status':cache_status,
-                                       'cache_state':cache_state})
-        con_dict = _process_mapping_list(edited_mappings, 'cached mapping edits')
+        form = forms.HomeForm()
+        con_dict = {}
+        con_dict['mappings'] = branch_mappings
         con_dict['control'] = {'control':'control'}
         con_dict['form'] = form
         context = RequestContext(request, con_dict)
@@ -218,9 +206,13 @@ def retrieve_mappings(request):
 
 def mapping_view_graph(request, mapping_id):
     """"""
+    branch_path = request.GET.get('branch', '')
+    branch = urllib.unquote(branch_path).decode('utf8')
+    if branch:
+        branch = branch + '/'
     mapping = metarelate.Mapping(None)
     mapping.shaid = mapping_id
-    mapping.populate_from_uri(fuseki_process)
+    mapping.populate_from_uri(fuseki_process, graph=branch)
     response = HttpResponse(content_type="image/svg+xml")
     graph = mapping.dot()
     response.write(graph.create_svg())
@@ -228,12 +220,17 @@ def mapping_view_graph(request, mapping_id):
 
 def mapping(request, mapping_id):
     """"""
+    branch_path = request.GET.get('branch', '')
+    branch = urllib.unquote(branch_path).decode('utf8')
+    branchurl = ''
+    if branch:
+        branchurl = branch + '/'
     mapping = metarelate.Mapping(None)
     mapping.shaid = mapping_id
-    mapping.populate_from_uri(fuseki_process)
+    mapping.populate_from_uri(fuseki_process, graph=branchurl)
     shaid = mapping.shaid
     form = forms.MappingMetadata(initial=mapping.__dict__)
-    con_dict = {'mapping':mapping, 'shaid':shaid, 'form':form}
+    con_dict = {'mapping':mapping, 'shaid':shaid, 'form':form, 'branchid':branch}
     context = RequestContext(request, con_dict)
     response = render_to_response('viewmapping.html', context)
     return response

@@ -506,24 +506,24 @@ class HomeForm(forms.Form):
     Form to support the home control panel
     and control buttons
     """
-    cache_status = forms.CharField(max_length=200, 
-                                   widget=forms.TextInput(attrs={'size': '100',
-                                                                 'readonly':True
-                                                                 }))
-    cache_state = forms.CharField(required=False,
-                                  widget=forms.Textarea(attrs={'cols': 100,
-                                                               'rows': 50,
-                                                               'readonly':True
-                                                               }))
+    # cache_status = forms.CharField(max_length=200, 
+    #                                widget=forms.TextInput(attrs={'size': '100',
+    #                                                              'readonly':True
+    #                                                              }))
+    # cache_state = forms.CharField(required=False,
+    #                               widget=forms.Textarea(attrs={'cols': 100,
+    #                                                            'rows': 50,
+    #                                                            'readonly':True
+    #                                                            }))
 
     def clean(self):
-        if self.data.has_key('load'):
-            print 'data loaded'
-            fuseki_process.load()
-        elif self.data.has_key('revert'):
-            print 'save cache reverted'
-            fuseki_process.revert()
-        elif self.data.has_key('save'):
+        # if self.data.has_key('load'):
+        #     print 'data loaded'
+        #     fuseki_process.load()
+        # elif self.data.has_key('revert'):
+        #     print 'save cache reverted'
+        #     fuseki_process.revert()
+        if self.data.has_key('save'):
             print  'cached changes saved'
             fuseki_process.save()
         elif self.data.has_key('validate'):

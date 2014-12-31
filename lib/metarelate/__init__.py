@@ -465,8 +465,7 @@ class Mapping(_DotMixin):
         return referrer
 
     def populate_from_uri(self, fuseki_process, graph=None):
-        #need to add 'current branch' fetch behaviour
-        elements, = fuseki_process.run_query(self.sparql_retriever())
+        elements, = fuseki_process.run_query(self.sparql_retriever(graph=graph))
         if self.inverted == '"True"':
             if self.invertible != '"True"':
                 raise ValueError('A mapping may not be inverted but not '
@@ -476,8 +475,8 @@ class Mapping(_DotMixin):
         else:
             self.source = Component(elements.get('source'))
             self.target = Component(elements.get('target'))
-        self.source.populate_from_uri(fuseki_process)
-        self.target.populate_from_uri(fuseki_process)
+        self.source.populate_from_uri(fuseki_process, graph)
+        self.target.populate_from_uri(fuseki_process, graph)
         self.date = elements.get('date')
         self.creator = elements.get('creator')
         self.invertible = elements.get('invertible')
@@ -784,8 +783,7 @@ class Component(_DotMixin):
         return result
 
     def populate_from_uri(self, fuseki_process, graph=None):
-        #need to add 'current branch' fetch behaviour
-        statements = fuseki_process.run_query(self.sparql_retriever())
+        statements = fuseki_process.run_query(self.sparql_retriever(graph=graph))
         for statement in statements:
             if statement.get('p') == '<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>':
                 self.com_type = Item(statement.get('o'),
