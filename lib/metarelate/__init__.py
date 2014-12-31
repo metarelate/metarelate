@@ -504,36 +504,43 @@ class Mapping(_DotMixin):
             careful_update(target_ids, prop.get_identifiers(fuseki_process))
         return (source_ids, target_ids)
 
-    def sparql_retriever(self, rep=True):
+    def sparql_retriever(self, rep=True, graph=None):
         vstr = ''
         if rep:
             vstr += '\n\tMINUS {?mapping ^dc:replaces+ ?anothermap}'
+
+        main = ('{GRAPH <http://metarelate.net/%smappings.ttl> {\n'
+                '?mapping mr:source ?source ;\n'
+                '     mr:target ?target ;\n'
+                '     mr:invertible ?invertible ;\n'
+                '     dc:date ?date ;\n'
+                '     dc:creator ?creator .\n'
+                'OPTIONAL {?mapping dc:replaces ?replaces .}\n'
+                'OPTIONAL {?mapping skos:note ?note .}\n'
+                'OPTIONAL {?mapping mr:hasValueMap ?valueMap .}\n'
+                'OPTIONAL {?mapping dc:rightsHolder ?rights .}\n'
+                'OPTIONAL {?mapping dc:rightsHolder ?rightsHolder .}\n'
+                'OPTIONAL {?mapping dc:contributor ?contributor .}\n'
+                'OPTIONAL {?mapping dc:dateAccepted ?dateAccepted .}\n'
+                'FILTER(?mapping = %s)\n'
+                '%s\n}}\n')
+        maingraph = main  % ('', self.uri.data, vstr)
+        branchgraph = ''
+        if graph is not None:
+            branchgraph = main % (graph, self.uri.data, vstr)
+            branchgraph = 'UNION\n{}'.format(branchgraph)
         qstr = '''SELECT ?mapping ?source ?target ?invertible ?replaces 
                          ?note ?date ?creator ?rights ?dateAccepted
         (GROUP_CONCAT(DISTINCT(?rightsHolder); SEPARATOR = '&') AS ?rightsHolders)
         (GROUP_CONCAT(DISTINCT(?contibutor); SEPARATOR = '&') AS ?contributors)
         (GROUP_CONCAT(DISTINCT(?valueMap); SEPARATOR = '&') AS ?valueMaps)
         WHERE {
-        GRAPH <http://metarelate.net/mappings.ttl> {
-        ?mapping mr:source ?source ;
-             mr:target ?target ;
-             mr:invertible ?invertible ;
-             dc:date ?date ;
-             dc:creator ?creator .
-        OPTIONAL {?mapping dc:replaces ?replaces .}
-        OPTIONAL {?mapping skos:note ?note .}
-        OPTIONAL {?mapping mr:hasValueMap ?valueMap .}
-        OPTIONAL {?mapping dc:rightsHolder ?rights .}
-        OPTIONAL {?mapping dc:rightsHolder ?rightsHolder .}
-        OPTIONAL {?mapping dc:contributor ?contributor .}
-        OPTIONAL {?mapping dc:dateAccepted ?dateAccepted .}
-        FILTER(?mapping = %s)
         %s
-        }
+        %s
         }
         GROUP BY ?mapping ?source ?target ?invertible ?replaces
                  ?note ?date ?creator ?rights ?dateAccepted
-        ''' % (self.uri.data, vstr)
+        ''' % (maingraph, branchgraph)
         return qstr
 
     @staticmethod

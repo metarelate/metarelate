@@ -16,6 +16,7 @@
 # along with metarelate. If not, see <http://www.gnu.org/licenses/>.
 
 from collections import deque
+from datetime import datetime
 import glob
 from inspect import getmembers, isfunction
 import json
@@ -714,32 +715,13 @@ class FusekiServer(object):
         summary = metarelate.KBaseSummary(results)
         return summary.dot()
 
-    # def _summary_graph(self):
-    #     qstr = ('SELECT ?fromformat ?toformat (count(?mapping) as ?mappings) '
-    #             'WHERE { '
-    #             'GRAPH <http://metarelate.net/mappings.ttl> { '
-    #             '?mapping rdf:type mr:Mapping . '
-    #             'MINUS {?mapping ^dc:replaces+ ?anothermap} '
-    #             '{?mapping mr:source ?source ; '
-    #             ' mr:target ?target .} '
-    #             'UNION '
-    #             '{?mapping mr:invertible "True" ; '
-    #             ' mr:source ?target ; '
-    #             ' mr:target ?source .} '
-    #             '}'
-    #             'GRAPH <http://metarelate.net/concepts.ttl> { '
-    #             '?source rdf:type ?fromformat . '
-    #             '?target rdf:type ?toformat . '
-    #             'FILTER(?toformat !=  '
-    #             '<http://www.metarelate.net/vocabulary/index.html#Component>) '
-    #             'FILTER(?fromformat != '
-    #             '<http://www.metarelate.net/vocabulary/index.html#Component>) '
-    #             '}} '
-    #             'group by ?fromformat ?toformat')
-    #     results = self.run_query(qstr)
-    #     summary = metarelate.BaseSummary(results)
-    #     return summary.dot()
-
+    def branch_graph(user='root'):
+        datestamp = datetime.now().isoformat()
+        graphid = metarelate.make_hash({user, datestamp})
+        instr = ('create GRAPH <http://metarelate.net/{g}/mappings.ttl> .\n'
+                 'create GRAPH <http://metarelate.net/{g}/concepts.ttl> .\n')
+        self.run_query(instr, update=True)
+        return graphid
 
 def process_data(jsondata):
     """ helper method to take JSON output from a query and return the results"""
