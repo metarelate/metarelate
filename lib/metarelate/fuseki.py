@@ -734,7 +734,7 @@ def multiple_mappings(test_source=None, graph=None):
     FROM NAMED <http://metarelate.net/concepts.ttl>
     %s
     WHERE {
-    GRAPH <http://metarelate.net/mappings.ttl> { {
+    GRAPH ?gm { {
     ?amap mr:source ?asource ;
          mr:target ?atarget . } 
     UNION 
@@ -756,7 +756,7 @@ def multiple_mappings(test_source=None, graph=None):
     filter (?bsource = ?asource)
     filter (?btarget != ?atarget)
     } 
-    GRAPH <http://metarelate.net/concepts.ttl> {
+    GRAPH ?gc {
     ?asource rdf:type ?asourceformat .
     ?bsource rdf:type ?bsourceformat .
     ?atarget rdf:type ?atargetformat .
