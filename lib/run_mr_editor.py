@@ -30,9 +30,9 @@ import metarelate.editor.settings as settings
 import metarelate.fuseki as fu
 
 if __name__ == "__main__":
-    # with fu.FusekiServer() as server:
-    if True:
-        server = fu.FusekiServer()
+    with fu.FusekiServer() as server:
+    # if True:
+    #     server = fu.FusekiServer()
         settings.fuseki_process = server
         # execute_from_command_line(settings)
         os.environ.setdefault("DJANGO_SETTINGS_MODULE", "metarelate.editor.settings")

@@ -197,18 +197,12 @@ class FusekiServer(object):
                     'to start.'
                 raise RuntimeError(msg)
 
-    def stop(self, save=False):
+    def stop(self):
         """
         Shutdown the metarelate Apache Fuseki SPARQL server.
 
-        Kwargs:
-         * save:
-            Save any cache results to the configured Apache Jena triple
-            store database.
             
         """
-        if save:
-            self.save()
         if self.alive():
             pid = self._process.pid
             self._process.terminate()
@@ -257,6 +251,7 @@ class FusekiServer(object):
         """
         Delete all of the files in the configured Apache Jena triple
         store database.
+        :o
 
         """
         if self.alive():
@@ -266,150 +261,85 @@ class FusekiServer(object):
             os.remove(tdb_file)
         return glob.glob(files)
 
-    def save(self):
+    def save(self, branch):
         """
-        write out all saveCache flagged changes in the metarelate graph,
-        appending to the relevant ttl files
-        remove saveCache flags after saving
+        write out all of the branch changes to a ttl file
         
         """
         
         main_graph = metarelate.site_config['graph']
-        files = os.path.join(self._static_dir, main_graph, '*.ttl')
-        for subgraph in glob.glob(files):
-            graph = 'http://%s/%s' % (main_graph, subgraph.split('/')[-1])
-            save_string = self.save_cache(graph)
+        filepath = os.path.join(self._static_dir, main_graph)
+        branchdir = os.path.join(filepath, branch)
+        os.mkdir(branchdir)
+        for subgraph in ['mappings.ttl', 'concepts.ttl']:
+            outfile = branchdir + subgraph
+            save_string = self.save_branch(branch, subgraph)
             if save_string:
-                with open(subgraph, 'w') as sg:
+                with open(outfile, 'w') as sg:
                     sg.write(HEADER)
                     for line in save_string.splitlines():
                         sg.write(line + '\n')
 
-    def save_cache(self, graph, debug=False):
+    def save_branch(self, branch, subgraph, debug=False):
         """
-        export new records from a graph in the triple store to an external location,
-        as flagged by the manager application
-        clear the 'not saved' flags on records, updating a graph in the triple store
-        with the fact that changes have been persisted to ttl
+        export new records from a graph in the triple store to a string
 
         """
-        nstr = '''
-        SELECT ?s ?p ?o
-        WHERE {
-        GRAPH <%s>
-        {
-        ?s ?p ?o ;
-            mr:saveCache "True" .
-        }
-        } 
-        ''' % graph
-        n_res = self.run_query(nstr)
-        delstr = '''
-        DELETE
-        {  GRAPH <%s>
-            {
-            ?s mr:saveCache "True" .
-            }
-        }
-        WHERE
-        {  GRAPH <%s>
-            {
-        ?s ?p ?o ;
-            mr:saveCache "True" .
-            }
-        } 
-        ''' % (graph,graph)
-        delete_results = self.run_query(delstr, update=True, debug=debug)
-        qstr = '''
-        SELECT
-            ?s ?p ?o
-        WHERE
-        {
-        GRAPH <%s>
-        {
-        ?s ?p ?o .
-        }
-        }
-        order by ?s ?p ?o
-        ''' % graph
+        #<http://metarelate.net/%sconcepts.ttl>
+        graph = '<http://metarelate.net/{}{}>'.format(branch, subgraph)
+        qstr = ('SELECT ?s ?p ?o\n'
+                'WHERE { GRAPH %s {\n'
+                '    ?s ?p ?o .\n'
+                '} }\n'
+                'order by ?s ?p ?o\n' % graph)
         results = self.run_query(qstr, debug=debug)
         save_string = ''
         save_out = []
-        if n_res:
-            subj = ''
-            for res in results:
-                if res['s'] == subj:
-                    save_out.append('\t{} {} ;'.format(res['p'], res['o']))
-                elif subj == '':
-                    subj = res['s']
-                    save_out.append('\n{}\n\t{} {} ;'.format(res['s'],
-                                                               res['p'],
-                                                               res['o']))
-                else:
-                    subj = res['s']
-                    save_out.append('\t.\n\n{}\n\t{} {} ;'.format(res['s'],
-                                                               res['p'],
-                                                               res['o']))
-            save_string = '\n'.join(save_out)
+        subj = ''
+        for res in results:
+            if res['s'] == subj:
+                save_out.append('\t{} {} ;'.format(res['p'], res['o']))
+            elif subj == '':
+                subj = res['s']
+                save_out.append('\n{}\n\t{} {} ;'.format(res['s'],
+                                                           res['p'],
+                                                           res['o']))
+            else:
+                subj = res['s']
+                save_out.append('\t.\n\n{}\n\t{} {} ;'.format(res['s'],
+                                                           res['p'],
+                                                           res['o']))
+        save_string = '\n'.join(save_out)
         return save_string
 
 
-    def revert(self):
-        """
-        identify all cached changes in the metarelate graph
-        and remove them, reverting the TDB to the same state
-        as the saved ttl files
-        
-        """
-        qstr = '''
-        DELETE
-        {  GRAPH <%s>
-            {
-            ?s ?p ?o .
-            }
-        }
-        WHERE
-        {  GRAPH <%s>
-            {
-            ?s ?p ?o ;
-            mr:saveCache "True" .
-            }
-        } 
-        '''
-        main_graph = metarelate.site_config['graph']
-        files = os.path.join(self._static_dir, main_graph, '*.ttl')
-        for infile in glob.glob(files):
-            ingraph = infile.split('/')[-1]
-            graph = 'http://%s/%s' % (main_graph, ingraph)
-            qstring = qstr % (graph, graph)
-            revert_string = self.run_query(qstring, update=True)
+    # def query_cache(self):
+    #     """
+    #     identify all cached changes in the metarelate graph
 
-    def query_cache(self):
-        """
-        identify all cached changes in the metarelate graph
+    #     """
+    #     qstr = '''
+    #     SELECT ?s ?p ?o
+    #     WHERE
+    #     {  GRAPH <%s>
+    #         {
+    #     ?s ?p ?o ;
+    #         mr:saveCache "True" .
+    #         }
+    #     } 
+    #     '''
+    #     results = []
+    #     main_graph = metarelate.site_config['graph']
+    #     files = os.path.join(self._static_dir, main_graph, '*.ttl')
+    #     for infile in glob.glob(files):
+    #         ingraph = infile.split('/')[-1]
+    #         graph = 'http://%s/%s' % (main_graph, ingraph)
+    #         query_string = qstr % (graph)
+    #         result = self.run_query(query_string)
+    #         results = results + result
+    #     return results
 
-        """
-        qstr = '''
-        SELECT ?s ?p ?o
-        WHERE
-        {  GRAPH <%s>
-            {
-        ?s ?p ?o ;
-            mr:saveCache "True" .
-            }
-        } 
-        '''
-        results = []
-        main_graph = metarelate.site_config['graph']
-        files = os.path.join(self._static_dir, main_graph, '*.ttl')
-        for infile in glob.glob(files):
-            ingraph = infile.split('/')[-1]
-            graph = 'http://%s/%s' % (main_graph, ingraph)
-            query_string = qstr % (graph)
-            result = self.run_query(query_string)
-            results = results + result
-        return results
-
+    # def query_branch(branch):
 
     def load(self):
         """
@@ -636,7 +566,7 @@ class FusekiServer(object):
             raise ValueError(ec)
         return results
 
-    def find_valid_mapping(self, source, target):
+    def find_valid_mapping(self, source, target, graph=None):
         """
         Returns a mapping instance which links the source to the target,
         or None, or an error if multiple mappings exist
@@ -656,7 +586,7 @@ class FusekiServer(object):
             raise ValueError('target must be ametarelate Component or None')
         result = None
         if source is not None:
-            source_qstr, sinstr = source.creation_sparql()
+            source_qstr, sinstr = source.creation_sparql(graph)
             source_uri = self.run_query(source_qstr)
             if len(source_uri) > 1:
                 raise ValueError('Source Component exists in duplicate in store')
@@ -666,7 +596,7 @@ class FusekiServer(object):
                     raise ValueError('Source Component URI is different from '
                                      'a duplicate Component in the store')
         if target is not None:
-            target_qstr, instr = target.creation_sparql()
+            target_qstr, instr = target.creation_sparql(graph)
             target_uri = self.run_query(target_qstr)
             if len(target_uri) > 1:
                 raise ValueError('Target Component exists in duplicate in store')
@@ -715,13 +645,20 @@ class FusekiServer(object):
         summary = metarelate.KBaseSummary(results)
         return summary.dot()
 
-    def branch_graph(user='root'):
+    def branch_graph(self, user):
+        if not user.startswith('https://github.com/'):
+            raise ValueError('invalid user URI: {}'.format(user))
+        else:
+            user = '<{}>'.format(user)
         datestamp = datetime.now().isoformat()
-        graphid = metarelate.make_hash({user, datestamp})
-        instr = ('create GRAPH <http://metarelate.net/{g}/mappings.ttl> .\n'
-                 'create GRAPH <http://metarelate.net/{g}/concepts.ttl> .\n')
+        graphid = metarelate.make_hash({user: datestamp})
+        instr = ('create GRAPH <http://metarelate.net/{g}/concepts.ttl> '
+                 '\n'.format(g=graphid))
         self.run_query(instr, update=True)
-        return graphid
+        instr = ('create GRAPH <http://metarelate.net/{g}/mappings.ttl>'
+                 '\n'.format(g=graphid))
+        self.run_query(instr, update=True)
+        return '{}/'.format(graphid)
 
 def process_data(jsondata):
     """ helper method to take JSON output from a query and return the results"""

@@ -442,12 +442,12 @@ class Mapping(_DotMixin):
         return podict
 
 
-    def create_rdf(self, fuseki_process):
+    def create_rdf(self, fuseki_process, graph=None):
         """
         create the rdf representation using the provided fuseki process
 
         """
-        qstr, instr = self.sparql_creator(self._podict())
+        qstr, instr = self.sparql_creator(self._podict(), graph)
         result = fuseki_process.create(qstr, instr)
         self.uri = Item(result['mapping'])
 
@@ -464,7 +464,8 @@ class Mapping(_DotMixin):
         ## what about other attributes?? not implemented yet
         return referrer
 
-    def populate_from_uri(self, fuseki_process):
+    def populate_from_uri(self, fuseki_process, graph=None):
+        #need to add 'current branch' fetch behaviour
         elements, = fuseki_process.run_query(self.sparql_retriever())
         if self.inverted == '"True"':
             if self.invertible != '"True"':
@@ -543,8 +544,10 @@ class Mapping(_DotMixin):
         ''' % (maingraph, branchgraph)
         return qstr
 
-    @staticmethod
-    def sparql_creator(po_dict):
+    # @staticmethod
+    def sparql_creator(self, po_dict, graph=None):
+        if graph is None:
+            raise ValueError('graph cannot be None')
         subj_pref = 'http://www.metarelate.net/{}/mapping'
         subj_pref = subj_pref.format(site_config['fuseki_dataset'])
         allowed_preds = set(('mr:source', 'mr:target', 'mr:invertible',
@@ -585,20 +588,21 @@ class Mapping(_DotMixin):
                 %s %s ;''' % (pred, po_dict[pred])
         sha1 = make_hash(po_dict, ['''dc:date'''])
         mapping = '%s/%s' % (subj_pref, sha1)
-        qstr = '''SELECT ?mapping
-        WHERE {
-        GRAPH <http://metarelate.net/mappings.ttl> {
-        ?mapping rdf:type mr:Mapping .
-        FILTER(?mapping = <%s>)
-        } }''' % mapping
+        qstr = ('SELECT ?mapping\n'
+                'FROM NAMED <http://metarelate.net/mappings.ttl>\n'
+                'FROM NAMED <http://metarelate.net/%smappings.ttl>\n'
+                'WHERE {\n'
+                'GRAPH  ?g {\n'
+                '?mapping rdf:type mr:Mapping .\n'
+                'FILTER(?mapping = <%s>)'
+                '        } }' % (graph, mapping))
         instr = '''INSERT DATA {
-        GRAPH <http://metarelate.net/mappings.ttl> {
+        GRAPH <http://metarelate.net/%smappings.ttl> {
         <%s> a mr:Mapping ;
                     %s
-                    mr:saveCache "True" .
         }
         }
-        ''' % (mapping, search_string)
+        ''' % (graph, mapping, search_string)
         return qstr, instr
 
 
@@ -779,7 +783,8 @@ class Component(_DotMixin):
             result = node
         return result
 
-    def populate_from_uri(self, fuseki_process):
+    def populate_from_uri(self, fuseki_process, graph=None):
+        #need to add 'current branch' fetch behaviour
         statements = fuseki_process.run_query(self.sparql_retriever())
         for statement in statements:
             if statement.get('p') == '<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>':
@@ -803,58 +808,58 @@ class Component(_DotMixin):
                     self.properties.append(StatementProperty(predicate, 
                                                              rdfobject))
 
-    def sparql_retriever(self):
+    def sparql_retriever(self, graph=None):
         if self.uri is None:
             raise ValueError('URI required, None found')
-        qstr = ('SELECT ?component ?p ?o '
-                'WHERE {GRAPH <http://metarelate.net/concepts.ttl> {'
-                '?component ?p ?o ; '
-                'rdf:type mr:Component .'
-                'FILTER(?component = %s) '
-                'FILTER(?o != mr:Component) '
-                'FILTER(?p != mr:saveCache) '
-                '}}' % self.uri.data)
+        main = ('{GRAPH <http://metarelate.net/%sconcepts.ttl> {\n'
+                '?component ?p ?o ; \n'
+                'rdf:type mr:Component .\n'
+                'FILTER(?component = %s) \n'
+                'FILTER(?o != mr:Component) \n'
+                'FILTER(?p != mr:saveCache) }}\n' )
+        maingraph = main % ('', self.uri.data)
+        branchgraph = ''
+        if graph is not None:
+            branchgraph = main % (graph, self.uri.data)
+            branchgraph = 'UNION\n{}'.format(branchgraph)
+        qstr = ('SELECT ?component ?p ?o \n'
+                'WHERE {\n'
+                '%s\n%s'
+                '}\n' % (maingraph, branchgraph))
         return qstr
 
-    def sparql_creator(self, po_dict):
+    def sparql_creator(self, po_dict, graph=None):
+        if graph is None:
+            raise ValueError('graph cannot be None')
         subj_pref = 'http://www.metarelate.net/{}/component'
         subj_pref = subj_pref.format(site_config['fuseki_dataset'])
         search_string = ''
-        n_statements = 2
+        n_statements = 1
         ## type and savecache
         for pred, objs in po_dict.iteritems():
             for obj in objs:
                 search_string += '\t\t{p} {o} \n;'.format(p=pred, o=obj)
-                n_statements +=1
-        qstr = ('SELECT ?component WHERE {{\n'
+                n_statements += 1
+        qstr = ('SELECT ?component \n'
+                'FROM NAMED <http://metarelate.net/concepts.ttl>\n'
+                'FROM NAMED <http://metarelate.net/%sconcepts.ttl>\n'
+                'WHERE {\n'
                 '{SELECT ?component (COUNT(?p) as ?statements)\n'
                 'WHERE {\n'
-                'GRAPH <http://metarelate.net/concepts.ttl> {\n'
+                'GRAPH ?g {\n'
                 '?component ?p ?o ;\n'
                 '\t%s'
-                '\tmr:saveCache "True" ;\n'
                 '\t. }}\n'
                 '\tGROUP by ?component\n'
                 '}\n'
                 '\t FILTER(?statements = %i)\n'
-                '}UNION{'
-                '{SELECT ?component (COUNT(?p) as ?statements)\n'
-                'WHERE {\n'
-                'GRAPH <http://metarelate.net/concepts.ttl> {\n'
-                '?component ?p ?o ;\n'
-                '\t%s '
-                '\t.}}\n'
-                '\tGROUP by ?component\n'
-                '}\n'
-                '\t FILTER(?statements = %i)\n'
-                '}}\n' % (search_string, n_statements, search_string, n_statements-1))
+                '}\n' % (graph, search_string, n_statements))
         sha1 = make_hash(po_dict)
         instr = ('INSERT DATA {\n'
-                 '\tGRAPH <http://metarelate.net/concepts.ttl> {\n'
+                 '\tGRAPH <http://metarelate.net/%sconcepts.ttl> {\n'
                  '\t<%s/%s> rdf:type mr:Component ;\n'
                  '\t%s\n'
-                 '\tmr:saveCache "True" .\n'
-                 '}}' % (subj_pref, sha1, search_string))
+                 '}}' % (graph, subj_pref, sha1, search_string))
         return qstr, instr
 
     # def json_referrer(self):
@@ -902,19 +907,19 @@ class Component(_DotMixin):
                 raise TypeError('property not a recognised type:\n{}'.format(type(prop)))
         return podict
 
-    def creation_sparql(self):
+    def creation_sparql(self, graph):
         """
         return SPARQL string for creation of a Concept
 
         """
-        return self.sparql_creator(self._podict())
+        return self.sparql_creator(self._podict(), graph=graph)
 
-    def create_rdf(self, fuseki_process):
+    def create_rdf(self, fuseki_process, graph=None):
         """
         create rdf representation using the provided fuseki process
 
         """
-        qstr, instr = self.creation_sparql()
+        qstr, instr = self.creation_sparql(graph=graph)
         result = fuseki_process.create(qstr, instr)
         self.uri = Item(result['component'])
 

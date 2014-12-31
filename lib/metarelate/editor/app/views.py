@@ -134,7 +134,10 @@ def controlpanel(request):
     and reporting on status
     
     """
-    persist = fuseki_process.query_cache()
+    #persist = fuseki_process.query_cache()
+    persist = []
+    # branch = None
+    # persist = fuseki_process.query_branch(branch)
     cache_status = '{} statements in the local triple store are' \
                    ' flagged as not existing in the persistent ' \
                    'StaticData store'.format(len(persist))
