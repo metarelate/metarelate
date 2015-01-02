@@ -181,7 +181,9 @@ def controlpanel(request):
                         tarinfo.size = len(outstring)
                         tarinfo.mtime = int(time.time())
                         tarf.addfile(tarinfo, outstring_io)
-
+            elif form.cleaned_data.get('delete'):
+                url = reverse('control_panel')
+                response = HttpResponseRedirect(url)
             else:
                 url = url_qstr(reverse('control_panel'), branch=branch)
                 #reload(forms)

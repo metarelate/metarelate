@@ -697,6 +697,39 @@ class FusekiServer(object):
                  '}' % {'g':graphid, 'u':user})
         self.run_query(instr, update=True)
         return '{}/'.format(graphid)
+    
+    def branch_owner(self, graphid):
+        qstr = ('SELECT DISTINCT ?owner WHERE {'
+                '<http://metarelate.net/%(g)sconcepts.ttl>'
+                ' dc:creator ?owner .\n'
+                '<http://metarelate.net/%(g)smappings.ttl>'
+                ' dc:creator ?owner .\n'
+                '}'% {'g':graphid})
+        results = self.run_query(qstr)
+        if len(results) > 1:
+            raise ValueError('multiple owners not allowed')
+        elif len(results) == 1:
+            result, = results
+        else:
+            result = ''
+        return result
+
+    def delete_graph(self, graphid, user):
+        if not user.startswith('https://github.com/'):
+            raise ValueError('invalid user URI: {}'.format(user))
+        else:
+            user = '<{}>'.format(user)
+        branch_owner = self.branch_owner(graphid)['owner']
+        if user != branch_owner:
+            raise ValueError('this graph is not owned by {}'.format(user))
+        instr = ('DROP GRAPH <http://metarelate.net/{g}concepts.ttl> '
+                 '\n'.format(g=graphid))
+        self.run_query(instr, update=True)
+        instr = ('DROP GRAPH <http://metarelate.net/{g}mappings.ttl>'
+                 '\n'.format(g=graphid))
+        self.run_query(instr, update=True)
+        
+
 
 def process_data(jsondata):
     """ helper method to take JSON output from a query and return the results"""

@@ -76,7 +76,18 @@ Validate the current merge of this branch and master:
 
 <p>
 
+{% if branch %}
+Delete this branch:
+<p>
+(this cannot be undone)
+<p>
+<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="delete" value="{{ branch }}" label="Branch"/>
+<p>
+{% endif %}
+
 {% if not branch %}
+Create a new branch:
+<p>
 <input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="branch" value="branch" label="Branch"/>
 <p>
 {% endif %}

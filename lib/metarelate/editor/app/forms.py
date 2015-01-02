@@ -506,22 +506,8 @@ class HomeForm(forms.Form):
     Form to support the home control panel
     and control buttons
     """
-    # cache_status = forms.CharField(max_length=200, 
-    #                                widget=forms.TextInput(attrs={'size': '100',
-    #                                                              'readonly':True
-    #                                                              }))
-    # cache_state = forms.CharField(required=False,
-    #                               widget=forms.Textarea(attrs={'cols': 100,
-    #                                                            'rows': 50,
-    #                                                            'readonly':True
-    #                                                            }))
     def clean(self):
-        # if self.data.has_key('load'):
-        #     print 'data loaded'
-        #     fuseki_process.load()
-        # elif self.data.has_key('revert'):
-        #     print 'save cache reverted'
-        #     fuseki_process.revert()
+        user = 'https://github.com/marqh'
         if self.data.has_key('save'):
             self.cleaned_data['save'] = True
             branch = self.data.get('save')
@@ -537,9 +523,12 @@ class HomeForm(forms.Form):
         elif self.data.has_key('branch'):
             graph = self.data.get('branch')
             print 'cut branch'
-            user = 'https://github.com/marqh'
             graphid = fuseki_process.branch_graph(user)
             self.cleaned_data['branch'] = graphid
+        elif self.data.has_key('delete'):
+            graph = self.data.get('delete')
+            print 'deleting graph'
+            fuseki_process.delete_graph(graph, user)
         return self.cleaned_data
 
 class UploadForm(forms.Form):
