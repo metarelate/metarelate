@@ -81,8 +81,20 @@ Validate the current merge of this branch and master:
 <p>
 {% endif %}
 
-{% if mappings %}
+{% if upload %}
 
+{% for up in upload %}
+
+<p>
+<a href="{{ up }}">Upload a STASH code to CF name batch file.</a>
+<p>
+
+{% endfor %}
+
+{% endif %}
+
+{% if mappings %}
+<h3>Live mappings in this branch:</h3>
 {% for mapping in mappings %}
 
     <ul>

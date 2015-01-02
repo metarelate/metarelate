@@ -122,7 +122,7 @@ def _get_branch(request):
         branch = branch + '/'
     #20-byte hash values only
     asha = re.compile('^[a-f0-9]{40}/$')
-    if not asha.match(branch):
+    if branch and not asha.match(branch):
         raise ValueError('invalid branch identifier')
     return branch
 
@@ -202,6 +202,8 @@ def controlpanel(request):
 
 def upload(request, importer):
     user = 'https://github.com/marqh'
+    if importer != 'stashcf':
+        raise ValueError('no matching yet')
     # find importer: get docstring
     upload_doc = 'upload a stash code to cfname and units table'
     static_dir = metarelate.site_config.get('static_dir')
@@ -215,12 +217,13 @@ def upload(request, importer):
     branch = _get_branch(request)
     #forms.UploadForm
     if request.method == 'POST':
-        form = forms.UploadForm(request.POST)
+#        import pdb; pdb.set_trace()
+        form = forms.UploadForm(request.POST, request.FILES)
         if form.is_valid():
             docfile = request.FILES['docfile']
             uploader.parse_file(fuseki_process, docfile,
                                 user, branch)
-            url = url_qstr(reverse('control_panel'), branch=create_branch)
+            url = url_qstr(reverse('control_panel'), branch=branch)
             return HttpResponseRedirect(url)
                 
     else:
@@ -280,7 +283,7 @@ def mapping(request, mapping_id):
     branch = _get_branch(request)
     mapping = metarelate.Mapping(None)
     mapping.shaid = mapping_id
-    mapping.populate_from_uri(fuseki_process, graph=branchurl)
+    mapping.populate_from_uri(fuseki_process, graph=branch)
     shaid = mapping.shaid
     form = forms.MappingMetadata(initial=mapping.__dict__)
     con_dict = {'mapping':mapping, 'shaid':shaid, 'form':form, 'branchid':branch}

@@ -276,7 +276,6 @@ class FusekiServer(object):
             save_string = self.save_branch(branch, subgraph)
             if save_string:
                 with open(outfile, 'w') as sg:
-                    sg.write(HEADER)
                     for line in save_string.splitlines():
                         sg.write(line + '\n')
 
@@ -319,7 +318,9 @@ class FusekiServer(object):
                 save_out.append('\t.\n\n{}\n\t{} {} ;'.format(res['s'],
                                                            res['p'],
                                                            res['o']))
+        save_out.append('\t.\n')
         save_string = '\n'.join(save_out)
+        save_string = HEADER + save_string
         return save_string
 
 
@@ -357,7 +358,7 @@ class FusekiServer(object):
         if branch is not None:
             map_qstr = ('SELECT ?mapping \n'
                         'WHERE { \n'
-                        'GRAPH <http://metarelate.net/%s/mappings.ttl> { \n'
+                        'GRAPH <http://metarelate.net/%smappings.ttl> { \n'
                         '?mapping rdf:type mr:Mapping .\n'
                         # why this optional??
                         'OPTIONAL {?mapping dc:replaces ?replaces .}\n'
@@ -631,14 +632,19 @@ class FusekiServer(object):
                     raise ValueError('Target Component URI is different from '
                                      'a duplicate Component in the store')
         if source_uri and target_uri:
+            graphs = ('FROM NAMED <http://metarelate.net/mappings.ttl> \n')
+            if graph:
+                graphs = graphs + ('FROM NAMED <http://metarelate.net/'
+                                   '{}mappings.ttl> \n'.format(graph))
             map_qstr = ('SELECT ?mapping \n'
+                        '%s'
                         'WHERE { \n'
-                        'GRAPH <http://metarelate.net/mappings.ttl> { \n'
+                        'GRAPH ?g { \n'
                         '?mapping mr:source %s ;\n'
                         '\tmr:target %s .\n'
                         'OPTIONAL {?mapping dc:replaces ?replaces .}\n'
                         'MINUS {?mapping ^dc:replaces+ ?anothermap} \n'
-                        '}}' % (source_uri, target_uri)) 
+                        '}}' % (graphs, source_uri, target_uri)) 
             map_ids = self.run_query(map_qstr)
             if len(map_ids) > 1:
                 raise ValueError('multiple valid mapping for the same source'
