@@ -263,7 +263,7 @@ class FusekiServer(object):
 
     def save(self, branch):
         """
-        write out all of the branch changes to a ttl file
+        write out all of the branch changes to a ttl file collection
         
         """
         
@@ -280,15 +280,25 @@ class FusekiServer(object):
                     for line in save_string.splitlines():
                         sg.write(line + '\n')
 
-    def save_branch(self, branch, subgraph, debug=False):
+    def save_branch(self, branch, subgraph, debug=False, merge=False):
         """
         export new records from a graph in the triple store to a string
 
         """
         #<http://metarelate.net/%sconcepts.ttl>
-        graph = '<http://metarelate.net/{}{}>'.format(branch, subgraph)
+        graph = ('FROM NAMED <http://metarelate.net/{}{}>\n'
+                 ''.format(branch, subgraph))
+        if merge:
+            graph = graph + ('FROM NAMED <http://metarelate.net/{}>\n'
+                 ''.format(subgraph))
+        # qstr = ('SELECT ?s ?p ?o\n'
+        #         'WHERE { GRAPH %s {\n'
+        #         '    ?s ?p ?o .\n'
+        #         '} }\n'
+        #         'order by ?s ?p ?o\n' % graph)
         qstr = ('SELECT ?s ?p ?o\n'
-                'WHERE { GRAPH %s {\n'
+                '%s'
+                'WHERE { GRAPH ?g {\n'
                 '    ?s ?p ?o .\n'
                 '} }\n'
                 'order by ?s ?p ?o\n' % graph)
@@ -672,6 +682,13 @@ class FusekiServer(object):
         self.run_query(instr, update=True)
         instr = ('create GRAPH <http://metarelate.net/{g}/mappings.ttl>'
                  '\n'.format(g=graphid))
+        self.run_query(instr, update=True)
+        instr = ('INSERT DATA {\n '
+                 '<http://metarelate.net/%(g)s/concepts.ttl>'
+                 ' dc:creator %(u)s .\n'
+                 '<http://metarelate.net/%(g)s/mappings.ttl>'
+                 ' dc:creator %(u)s .\n'
+                 '}' % {'g':graphid, 'u':user})
         self.run_query(instr, update=True)
         return '{}/'.format(graphid)
 

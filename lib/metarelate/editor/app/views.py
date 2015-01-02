@@ -17,14 +17,16 @@
 
 import collections
 import copy
-import datetime
 import hashlib
 import itertools
+import io
 import json
 import os
 import re
 import subprocess
 import sys
+import tarfile
+import time
 import urllib
 
 from django.shortcuts import get_object_or_404, render_to_response
@@ -152,13 +154,29 @@ def controlpanel(request):
         form = forms.HomeForm(request.POST)
         if form.is_valid():
             invalids = form.cleaned_data.get('validation')
+            create_branch = form.cleaned_data.get('branch')
             if invalids:
                 url = url_qstr(reverse('invalid_mappings'),
                                            ref=json.dumps(invalids))
                 response = HttpResponseRedirect(url)
+            elif create_branch:
+                url = url_qstr(reverse('control_panel'), branch=create_branch)
+                response = HttpResponseRedirect(url)
+            elif form.cleaned_data.get('save'):
+                response = HttpResponse(content_type='application/x-tar')
+                with tarfile.open(name='metarelate.tar.bz', fileobj=response,
+                                  mode='w:bz2') as tarf:
+                    for subgraph in ['mappings.ttl', 'concepts.ttl']:
+                        outstring = form.cleaned_data.get(subgraph, '')
+                        outstring_io = io.BytesIO(outstring.encode('utf8'))
+                        tarinfo = tarfile.TarInfo(name=subgraph)
+                        tarinfo.size = len(outstring)
+                        tarinfo.mtime = int(time.time())
+                        tarf.addfile(tarinfo, outstring_io)
+
             else:
-                url = url_qstr(reverse('home'))
-                reload(forms)
+                url = url_qstr(reverse('control_panel'), branch=branch)
+                #reload(forms)
                 response = HttpResponseRedirect(url)
     else:
         form = forms.HomeForm()

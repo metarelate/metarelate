@@ -515,7 +515,6 @@ class HomeForm(forms.Form):
     #                                                            'rows': 50,
     #                                                            'readonly':True
     #                                                            }))
-
     def clean(self):
         # if self.data.has_key('load'):
         #     print 'data loaded'
@@ -524,13 +523,23 @@ class HomeForm(forms.Form):
         #     print 'save cache reverted'
         #     fuseki_process.revert()
         if self.data.has_key('save'):
-            print  'cached changes saved'
-            fuseki_process.save()
+            self.cleaned_data['save'] = True
+            branch = self.data.get('save')
+            for subgraph in ['mappings.ttl', 'concepts.ttl']:
+                save_string = fuseki_process.save_branch(branch, subgraph, merge=True)
+                self.cleaned_data[subgraph] = save_string
+            # print  'cached changes saved'
+            # fuseki_process.save()
         elif self.data.has_key('validate'):
-            #import pdb; pdb.set_trace()
             graph = self.data.get('validate')
             print 'validate triplestore'
             self.cleaned_data['validation'] = fuseki_process.validate(graph)
+        elif self.data.has_key('branch'):
+            graph = self.data.get('branch')
+            print 'cut branch'
+            user = 'https://github.com/marqh'
+            graphid = fuseki_process.branch_graph(user)
+            self.cleaned_data['branch'] = graphid
         return self.cleaned_data
 
 

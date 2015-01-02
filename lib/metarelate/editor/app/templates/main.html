@@ -66,10 +66,20 @@
 <!-- <p> -->
 <!-- <input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="revert" value="Revert the Triplestore to the  Static Data State"/> -->
 <p>
-<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="save" value="Persist the Triplestore changes to the Static Data Store"/>
+Retrieve the current merge of this branch and master:
+<p>
+<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="save" value="{{ branch }}"/>
+<p>
+Validate the current merge of this branch and master:
 <p>
 <input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="validate" value="{{ branch }}" label="Validate"/>
 
+<p>
+
+{% if not branch %}
+<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="branch" value="branch" label="Branch"/>
+<p>
+{% endif %}
 
 {% if mappings %}
 
