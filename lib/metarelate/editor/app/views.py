@@ -193,11 +193,43 @@ def controlpanel(request):
         con_dict['control'] = {'control':'control'}
         con_dict['form'] = form
         con_dict['branch'] = branch
-        con_dict['upload'] = [url_qstr(reverse('upload'), branch=branch)
+        con_dict['upload'] = [url_qstr(reverse('upload', 
+                                               kwargs={'importer':'stashcf'}), 
+                                       branch=branch)]
         context = RequestContext(request, con_dict)
         response = render_to_response('main.html', context)
     return response
 
+def upload(request, importer):
+    user = 'https://github.com/marqh'
+    # find importer: get docstring
+    upload_doc = 'upload a stash code to cfname and units table'
+    static_dir = metarelate.site_config.get('static_dir')
+    if static_dir:
+        dpdir = metarelate.site_config['static_dir'].rstrip('staticData')
+
+        sys.path.append(os.path.join(dpdir, 'lib'))
+
+        import metarelate_metocean.upload.stashc_cfname as uploader
+
+    branch = _get_branch(request)
+    #forms.UploadForm
+    if request.method == 'POST':
+        form = forms.UploadForm(request.POST)
+        if form.is_valid():
+            docfile = request.FILES['docfile']
+            uploader.parse_file(fuseki_process, docfile,
+                                user, branch)
+            url = url_qstr(reverse('control_panel'), branch=create_branch)
+            return HttpResponseRedirect(url)
+                
+    else:
+        form = forms.UploadForm()
+    con_dict = {'form': form, 'upload_doc': upload_doc}
+
+    context = RequestContext(request, con_dict)
+    response = render_to_response('upload_form.html', context)
+    return response
 
 def url_qstr(path, **kwargs):
     """

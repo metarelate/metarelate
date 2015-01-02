@@ -542,6 +542,10 @@ class HomeForm(forms.Form):
             self.cleaned_data['branch'] = graphid
         return self.cleaned_data
 
+class UploadForm(forms.Form):
+    docfile = forms.FileField(label='Select a file', 
+                              help_text='max. 2 megabytes')
+
 
 class ContactForm(forms.Form):
     name = forms.CharField()

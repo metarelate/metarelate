@@ -8,6 +8,7 @@ urlpatterns = patterns('',
     url(r'^$', 'metarelate.editor.app.views.home', name='home'),
     url(r'^homegraph/$', 'metarelate.editor.app.views.homegraph', name='homegraph'),
     url(r'^controlpanel/$', 'metarelate.editor.app.views.controlpanel', name='control_panel'),
+    url(r'^upload/(?P<importer>[^/]+/$', 'metarelate.editor.app.views.upload', name='upload'),
     url(r'^newmapping/$', 'metarelate.editor.app.views.newmapping', name='newmapping'),
     url(r'^anewmapping/$', 'metarelate.editor.app.views.anewmapping', name='anewmapping'),
 
