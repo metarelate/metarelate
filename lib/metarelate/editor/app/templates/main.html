@@ -83,14 +83,8 @@ Delete this branch:
 <p>
 <input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="delete" value="{{ branch }}" label="Branch"/>
 <p>
-{% endif %}
 
-{% if not branch %}
-Create a new branch:
-<p>
-<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="branch" value="branch" label="Branch"/>
-<p>
-{% endif %}
+
 
 {% if upload %}
 
@@ -103,6 +97,16 @@ Create a new branch:
 {% endfor %}
 
 {% endif %}
+{% endif %}
+
+{% if not branch %}
+Create a new branch:
+<p>
+<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="branch" value="branch" label="Branch"/>
+<p>
+{% endif %}
+
+
 
 {% if mappings %}
 <h3>Live mappings in this branch:</h3>

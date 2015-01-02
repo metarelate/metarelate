@@ -526,6 +526,7 @@ class HomeForm(forms.Form):
             graphid = fuseki_process.branch_graph(user)
             self.cleaned_data['branch'] = graphid
         elif self.data.has_key('delete'):
+            self.cleaned_data['delete'] = True
             graph = self.data.get('delete')
             print 'deleting graph'
             fuseki_process.delete_graph(graph, user)

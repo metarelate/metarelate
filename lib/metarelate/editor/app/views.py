@@ -183,6 +183,7 @@ def controlpanel(request):
                         tarf.addfile(tarinfo, outstring_io)
             elif form.cleaned_data.get('delete'):
                 url = reverse('control_panel')
+                url = url_qstr(reverse('control_panel'), branch='')
                 response = HttpResponseRedirect(url)
             else:
                 url = url_qstr(reverse('control_panel'), branch=branch)
