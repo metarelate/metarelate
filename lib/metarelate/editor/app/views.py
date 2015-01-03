@@ -164,7 +164,7 @@ def controlpanel(request):
             invalids = form.cleaned_data.get('validation')
             create_branch = form.cleaned_data.get('branch')
             if invalids:
-                url = url_qstr(reverse('invalid_mappings'),
+                url = url_qstr(reverse('list_mappings'),
                                            ref=json.dumps(invalids))
                 response = HttpResponseRedirect(url)
             elif create_branch:
@@ -319,7 +319,7 @@ def component(request, component_id):
 
 
 
-def invalid_mappings(request):
+def list_mappings(request):
     """
     list mappings which reference the concept search criteria
     by concept by source then target
@@ -372,7 +372,7 @@ def search(request):
                 statements.append({'predicate':predicate, 
                                    'rdfobject':rdfobject})
             sresults = fuseki_process.search(statements)
-            url = url_qstr(reverse('invalid_mappings'), 
+            url = url_qstr(reverse('list_mappings'), 
                            ref=json.dumps(sresults))
             return HttpResponseRedirect(url)
     else:
