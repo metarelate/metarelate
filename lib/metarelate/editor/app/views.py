@@ -220,7 +220,6 @@ def upload(request, importer):
     branch = _get_branch(request)
     #forms.UploadForm
     if request.method == 'POST':
-#        import pdb; pdb.set_trace()
         form = forms.UploadForm(request.POST, request.FILES)
         if form.is_valid():
             docfile = request.FILES['docfile']
@@ -337,17 +336,7 @@ def list_mappings(request):
             muri = inv_map['amap']
             mapping = metarelate.Mapping(muri)
             url = reverse('mapping', kwargs={'mapping_id':mapping.shaid})
-            sig = inv_map.get('signature', [])
-            label = []
-            if isinstance(sig, list):
-                for elem in sig:
-                    label.append(elem.split('/')[-1].strip('<>'))
-            else:
-                label.append(sig.split('/')[-1].strip('<>'))
-            if label:
-                '&'.join(label)
-            else:
-                label = 'mapping'
+            label = inv_map.get('signature', [])
             invalid['mappings'].append({'url':url, 'label':label})
         invalids.append(invalid)
     context_dict = {'invalid': invalids}

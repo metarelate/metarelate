@@ -785,7 +785,8 @@ def multiple_mappings(test_source=None, graph=None):
         if pattern.match(test_source):
             tm_filter = '\n\tFILTER(?asource = {})'.format(test_source)
     qstr = '''SELECT ?amap ?asource ?atarget ?bmap ?bsource ?btarget
-    (GROUP_CONCAT(DISTINCT(?value); SEPARATOR='&') AS ?signature)
+    (GROUP_CONCAT(DISTINCT(?valuemap); SEPARATOR='&') AS ?valuemaps)
+    (CONCAT(str(?amap), ': ', str(?bmap)) AS ?signature)
     FROM NAMED <http://metarelate.net/mappings.ttl>
     FROM NAMED <http://metarelate.net/concepts.ttl>
     %s
@@ -867,6 +868,7 @@ def mapping_search(statements=None):#, additive=False):
     statements = '\n'.join(statement_strings)
     filters = '\n'.join(filter_strings)
     query_string = ('SELECT DISTINCT ?amap \n'
+                    '(CONCAT(str(?amap)) AS ?signature) \n'
                     'WHERE { \n'
                     'GRAPH <http://metarelate.net/concepts.ttl> { \n'
                     '%s\n'
