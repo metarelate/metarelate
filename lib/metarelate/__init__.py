@@ -508,42 +508,38 @@ class Mapping(_DotMixin):
         vstr = ''
         if rep:
             vstr += '\n\tMINUS {?mapping ^dc:replaces+ ?anothermap}'
-
-        main = ('{GRAPH <http://metarelate.net/%smappings.ttl> {\n'
-                '?mapping mr:source ?source ;\n'
-                '     mr:target ?target ;\n'
-                '     mr:invertible ?invertible ;\n'
-                '     dc:date ?date ;\n'
-                '     dc:creator ?creator .\n'
-                'OPTIONAL {?mapping dc:replaces ?replaces .}\n'
-                'OPTIONAL {?mapping skos:note ?note .}\n'
-                'OPTIONAL {?mapping mr:hasValueMap ?valueMap .}\n'
-                'OPTIONAL {?mapping dc:rightsHolder ?rights .}\n'
-                'OPTIONAL {?mapping dc:rightsHolder ?rightsHolder .}\n'
-                'OPTIONAL {?mapping dc:contributor ?contributor .}\n'
-                'OPTIONAL {?mapping dc:dateAccepted ?dateAccepted .}\n'
-                'FILTER(?mapping = %s)\n'
-                '%s\n}}\n')
-        maingraph = main  % ('', self.uri.data, vstr)
-        branchgraph = ''
-        if graph is not None:
-            branchgraph = main % (graph, self.uri.data, vstr)
-            branchgraph = 'UNION\n{}'.format(branchgraph)
-        qstr = '''SELECT ?mapping ?source ?target ?invertible ?replaces 
-                         ?note ?date ?creator ?rights ?dateAccepted
-        (GROUP_CONCAT(DISTINCT(?rightsHolder); SEPARATOR = '&') AS ?rightsHolders)
-        (GROUP_CONCAT(DISTINCT(?contibutor); SEPARATOR = '&') AS ?contributors)
-        (GROUP_CONCAT(DISTINCT(?valueMap); SEPARATOR = '&') AS ?valueMaps)
-        WHERE {
-        %s
-        %s
-        }
-        GROUP BY ?mapping ?source ?target ?invertible ?replaces
-                 ?note ?date ?creator ?rights ?dateAccepted
-        ''' % (maingraph, branchgraph)
+        graphs = ('FROM NAMED <http://metarelate.net/mappings.ttl>\n')
+        if graph:
+            graphs = graphs + ('FROM NAMED <http://metarelate.net/'
+                               '{}mappings.ttl>\n'.format(graph))
+        qstr = ("SELECT ?mapping ?source ?target ?invertible ?replaces\n"
+                "       ?note ?date ?creator ?rights ?dateAccepted\n"
+                "(GROUP_CONCAT(DISTINCT(?rightsHolder); SEPARATOR = '&') AS ?rightsHolders)\n"
+                "(GROUP_CONCAT(DISTINCT(?contibutor); SEPARATOR = '&') AS ?contributors)\n"
+                "(GROUP_CONCAT(DISTINCT(?valueMap); SEPARATOR = '&') AS ?valueMaps)\n"
+                "%s"
+                "WHERE {\n"
+                "{GRAPH ?g {\n"
+                "?mapping mr:source ?source ;\n"
+                "     mr:target ?target ;\n"
+                "     mr:invertible ?invertible ;\n"
+                "     dc:date ?date ;\n"
+                "     dc:creator ?creator .\n"
+                "OPTIONAL {?mapping dc:replaces ?replaces .}\n"
+                "OPTIONAL {?mapping skos:note ?note .}\n"
+                "OPTIONAL {?mapping mr:hasValueMap ?valueMap .}\n"
+                "OPTIONAL {?mapping dc:rightsHolder ?rights .}\n"
+                "OPTIONAL {?mapping dc:rightsHolder ?rightsHolder .}\n"
+                "OPTIONAL {?mapping dc:contributor ?contributor .}\n"
+                "OPTIONAL {?mapping dc:dateAccepted ?dateAccepted .}\n"
+                "FILTER(?mapping = %s)\n"
+                "%s\n}}\n"
+                "}\n"
+                "GROUP BY ?mapping ?source ?target ?invertible ?replaces\n"
+                "         ?note ?date ?creator ?rights ?dateAccepted"
+                " \n"% (graphs, self.uri.data, vstr))
         return qstr
 
-    # @staticmethod
     def sparql_creator(self, po_dict, graph=None):
         if graph is None:
             raise ValueError('graph cannot be None')
@@ -809,21 +805,19 @@ class Component(_DotMixin):
     def sparql_retriever(self, graph=None):
         if self.uri is None:
             raise ValueError('URI required, None found')
-        main = ('{GRAPH <http://metarelate.net/%sconcepts.ttl> {\n'
+        graphs = ('FROM NAMED <http://metarelate.net/concepts.ttl>\n')
+        if graph:
+            graphs = graphs + ('FROM NAMED <http://metarelate.net/'
+                               '{}concepts.ttl>\n'.format(graph))
+        qstr = ('SELECT ?component ?p ?o \n'
+                '%s'
+                'WHERE {\n'
+                'GRAPH ?g {\n'
                 '?component ?p ?o ; \n'
                 'rdf:type mr:Component .\n'
                 'FILTER(?component = %s) \n'
-                'FILTER(?o != mr:Component) \n'
-                'FILTER(?p != mr:saveCache) }}\n' )
-        maingraph = main % ('', self.uri.data)
-        branchgraph = ''
-        if graph is not None:
-            branchgraph = main % (graph, self.uri.data)
-            branchgraph = 'UNION\n{}'.format(branchgraph)
-        qstr = ('SELECT ?component ?p ?o \n'
-                'WHERE {\n'
-                '%s\n%s'
-                '}\n' % (maingraph, branchgraph))
+                'FILTER(?o != mr:Component) } \n'
+                '}\n' % (graphs, self.uri.data))
         return qstr
 
     def sparql_creator(self, po_dict, graph=None):
