@@ -54,6 +54,7 @@ import metarelate.prefixes as prefixes
 from metarelate.editor.settings import READ_ONLY
 from metarelate.editor.settings import fuseki_process
 from metarelate.editor.settings import ROOTUSER
+import metarelate_metocean.upload.stashc_cfname as uploader
 
 
 def logout(request):
@@ -210,13 +211,6 @@ def upload(request, importer):
     # find importer: get docstring
     upload_doc = 'upload a stash code to cfname and units table'
     static_dir = metarelate.site_config.get('static_dir')
-    if static_dir:
-        dpdir = metarelate.site_config['static_dir'].rstrip('staticData')
-
-        sys.path.append(os.path.join(dpdir, 'lib'))
-
-        import metarelate_metocean.upload.stashc_cfname as uploader
-
     branch = _get_branch(request)
     #forms.UploadForm
     if request.method == 'POST':

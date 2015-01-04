@@ -35,7 +35,7 @@ import requests
 
 import metarelate
 import metarelate.prefixes as prefixes
-
+import metarelate_metocean.validation
 
 HEADER = '''#(C) British Crown Copyright 2012 - 2014 , Met Office 
 #
@@ -396,25 +396,17 @@ class FusekiServer(object):
 
         """
         failures = {}
+        print('multiples')
         mm_string = ('The following mappings are ambiguous, providing multiple'
                     ' targets in the same format for a particular source')
         failures[mm_string] = self.run_query(multiple_mappings(graph=graph))
+        vtests = [o[0] for o in getmembers(metarelate_metocean.validation) if isfunction(o[1]) 
+                  and not o[0].startswith('_')]
 
-        # static_dir = metarelate.site_config.get('static_dir')
-        # if static_dir:
-        #     dpdir = metarelate.site_config['static_dir'].rstrip('staticData')
-
-        #     sys.path.append(os.path.join(dpdir, 'lib'))
-
-        #     import metarelate_metocean.validation
-
-        #     vtests = [o[0] for o in getmembers(metarelate_metocean.validation) if isfunction(o[1]) 
-        #               and not o[0].startswith('_')]
-
-        #     for vtest in vtests:
-        #         res = metarelate_metocean.validation.__dict__[vtest].__call__(self)
-        #         metarelate.careful_update(failures, res)
-
+        for vtest in vtests:
+            print(vtest)
+            res = metarelate_metocean.validation.__dict__[vtest].__call__(self, graph)
+            metarelate.careful_update(failures, res)
         return failures
 
     def search(self, statements):#, additive):
@@ -784,12 +776,18 @@ def multiple_mappings(test_source=None, graph=None):
         pattern = re.compile(pattern)
         if pattern.match(test_source):
             tm_filter = '\n\tFILTER(?asource = {})'.format(test_source)
+    op = opf = ''
+    if metarelate_metocean.validation.subformat_predicates:
+        for subf_pred in metarelate_metocean.validation.subformat_predicates:
+            op += ('OPTIONAL {?asource %(s)s ?as_subf}\n\tOPTIONAL {?bsource %(s)s ?bs_subf}'
+                   '' % {'s':subf_pred})
+            opf += ('FILTER(?as_subf != ?bs_subf)')
     qstr = '''SELECT ?amap ?asource ?atarget ?bmap ?bsource ?btarget
     (GROUP_CONCAT(DISTINCT(?valuemap); SEPARATOR='&') AS ?valuemaps)
     (CONCAT(str(?amap), ': ', str(?bmap)) AS ?signature)
     FROM NAMED <http://metarelate.net/mappings.ttl>
     FROM NAMED <http://metarelate.net/concepts.ttl>
-    %s
+    %(gs)s
     WHERE {
     GRAPH ?gm { {
     ?amap mr:source ?asource ;
@@ -799,7 +797,8 @@ def multiple_mappings(test_source=None, graph=None):
     ?amap mr:invertible "True" ;
          mr:target ?asource ;
          mr:source ?atarget . } 
-    MINUS {?amap ^dc:replaces+ ?anothermap} %s
+    MINUS {?amap ^dc:replaces+ ?anothermap} 
+    %(tm)s
     {
     ?bmap mr:source ?bsource ;
          mr:target ?btarget . } 
@@ -818,13 +817,14 @@ def multiple_mappings(test_source=None, graph=None):
     ?bsource rdf:type ?bsourceformat .
     ?atarget rdf:type ?atargetformat .
     ?btarget rdf:type ?btargetformat .
+    %(op)s
     }
     filter (?btargetformat = ?atargetformat)
-
+    %(opf)s
     }
     GROUP BY ?amap ?asource ?atarget ?bmap ?bsource ?btarget
     ORDER BY ?asource
-    ''' % (gstr, tm_filter)
+    ''' % ({'gs':gstr, 'tm':tm_filter, 'op':op, 'opf':opf})
     return qstr
 
 # def range_component_mapping():
