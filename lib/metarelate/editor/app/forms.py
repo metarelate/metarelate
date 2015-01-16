@@ -34,6 +34,7 @@ import metarelate
 import metarelate.prefixes as prefixes
 from metarelate.editor.settings import READ_ONLY
 from metarelate.editor.settings import fuseki_process
+from metarelate_metocean.upload import stashc_cfname, grib2_cfname
 
 DS = metarelate.site_config['fuseki_dataset']
 
@@ -536,6 +537,38 @@ class UploadForm(forms.Form):
     docfile = forms.FileField(label='Select a file', 
                               help_text='max. 2 megabytes')
 
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user')
+        self.branch = kwargs.pop('branch')
+        importer = kwargs.pop('importer')
+        if importer == 'stashc_cfname':
+            self.uploader = stashc_cfname
+        elif importer == 'grib2_cfname':
+            self.uploader = grib2_cfname
+        if len(args) == 2:
+            #import pdb; pdb.set_trace()
+            self.upfile = args[1].get('docfile', None)
+        super(UploadForm, self).__init__(*args, **kwargs)
+
+    def clean(self):
+        # validate file
+        if self.upfile is not None:
+            try:
+                self.uploader.parse_file(fuseki_process, self.upfile,
+                                         self.user, self.branch)
+            except ValueError, e:
+                raise forms.ValidationError('the file failed to parse\n'
+                                            '{}'.format(e))
+
+
+        return self.cleaned_data
+    # def clean(self):
+    #     data = self.cleaned_data
+    #     if data['source_format'] == data['target_format']:
+    #         raise forms.ValidationError(
+    #             'The source and target formats must be different')
+    #     return self.cleaned_data
+        
 
 class ContactForm(forms.Form):
     name = forms.CharField()

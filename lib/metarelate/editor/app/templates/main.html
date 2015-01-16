@@ -91,7 +91,7 @@ Delete this branch:
 {% for up in upload %}
 
 <p>
-<a href="{{ up }}">Upload a STASH code to CF name batch file.</a>
+<a href="{{ up.url }}">{{ up.docstring }}</a>
 <p>
 
 {% endfor %}

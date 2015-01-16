@@ -18,6 +18,7 @@
 import collections
 import copy
 import hashlib
+import importlib
 import itertools
 import io
 import json
@@ -54,7 +55,6 @@ import metarelate.prefixes as prefixes
 from metarelate.editor.settings import READ_ONLY
 from metarelate.editor.settings import fuseki_process
 from metarelate.editor.settings import ROOTUSER
-import metarelate_metocean.upload.stashc_cfname as uploader
 
 
 def logout(request):
@@ -197,33 +197,40 @@ def controlpanel(request):
         con_dict['control'] = {'control':'control'}
         con_dict['form'] = form
         con_dict['branch'] = branch
-        con_dict['upload'] = [url_qstr(reverse('upload', 
-                                               kwargs={'importer':'stashcf'}), 
-                                       branch=branch)]
+        con_dict['upload'] = [{'url': url_qstr(reverse('upload', 
+                                                       kwargs={'importer':'stashc_cfname'}), 
+                                               branch=branch), 
+                               'docstring': ('Upload a STASH CF name collection'
+                                             ': file lines must be of the form: '
+                                             '|STASH(msi)|CFName|units|force_update(y/n)|')},
+                              {'url': url_qstr(reverse('upload', 
+                                                       kwargs={'importer':'grib2_cfname'}), 
+                                               branch=branch), 
+                               'docstring': ('Upload a GRIB2 CF name collection'
+                                             ': file lines must be of the form: '
+                                             '|Disc|pCat|pNum|CFName|units|force_update(y/n)|')}]
         context = RequestContext(request, con_dict)
         response = render_to_response('main.html', context)
     return response
 
 def upload(request, importer):
     user = 'https://github.com/marqh'
-    if importer != 'stashcf':
-        raise ValueError('no matching yet')
+    if importer not in ['stashc_cfname', 'grib2cf_cfname']:
+        raise ValueError('no matching uploader')
     # find importer: get docstring
     upload_doc = 'upload a stash code to cfname and units table'
     static_dir = metarelate.site_config.get('static_dir')
     branch = _get_branch(request)
     #forms.UploadForm
     if request.method == 'POST':
-        form = forms.UploadForm(request.POST, request.FILES)
+        form = forms.UploadForm(request.POST, request.FILES, 
+                                importer=importer, user=user, branch=branch)
         if form.is_valid():
-            docfile = request.FILES['docfile']
-            uploader.parse_file(fuseki_process, docfile,
-                                user, branch)
             url = url_qstr(reverse('control_panel'), branch=branch)
             return HttpResponseRedirect(url)
                 
     else:
-        form = forms.UploadForm()
+        form = forms.UploadForm(importer=importer, user=user, branch=branch)
     con_dict = {'form': form, 'upload_doc': upload_doc}
 
     context = RequestContext(request, con_dict)
