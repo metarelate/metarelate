@@ -31,7 +31,6 @@ import urllib
 import urllib2
 import sys
 
-import git
 import requests
 
 import metarelate
@@ -311,22 +310,16 @@ class FusekiServer(object):
         with lockfile(filepath) as l:
             self.rebase_branch(branch)
             self.save(branch)
-            # repo = git.Repo(os.path.dirname(self._static_dir))
-            # hcommit = repo.head.commit
-            # idiff = hcommit.diff()
             all_additions = True
-            # for adiff in idiff:
-            #     if adiff.change_type != 'A':
-            #         all_additions = False
-            ## what level of validation is required here?
+            diff = subprocess.check_output(['git', '-C', self._static_dir, 
+                                            'diff'])
+            for line in diff.split('\n'):
+                if not line.startswith('---') and line.startswith('-'):
+                    all_additions = False
             if all_additions:
                 subprocess.check_call(['git', '-C', self._static_dir,
                                        'commit', '-am', 
                                        "'{}'".format(branch)])
-                # tree = 
-                # git.Commit.create_from_tree(repo, tree, branch,
-                #                             author=
-                                            
                 for subgraph in ['mappings.ttl', 'concepts.ttl']:
                     instr = ('ADD <http://metarelate.net/{b}{s}> TO '
                              '<http://metarelate.net/{s}>'
