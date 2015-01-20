@@ -531,6 +531,12 @@ class HomeForm(forms.Form):
             graph = self.data.get('delete')
             print 'deleting graph'
             fuseki_process.delete_graph(graph, user)
+        elif self.data.has_key('merge'):
+            if user == 'https://github.com/marqh':
+                graph = self.data.get('merge')
+                all_additions = fuseki_process.merge(graph)
+                if not all_additions:
+                    raise forms.ValidationError('The merge process failed')
         return self.cleaned_data
 
 class UploadForm(forms.Form):

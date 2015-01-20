@@ -84,7 +84,12 @@ Delete this branch:
 <input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="delete" value="{{ branch }}" label="Branch"/>
 <p>
 
-
+{% if metarelateuser %}
+Merge this branch:
+<p>
+<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="merge" value="{{ branch }}" label="Merge"/>
+<p>
+{% endif %}
 
 {% if upload %}
 

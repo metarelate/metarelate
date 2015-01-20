@@ -194,6 +194,7 @@ def controlpanel(request):
         form = forms.HomeForm()
         con_dict = {}
         con_dict['mappings'] = branch_mappings
+        con_dict['metarelateuser'] = 'https://github.com/marqh'
         con_dict['control'] = {'control':'control'}
         con_dict['form'] = form
         con_dict['branch'] = branch

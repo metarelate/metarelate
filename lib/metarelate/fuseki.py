@@ -31,6 +31,7 @@ import urllib
 import urllib2
 import sys
 
+import git
 import requests
 
 import metarelate
@@ -75,6 +76,25 @@ else:
     msg = 'The Apache Fuseki SPARQL server has not been configured ' \
         'for metarelate.'
     raise ValueError(msg)
+
+class lockfile(object):
+    def __init__(self, fpath):
+        self.fpath = fpath
+
+    def __enter__(self):
+	i = 0
+        while os.path.exists(self.fpath):
+            time.sleep(1)
+            i += 1
+            if i > 64:
+		raise ValueError('lockfile has been locked '
+                                 'a long time')
+        self.lockfile = open(self.fpath, 'w')
+
+    def __exit__(self, *args):
+        self.lockfile.close()
+        os.remove(self.fpath)
+
 
 
 class WorkerThread(Thread):
@@ -261,6 +281,61 @@ class FusekiServer(object):
             os.remove(tdb_file)
         return glob.glob(files)
 
+    def rebase_branch(self, branch):
+        """
+        remove any triples in the branch that already exist
+        in the main graphs
+        """
+        if branch == '' or branch == '/':
+            raise ValueError("branch cannot be '' or '/'")
+        for subgraph in ['mappings.ttl', 'concepts.ttl']:
+            instr = ('DELETE { GRAPH <http://metarelate.net/%(b)s%(s)s> {\n '
+                     '?s ?p ?o . } }\n'
+                     'WHERE { GRAPH <http://metarelate.net/%(b)s%(s)s> {\n'
+                     '?s ?p ?o } \n'
+                     'EXISTS {GRAPH <http://metarelate.net/%(s)s> {\n'
+                     '?s ?p ?o } } \n'
+                     '}\n' % {'b':branch, 's':subgraph})
+            self.run_query(instr, update=True)
+
+    def merge(self, branch):
+        """
+        check the save process meets the save criteria
+        merge the changes onto the git backup
+        merge the branch into the main graph
+        """
+        if branch == '' or branch == '/':
+            raise ValueError("branch cannot be '' or '/'")
+        main_graph = metarelate.site_config['graph']
+        filepath = os.path.join(self._static_dir, main_graph, 'lockfile')
+        with lockfile(filepath) as l:
+            self.rebase_branch(branch)
+            self.save(branch)
+            # repo = git.Repo(os.path.dirname(self._static_dir))
+            # hcommit = repo.head.commit
+            # idiff = hcommit.diff()
+            all_additions = True
+            # for adiff in idiff:
+            #     if adiff.change_type != 'A':
+            #         all_additions = False
+            ## what level of validation is required here?
+            if all_additions:
+                subprocess.check_call(['git', '-C', self._static_dir,
+                                       'commit', '-am', 
+                                       "'{}'".format(branch)])
+                # tree = 
+                # git.Commit.create_from_tree(repo, tree, branch,
+                #                             author=
+                                            
+                for subgraph in ['mappings.ttl', 'concepts.ttl']:
+                    instr = ('ADD <http://metarelate.net/{b}{s}> TO '
+                             '<http://metarelate.net/{s}>'
+                             '\n'.format(b=branch, s=subgraph))
+                    self.run_query(instr, update=True)
+                self.rebase_branch(branch)
+        return all_additions
+            
+
     def save(self, branch):
         """
         write out all of the branch changes to a ttl file collection
@@ -269,11 +344,9 @@ class FusekiServer(object):
         
         main_graph = metarelate.site_config['graph']
         filepath = os.path.join(self._static_dir, main_graph)
-        branchdir = os.path.join(filepath, branch)
-        os.mkdir(branchdir)
         for subgraph in ['mappings.ttl', 'concepts.ttl']:
-            outfile = branchdir + subgraph
-            save_string = self.save_branch(branch, subgraph)
+            outfile = os.path.join(filepath, subgraph)
+            save_string = self.save_branch(branch, subgraph, merge=True)
             if save_string:
                 with open(outfile, 'w') as sg:
                     for line in save_string.splitlines():
@@ -284,17 +357,11 @@ class FusekiServer(object):
         export new records from a graph in the triple store to a string
 
         """
-        #<http://metarelate.net/%sconcepts.ttl>
         graph = ('FROM NAMED <http://metarelate.net/{}{}>\n'
                  ''.format(branch, subgraph))
         if merge:
             graph = graph + ('FROM NAMED <http://metarelate.net/{}>\n'
                  ''.format(subgraph))
-        # qstr = ('SELECT ?s ?p ?o\n'
-        #         'WHERE { GRAPH %s {\n'
-        #         '    ?s ?p ?o .\n'
-        #         '} }\n'
-        #         'order by ?s ?p ?o\n' % graph)
         qstr = ('SELECT ?s ?p ?o\n'
                 '%s'
                 'WHERE { GRAPH ?g {\n'
@@ -322,33 +389,6 @@ class FusekiServer(object):
         save_string = '\n'.join(save_out)
         save_string = HEADER + save_string
         return save_string
-
-
-    # def query_cache(self):
-    #     """
-    #     identify all cached changes in the metarelate graph
-
-    #     """
-    #     qstr = '''
-    #     SELECT ?s ?p ?o
-    #     WHERE
-    #     {  GRAPH <%s>
-    #         {
-    #     ?s ?p ?o ;
-    #         mr:saveCache "True" .
-    #         }
-    #     } 
-    #     '''
-    #     results = []
-    #     main_graph = metarelate.site_config['graph']
-    #     files = os.path.join(self._static_dir, main_graph, '*.ttl')
-    #     for infile in glob.glob(files):
-    #         ingraph = infile.split('/')[-1]
-    #         graph = 'http://%s/%s' % (main_graph, ingraph)
-    #         query_string = qstr % (graph)
-    #         result = self.run_query(query_string)
-    #         results = results + result
-    #     return results
 
     def query_branch(self, branch=None):
         """
