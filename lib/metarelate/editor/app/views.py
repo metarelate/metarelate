@@ -148,8 +148,6 @@ def controlpanel(request):
     """
     branch = _get_branch(request)
     branch_mappings = []
-    if request.user.is_authenticated():
-        raise ValueError('user is {}'.format(user.username))
     if branch:
         branch_mappings = fuseki_process.query_branch(branch)
         branch_mappings = [bm['mapping'].rstrip('>').lstrip('<') for bm in
