@@ -1,4 +1,3 @@
-{% load backend_utils %}
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
@@ -41,28 +40,10 @@
 <p>
 You are logged in as <code>{{ user.username }}</code>
 <p>
-      <div class="social">
-        {% for sublist in available_backends|social_backends %}
-          <div class="row">
-            {% for name, backend in sublist %}
-              {% associated backend %}
-              {% if association %}
-                <form class="disconnect-form col-md-2" action="{% url "social:disconnect_individual" backend=association.provider association_id=association.id %}" method="post">{% csrf_token %}
-                  <a class="btn btn-danger" name="{{ backend|backend_class }}" href="#">
-                    <i class="fa fa-{{ name|icon_name }}"></i>
-                    Disconnect {{ backend|backend_name }}
-                  </a>
-                </form>
-              {% else %}
-                <a class="col-md-2 btn btn-default" name="{{ backend|backend_class }}" href="{% url "social:begin" backend=name %}">
-                  <i class="fa fa-{{ name|icon_name }}"></i>
-                  {{ backend|backend_name }}
-                </a>
-              {% endif %}
-            {% endfor %}
-          </div>
-        {% endfor %}
-      </div>
+        <a class="btn btn-primary" href="/metocean/logout/">
+          <i class="fa fa-sign-out"></i>
+          Logout
+        </a>
 
 {% else %}
 
