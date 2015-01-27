@@ -52,32 +52,9 @@
         {% endfor %}
       </div>
 
-      <div class="legacy">
-        {% for name, backend in available_backends|legacy_backends %}
-          {% associated backend %}
-          {% if association %}
-            <form class="disconnect-form" action="{% url "social:disconnect_individual" backend=association.provider association_id=association.id %}" method="post">{% csrf_token %}
-              <a class="btn btn-danger" name="{{ backend|backend_class }}" href="#">
-                <i class="fa fa-{{ name|icon_name }}"></i>
-                Disconnect {{ backend|backend_name }}
-              </a>
-            </form>
-          {% else %}
-            <a class="btn btn-default" name="{{ backend|backend_class }}" href="{% url "social:begin" backend=name %}">
-              <i class="fa fa-{{ name|icon_name }}"></i>
-              {{ backend|backend_name }}
-            </a>
-          {% endif %}
-        {% endfor %}
-
-        <!-- <a class="btn btn-info" name="ajax-login" href="#"> -->
-        <!--   <i class="fa fa-refresh"></i> -->
-        <!--   Ajax -->
-        <!-- </a> -->
-      </div>
 
       <div>
-        <a class="btn btn-primary" href="/logout/">
+        <a class="btn btn-primary" href="/metocean/logout/">
           <i class="fa fa-sign-out"></i>
           Logout
         </a>
