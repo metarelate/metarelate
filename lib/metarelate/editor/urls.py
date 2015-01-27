@@ -40,6 +40,5 @@ urlpatterns = patterns('',
     url(r'^ajax-auth/(?P<backend>[^/]+)/$', 'metarelate.editor.app.views.ajax_auth',
         name='ajax-auth'),
     url(r'^email/$', 'metarelate.editor.app.views.require_email', name='require_email'),
-    url(r'', include('social.apps.django_app.urls', namespace='social'))
-    url(r'^/$', 'metarelate.editor.app.views.', name=''),
+    url(r'', include('social.apps.django_app.urls', namespace='social')),
 )

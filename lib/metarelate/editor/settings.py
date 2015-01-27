@@ -157,7 +157,7 @@ AUTHENTICATION_BACKENDS = (
  'social.backends.github.GithubOAuth2',
 )
 
-AUTH_USER_MODEL = 'editor.CustomUser'
+AUTH_USER_MODEL = 'app.CustomUser'
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/done/'
 URL_PATH = ''
@@ -170,7 +170,7 @@ SOCIAL_AUTH_PIPELINE = (
 'social.pipeline.social_auth.auth_allowed',
 'social.pipeline.social_auth.social_user',
 'social.pipeline.user.get_username',
-'editor.app.pipeline.require_email',
+'metarelate.editor.app.pipeline.require_email',
 'social.pipeline.mail.mail_validation',
 'social.pipeline.user.create_user',
 'social.pipeline.social_auth.associate_user',
