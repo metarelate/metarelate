@@ -60,7 +60,7 @@ from metarelate.editor.settings import ROOTUSER
 def logout(request):
     """Logs out user"""
     auth_logout(request)
-    return redirect(reverse('done'))
+    return redirect(reverse('home'))
 
 
 def context(**extra):
@@ -75,7 +75,7 @@ def context(**extra):
 def login(request):
     """Login view, displays login mechanism"""
     if request.user.is_authenticated():
-        return redirect(reverse('done'))
+        return redirect(reverse('control_panel'))
     return context()
 
 
@@ -148,6 +148,8 @@ def controlpanel(request):
     """
     branch = _get_branch(request)
     branch_mappings = []
+    if request.user.is_authenticated():
+        raise ValueError('user is {}'.format(user.username))
     if branch:
         branch_mappings = fuseki_process.query_branch(branch)
         branch_mappings = [bm['mapping'].rstrip('>').lstrip('<') for bm in
@@ -160,7 +162,7 @@ def controlpanel(request):
         branch_mappings = [{'url':'{}?branch={}'.format(bm, branch),
                             'label':bm} for bm in branch_mappings] 
     if request.method == 'POST':
-        form = forms.HomeForm(request.POST)
+        form = forms.HomeForm(request.POST, user=request.user)
         if form.is_valid():
             invalids = form.cleaned_data.get('validation')
             create_branch = form.cleaned_data.get('branch')
@@ -191,7 +193,7 @@ def controlpanel(request):
                 #reload(forms)
                 response = HttpResponseRedirect(url)
     else:
-        form = forms.HomeForm()
+        form = forms.HomeForm(user=request.user)
         con_dict = {}
         con_dict['mappings'] = branch_mappings
         con_dict['metarelateuser'] = 'https://github.com/marqh'

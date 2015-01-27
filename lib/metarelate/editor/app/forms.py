@@ -507,8 +507,13 @@ class HomeForm(forms.Form):
     Form to support the home control panel
     and control buttons
     """
+    def __init__(self, *args, **kwargs):
+        #if kwargs.get('user'):
+        user = kwargs.pop('user')
+        #if not user.startswith('http'):
+        self.user = 'https://github.com/{}'.format(user.username)    
+        super(HomeForm, self).__init__(*args, **kwargs)
     def clean(self):
-        user = 'https://github.com/marqh'
         if self.data.has_key('save'):
             self.cleaned_data['save'] = True
             branch = self.data.get('save')
@@ -524,19 +529,21 @@ class HomeForm(forms.Form):
         elif self.data.has_key('branch'):
             graph = self.data.get('branch')
             print 'cut branch'
-            graphid = fuseki_process.branch_graph(user)
+            graphid = fuseki_process.branch_graph(self.user)
             self.cleaned_data['branch'] = graphid
         elif self.data.has_key('delete'):
             self.cleaned_data['delete'] = True
             graph = self.data.get('delete')
             print 'deleting graph'
-            fuseki_process.delete_graph(graph, user)
+            fuseki_process.delete_graph(graph, self.user)
         elif self.data.has_key('merge'):
-            if user == 'https://github.com/marqh':
+            if self.user == 'https://github.com/marqh':
                 graph = self.data.get('merge')
                 all_additions = fuseki_process.merge(graph)
                 if not all_additions:
                     raise forms.ValidationError('The merge process failed')
+            else:
+                raise ValidationError('You are not authorised to perform a merge')
         return self.cleaned_data
 
 class UploadForm(forms.Form):
