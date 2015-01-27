@@ -159,7 +159,7 @@ AUTHENTICATION_BACKENDS = (
 
 AUTH_USER_MODEL = 'app.CustomUser'
 LOGIN_URL = '/metocean/login/'
-LOGIN_REDIRECT_URL = '/metocean/home/'
+LOGIN_REDIRECT_URL = '/metocean/login/'
 URL_PATH = ''
 SOCIAL_AUTH_STRATEGY = 'social.strategies.django_strategy.DjangoStrategy'
 SOCIAL_AUTH_STORAGE = 'social.apps.django_app.default.models.DjangoStorage'
