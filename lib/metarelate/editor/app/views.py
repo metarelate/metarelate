@@ -56,7 +56,7 @@ from metarelate.editor.settings import ROOTUSER
 def logout(request):
     """Logs out user"""
     auth_logout(request)
-    return redirect('login')
+    return redirect(reverse('login'))
 
 
 def context(**extra):
@@ -71,7 +71,7 @@ def context(**extra):
 def login(request):
     """Login view, displays login mechanism"""
     if request.user.is_authenticated():
-        return redirect('done')
+        return redirect(reverse('done'))
     return context()
 
 
