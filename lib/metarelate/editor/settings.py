@@ -2,6 +2,7 @@
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
+#ALLOWED_HOSTS = ['beta.metarelate.net']
 
 ADMINS = (
     # ('Your Name', 'your_email@example.com'),
@@ -11,12 +12,8 @@ MANAGERS = ADMINS
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': '',                      # Or path to database file if using sqlite3.
-        'USER': '',                      # Not used with sqlite3.
-        'PASSWORD': '',                  # Not used with sqlite3.
-        'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
-        'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
+        'ENGINE': 'django.db.backends.sqlite3', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
+        'NAME': 'authdb/auth.db',                      # Or full path to db
     }
 }
 
@@ -31,7 +28,7 @@ TIME_ZONE = 'UTC'
 
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'en-uk'
 
 SITE_ID = 1
 
@@ -98,6 +95,7 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
 
 ROOT_URLCONF = 'metarelate.editor.urls'
@@ -115,6 +113,7 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'social.apps.django_app.default',
     'metarelate.editor.app',
     # Uncomment the next line to enable the admin:
     # 'django.contrib.admin',
@@ -144,6 +143,47 @@ LOGGING = {
         },
     }
 }
+
+TEMPLATE_CONTEXT_PROCESSORS = (
+'django.contrib.auth.context_processors.auth',
+'django.core.context_processors.debug',
+'django.core.context_processors.i18n',
+'django.core.context_processors.media',
+'django.contrib.messages.context_processors.messages',
+'social.apps.django_app.context_processors.backends',
+)
+
+AUTHENTICATION_BACKENDS = (
+ 'social.backends.github.GithubOAuth2',
+)
+
+AUTH_USER_MODEL = 'editor.CustomUser'
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/done/'
+URL_PATH = ''
+SOCIAL_AUTH_STRATEGY = 'social.strategies.django_strategy.DjangoStrategy'
+SOCIAL_AUTH_STORAGE = 'social.apps.django_app.default.models.DjangoStorage'
+
+SOCIAL_AUTH_PIPELINE = (
+'social.pipeline.social_auth.social_details',
+'social.pipeline.social_auth.social_uid',
+'social.pipeline.social_auth.auth_allowed',
+'social.pipeline.social_auth.social_user',
+'social.pipeline.user.get_username',
+'editor.app.pipeline.require_email',
+'social.pipeline.mail.mail_validation',
+'social.pipeline.user.create_user',
+'social.pipeline.social_auth.associate_user',
+'social.pipeline.debug.debug',
+'social.pipeline.social_auth.load_extra_data',
+'social.pipeline.user.user_details',
+#'social.pipeline.debug.debug'
+)
+
+TEST_RUNNER = 'django.test.runner.DiscoverRunner'
+
+SOCIAL_AUTH_GITHUB_KEY = 
+SOCIAL_AUTH_GITHUB_SECRET =
 
 try:
     from settings_local import *

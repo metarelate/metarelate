@@ -28,7 +28,7 @@ import sys
 import urllib
 
 from django.shortcuts import get_object_or_404, render_to_response
-from django.http import HttpResponseRedirect, HttpResponse, Http404
+from django.http import HttpResponseRedirect, HttpResponse, Http404, HttpResponseBadRequest
 from django.core.urlresolvers import reverse
 from django.template import RequestContext
 from django.utils.html import escape 
@@ -36,13 +36,84 @@ from django.utils.safestring import mark_safe
 from django.forms.formsets import formset_factory
 from django.forms.models import inlineformset_factory
 
+from django.conf import settings
+from django.shortcuts import redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import logout as auth_logout, login
+from social.backends.oauth import BaseOAuth1, BaseOAuth2
+from social.backends.google import GooglePlusAuth
+from social.backends.utils import load_backends
+from social.apps.django_app.utils import psa
 
-import forms
+from metarelate.editor.app.decorators import render_to
+import metarelate.editor.app.forms as forms
 import metarelate
 import metarelate.prefixes as prefixes
 from metarelate.editor.settings import READ_ONLY
 from metarelate.editor.settings import fuseki_process
 from metarelate.editor.settings import ROOTUSER
+
+def logout(request):
+    """Logs out user"""
+    auth_logout(request)
+    return redirect('/')
+
+
+def context(**extra):
+    return dict({
+        'plus_id': getattr(settings, 'SOCIAL_AUTH_GOOGLE_PLUS_KEY', None),
+        'plus_scope': ' '.join(GooglePlusAuth.DEFAULT_SCOPE),
+        'available_backends': load_backends(settings.AUTHENTICATION_BACKENDS)
+    }, **extra)
+
+
+@render_to('login.html')
+def login(request):
+    """Login view, displays login mechanism"""
+    if request.user.is_authenticated():
+        return redirect('done')
+    return context()
+
+
+@login_required
+@render_to('login.html')
+def done(request):
+    """Login complete view, displays user data"""
+    return context()
+
+
+@render_to('login.html')
+def validation_sent(request):
+    return context(
+        validation_sent=True,
+        email=request.session.get('email_validation_address')
+    )
+
+
+@render_to('login.html')
+def require_email(request):
+    backend = request.session['partial_pipeline']['backend']
+    return context(email_required=True, backend=backend)
+
+
+@psa('social:complete')
+def ajax_auth(request, backend):
+    if isinstance(request.backend, BaseOAuth1):
+        token = {
+            'oauth_token': request.REQUEST.get('access_token'),
+            'oauth_token_secret': request.REQUEST.get('access_token_secret'),
+        }
+    elif isinstance(request.backend, BaseOAuth2):
+        token = request.REQUEST.get('access_token')
+    else:
+        raise HttpResponseBadRequest('Wrong backend type')
+    user = request.backend.do_auth(token, ajax=True)
+    login(request, user)
+    data = {'id': user.id, 'username': user.username}
+    return HttpResponse(json.dumps(data), mimetype='application/json')
+
+
+
 
 def home(request):
     context = RequestContext(request)
