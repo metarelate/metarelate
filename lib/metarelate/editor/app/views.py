@@ -22,6 +22,7 @@ import importlib
 import itertools
 import io
 import json
+import logging
 import os
 import re
 import subprocess
@@ -56,6 +57,7 @@ from metarelate.editor.settings import READ_ONLY
 from metarelate.editor.settings import fuseki_process
 from metarelate.editor.settings import ROOTUSER
 
+logger = logging.get_Logger(__name__)
 
 def logout(request):
     """Logs out user"""
@@ -97,7 +99,7 @@ def validation_sent(request):
 @render_to('login.html')
 def require_email(request):
     backend = request.session['partial_pipeline']['backend']
-    return context(email_required=True, backend=backend)
+    return context(email_required=False, backend=backend)
 
 
 @psa('social:complete')
@@ -148,6 +150,9 @@ def controlpanel(request):
     """
     branch = _get_branch(request)
     branch_mappings = []
+    logger.info('branch %s requested by control panel' % branch)
+    if request.user:
+        logger.info('%s logged in' % request.user.username)
     if branch:
         branch_mappings = fuseki_process.query_branch(branch)
         branch_mappings = [bm['mapping'].rstrip('>').lstrip('<') for bm in

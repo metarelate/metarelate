@@ -535,7 +535,11 @@ class CPanelForm(forms.Form):
             self.cleaned_data['delete'] = True
             graph = self.data.get('delete')
             print 'deleting graph'
-            fuseki_process.delete_graph(graph, self.user)
+            try:
+                fuseki_process.delete_graph(graph, self.user)
+            except ValueError, e:
+                raise forms.ValidationError('You do not have permissions to '
+                                            'delete this branch.')
         elif self.data.has_key('merge'):
             if self.user == 'https://github.com/marqh':
                 graph = self.data.get('merge')
