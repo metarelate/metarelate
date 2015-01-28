@@ -191,7 +191,7 @@ def controlpanel(request):
                 #reload(forms)
                 response = HttpResponseRedirect(url)
     else:
-        form = forms.CpanelForm(user=request.user)
+        form = forms.CPanelForm(user=request.user)
         con_dict = {}
         con_dict['mappings'] = branch_mappings
         if request.user and request.user.username == 'marqh':
