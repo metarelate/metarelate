@@ -151,7 +151,7 @@ def controlpanel(request):
     branch = _get_branch(request)
     branch_mappings = []
     logger.info('branch %s requested by control panel' % branch)
-    if request.user:
+    if request.user.username:
         logger.info('%s logged in' % request.user.username)
     if branch:
         branch_mappings = fuseki_process.query_branch(branch)
@@ -164,7 +164,7 @@ def controlpanel(request):
                            for bm in branch_mappings]
         branch_mappings = [{'url':'{}?branch={}'.format(bm, branch),
                             'label':bm} for bm in branch_mappings] 
-    if request.method == 'POST' and request.user:
+    if request.method == 'POST' and request.user.username:
         form = forms.CPanelForm(request.POST, user=request.user.username)
         if form.is_valid():
             invalids = form.cleaned_data.get('validation')
@@ -207,7 +207,8 @@ def controlpanel(request):
             uname = 'https://github.com/{}'.format(request.user.username)
             owner = fuseki_process.branch_owner(branch)
             if owner == uname or uname == 'https://github.com/marqh':
-                con_dict['branch'] = branch
+                con_dict['ownership'] = uname
+        con_dict['branch'] = branch
         con_dict['upload'] = [{'url': url_qstr(reverse('upload', 
                                                        kwargs={'importer':'stashc_cfname'}), 
                                                branch=branch), 
