@@ -1,4 +1,4 @@
-# (C) British Crown Copyright 2013, Met Office
+# (C) British Crown Copyright 2013 - 2015, Met Office
 #
 # This file is part of metarelate.
 #
@@ -159,8 +159,8 @@ def controlpanel(request):
                            for bm in branch_mappings]
         branch_mappings = [{'url':'{}?branch={}'.format(bm, branch),
                             'label':bm} for bm in branch_mappings] 
-    if request.method == 'POST':
-        form = forms.HomeForm(request.POST, user=request.user)
+    if request.method == 'POST' and request.user:
+        form = forms.CPanelForm(request.POST, user=request.user.username)
         if form.is_valid():
             invalids = form.cleaned_data.get('validation')
             create_branch = form.cleaned_data.get('branch')
@@ -191,13 +191,18 @@ def controlpanel(request):
                 #reload(forms)
                 response = HttpResponseRedirect(url)
     else:
-        form = forms.HomeForm(user=request.user)
+        form = forms.CpanelForm(user=request.user)
         con_dict = {}
         con_dict['mappings'] = branch_mappings
-        con_dict['metarelateuser'] = 'https://github.com/marqh'
+        if request.user and request.user.username == 'marqh':
+            con_dict['metarelateuser'] = 'https://github.com/marqh'
         con_dict['control'] = {'control':'control'}
         con_dict['form'] = form
-        con_dict['branch'] = branch
+        if branch and request.user:
+            uname = 'https://github.com/{}'.format(request.user.username)
+            owner = fuseki_process.branch_owner(branch)
+            if owner == uname or uname == 'https://github.com/marqh':
+                con_dict['branch'] = branch
         con_dict['upload'] = [{'url': url_qstr(reverse('upload', 
                                                        kwargs={'importer':'stashc_cfname'}), 
                                                branch=branch), 

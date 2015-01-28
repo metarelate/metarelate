@@ -740,6 +740,10 @@ class FusekiServer(object):
         return result
 
     def delete_graph(self, graphid, user):
+        if graphid == '':
+            raise ValueError('Only branch graphs may be deleted')
+        if '{}'.format(graphid) == '':
+            raise ValueError('Only branch graphs may be deleted')
         if not user.startswith('https://github.com/'):
             raise ValueError('invalid user URI: {}'.format(user))
         else:

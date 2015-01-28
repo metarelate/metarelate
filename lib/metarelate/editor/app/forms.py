@@ -1,4 +1,4 @@
-# (C) British Crown Copyright 2013, Met Office
+# (C) British Crown Copyright 2013 - 2015, Met Office
 #
 # This file is part of metarelate.
 #
@@ -502,7 +502,7 @@ class URLwidget(forms.TextInput):
         return self.cleaned_data
 
 
-class HomeForm(forms.Form):
+class CPanelForm(forms.Form):
     """
     Form to support the home control panel
     and control buttons
@@ -511,8 +511,8 @@ class HomeForm(forms.Form):
         #if kwargs.get('user'):
         user = kwargs.pop('user')
         #if not user.startswith('http'):
-        self.user = 'https://github.com/{}'.format(user.username)    
-        super(HomeForm, self).__init__(*args, **kwargs)
+        self.user = 'https://github.com/{}'.format(user)    
+        super(CPanelForm, self).__init__(*args, **kwargs)
     def clean(self):
         if self.data.has_key('save'):
             self.cleaned_data['save'] = True
