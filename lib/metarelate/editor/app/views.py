@@ -211,7 +211,7 @@ def controlpanel(request):
                                              ': file lines must be of the form: '
                                              '|Disc|pCat|pNum|CFName|units|force_update(y/n)|')}]
         context = RequestContext(request, con_dict)
-        response = render_to_response('main.html', context)
+        response = render_to_response('cpanel.html', context)
     return response
 
 def upload(request, importer):
