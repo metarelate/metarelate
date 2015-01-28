@@ -57,7 +57,7 @@ from metarelate.editor.settings import READ_ONLY
 from metarelate.editor.settings import fuseki_process
 from metarelate.editor.settings import ROOTUSER
 
-logger = logging.get_Logger(__name__)
+logger = logging.getLogger(__name__)
 
 def logout(request):
     """Logs out user"""
