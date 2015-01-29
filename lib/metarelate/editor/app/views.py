@@ -198,7 +198,11 @@ def controlpanel(request):
     else:
         form = forms.CPanelForm(user=request.user)
         con_dict = {}
-        save_string = fuseki_process.save_branch(branch, subgraph, merge=False)
+        save_string = ''
+        for subgraph in ['mappings.ttl', 'concepts.ttl']:
+            save_string += subgraph + '\n\n'
+            save_string += fuseki_process.save_branch(branch, subgraph, merge=False)
+            save_string += 40*'-'
         con_dict['save_string'] = save_string
         con_dict['mappings'] = branch_mappings
         if request.user and request.user.username == 'marqh':
