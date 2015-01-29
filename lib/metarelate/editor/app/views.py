@@ -67,8 +67,6 @@ def logout(request):
 
 def context(**extra):
     return dict({
-        # 'plus_id': getattr(settings, 'SOCIAL_AUTH_GOOGLE_PLUS_KEY', None),
-        # 'plus_scope': ' '.join(GooglePlusAuth.DEFAULT_SCOPE),
         'available_backends': load_backends(settings.AUTHENTICATION_BACKENDS)
     }, **extra)
 
@@ -92,15 +90,7 @@ def done(request):
 def validation_sent(request):
     return context(
         validation_sent=True,
-        #email=request.session.get('email_validation_address')
     )
-
-
-@render_to('login.html')
-def require_email(request):
-    backend = request.session['partial_pipeline']['backend']
-    return context(email_required=False, backend=backend)
-
 
 @psa('social:complete')
 def ajax_auth(request, backend):
