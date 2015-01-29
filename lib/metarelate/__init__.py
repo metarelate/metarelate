@@ -78,8 +78,8 @@ def get_notation(uri):
                 if isinstance(result, dict):
                     result = result.get('@value')
             except ValueError, e:
-                if e.message == 'No JSON object could be decoded':
-                    result = uri.split('/')[-1]
+                ## hack to use the last part of the uri for now
+                result = uri.split('/')[-1]
         else:
             ## hack to use the last part of the uri for now
             result = uri.split('/')[-1]

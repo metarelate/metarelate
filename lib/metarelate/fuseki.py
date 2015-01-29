@@ -642,9 +642,6 @@ class FusekiServer(object):
                 raise ValueError('Source Component exists in duplicate in store')
             elif source_uri:
                 source_uri = source_uri[0]['component']
-                if source.uri.data != source_uri:
-                    raise ValueError('Source Component URI is different from '
-                                     'a duplicate Component in the store')
         if target is not None:
             target_qstr, instr = target.creation_sparql(graph)
             target_uri = self.run_query(target_qstr)
@@ -652,9 +649,6 @@ class FusekiServer(object):
                 raise ValueError('Target Component exists in duplicate in store')
             elif target_uri:
                 target_uri = target_uri[0]['component']
-                if target.uri.data != target_uri:
-                    raise ValueError('Target Component URI is different from '
-                                     'a duplicate Component in the store')
         if source_uri and target_uri:
             graphs = ('FROM NAMED <http://metarelate.net/mappings.ttl> \n')
             if graph:
