@@ -514,15 +514,7 @@ class CPanelForm(forms.Form):
         self.user = 'https://github.com/{}'.format(user)    
         super(CPanelForm, self).__init__(*args, **kwargs)
     def clean(self):
-        if self.data.has_key('save'):
-            self.cleaned_data['save'] = True
-            branch = self.data.get('save')
-            for subgraph in ['mappings.ttl', 'concepts.ttl']:
-                save_string = fuseki_process.save_branch(branch, subgraph, merge=True)
-                self.cleaned_data[subgraph] = save_string
-            # print  'cached changes saved'
-            # fuseki_process.save()
-        elif self.data.has_key('validate'):
+        if self.data.has_key('validate'):
             graph = self.data.get('validate')
             print 'validate triplestore'
             self.cleaned_data['validation'] = fuseki_process.validate(graph)

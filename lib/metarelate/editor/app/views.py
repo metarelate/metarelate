@@ -198,6 +198,8 @@ def controlpanel(request):
     else:
         form = forms.CPanelForm(user=request.user)
         con_dict = {}
+        save_string = fuseki_process.save_branch(branch, subgraph, merge=False)
+        con_dict['save_string'] = save_string
         con_dict['mappings'] = branch_mappings
         if request.user and request.user.username == 'marqh':
             con_dict['metarelateuser'] = 'https://github.com/marqh'
@@ -212,15 +214,17 @@ def controlpanel(request):
         con_dict['upload'] = [{'url': url_qstr(reverse('upload', 
                                                        kwargs={'importer':'stashc_cfname'}), 
                                                branch=branch), 
-                               'docstring': ('Upload a STASH CF name collection'
-                                             ': file lines must be of the form: '
-                                             '|STASH(msi)|CFName|units|force_update(y/n)|')},
+                               'docstring': ('Upload a STASH CF name collection\n<p>'
+                                             ': file lines must be of the form: \n<p>'
+                                             '|STASH(msi)|CFName|units|force_update(y/n)|\n<p>'),
+                               'label': 'STASH Code -> CF name'},
                               {'url': url_qstr(reverse('upload', 
                                                        kwargs={'importer':'grib2_cfname'}), 
                                                branch=branch), 
-                               'docstring': ('Upload a GRIB2 CF name collection'
-                                             ': file lines must be of the form: '
-                                             '|Disc|pCat|pNum|CFName|units|force_update(y/n)|')}]
+                               'docstring': ('Upload a GRIB2 CF name collection\n<p>'
+                                             ': file lines must be of the form: \n<p>'
+                                             '|Disc|pCat|pNum|CFName|units|force_update(y/n)|\n<p>'),
+                               'label': 'GRIB2 Parameter -> CF name'}]
         context = RequestContext(request, con_dict)
         response = render_to_response('cpanel.html', context)
     return response

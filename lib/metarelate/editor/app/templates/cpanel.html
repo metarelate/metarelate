@@ -66,10 +66,6 @@
 <!-- <p> -->
 <!-- <input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="revert" value="Revert the Triplestore to the  Static Data State"/> -->
 <p>
-Retrieve the current merge of this branch and master:
-<p>
-<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="save" value="{{ branch }}"/>
-<p>
 Validate the current merge of this branch and master:
 <p>
 <input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="validate" value="{{ branch }}" label="Validate"/>
@@ -96,7 +92,8 @@ Merge this branch:
 {% for up in upload %}
 
 <p>
-<a href="{{ up.url }}">{{ up.docstring }}</a>
+<a href="{{ up.url }}">{{ up.label }}</a>
+{{ up.docstring }}
 <p>
 
 {% endfor %}
@@ -127,7 +124,11 @@ Create a new branch:
 
 {% endif %}
 
+{% if save_string %}
 
+{{ save_string }}
+
+{% endif %}
 
 {% if invalid %}
 
@@ -152,49 +153,6 @@ Create a new branch:
 
 
 </form>
-{% endif %}
-
-
-
-
-{% if itemlist %}
-<h2>Define Search Criteria</h2>
-{% for item in itemlist %}
-<li>{{ item }}</li>
-{% endfor %}
-{% endif %}
-
-
-{% if add %}
-<li><a href="{{ add.url }}"> {{ add.label }} </a></li>
-{% endif %}
-
-{% if addstash %}
-<li><a href="{{ addstash.url }}"> {{ addstash.label }} </a></li>
-{% endif %}
-
-{% if addfc %}
-<li><a href="{{ addfc.url }}"> {{ addfc.label }} </a></li>
-{% endif %}
-
-
-
-<p>
-{% if clear %}
-<a href="{{ clear.url }}"> {{ clear.label }} </a>
-{% endif %}
-
-<p>
-{% if um %}
-<a href="{{ um.url }}"> {{ um.label }} </a>
-{% endif %}
-<p>
-{% if cf %}
-<a href="{{ cf.url }}"> {{ cf.label }} </a>
-{% endif %}
-<p>
-{% if grib %}
-<a href="{{ grib.url }}"> {{ grib.label }} </a>
 {% endif %}
 
 
