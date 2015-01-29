@@ -334,7 +334,6 @@ class FusekiServer(object):
         write out all of the branch changes to a ttl file collection
         
         """
-        
         main_graph = metarelate.site_config['graph']
         filepath = os.path.join(self._static_dir, main_graph)
         for subgraph in ['mappings.ttl', 'concepts.ttl']:
@@ -342,6 +341,7 @@ class FusekiServer(object):
             save_string = self.save_branch(branch, subgraph, merge=True)
             if save_string:
                 with open(outfile, 'w') as sg:
+                    sg.write(HEADER)
                     for line in save_string.splitlines():
                         sg.write(line + '\n')
 
@@ -380,7 +380,6 @@ class FusekiServer(object):
                                                            res['o']))
         save_out.append('\t.\n')
         save_string = '\n'.join(save_out)
-        save_string = HEADER + save_string
         return save_string
 
     def query_branch(self, branch=None):

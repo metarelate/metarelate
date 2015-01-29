@@ -218,16 +218,16 @@ def controlpanel(request):
         con_dict['upload'] = [{'url': url_qstr(reverse('upload', 
                                                        kwargs={'importer':'stashc_cfname'}), 
                                                branch=branch), 
-                               'docstring': ('Upload a STASH CF name collection\n<p>'
-                                             ': file lines must be of the form: \n<p>'
-                                             '|STASH(msi)|CFName|units|force_update(y/n)|\n<p>'),
+                               'docstring': ('Upload a STASH CF name collection\n\n'
+                                             ': file lines must be of the form: \n\n'
+                                             '|STASH(msi)|CFName|units|force_update(y/n)|\n\n'),
                                'label': 'STASH Code -> CF name'},
                               {'url': url_qstr(reverse('upload', 
                                                        kwargs={'importer':'grib2_cfname'}), 
                                                branch=branch), 
-                               'docstring': ('Upload a GRIB2 CF name collection\n<p>'
-                                             ': file lines must be of the form: \n<p>'
-                                             '|Disc|pCat|pNum|CFName|units|force_update(y/n)|\n<p>'),
+                               'docstring': ('Upload a GRIB2 CF name collection\n\n'
+                                             ': file lines must be of the form: \n\n'
+                                             '|Disc|pCat|pNum|CFName|units|force_update(y/n)|\n\n'),
                                'label': 'GRIB2 Parameter -> CF name'}]
         context = RequestContext(request, con_dict)
         response = render_to_response('cpanel.html', context)
