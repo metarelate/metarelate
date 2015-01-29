@@ -67,8 +67,8 @@ def logout(request):
 
 def context(**extra):
     return dict({
-        'plus_id': getattr(settings, 'SOCIAL_AUTH_GOOGLE_PLUS_KEY', None),
-        'plus_scope': ' '.join(GooglePlusAuth.DEFAULT_SCOPE),
+        # 'plus_id': getattr(settings, 'SOCIAL_AUTH_GOOGLE_PLUS_KEY', None),
+        # 'plus_scope': ' '.join(GooglePlusAuth.DEFAULT_SCOPE),
         'available_backends': load_backends(settings.AUTHENTICATION_BACKENDS)
     }, **extra)
 
@@ -92,7 +92,7 @@ def done(request):
 def validation_sent(request):
     return context(
         validation_sent=True,
-        email=request.session.get('email_validation_address')
+        #email=request.session.get('email_validation_address')
     )
 
 
@@ -151,7 +151,7 @@ def controlpanel(request):
     branch = _get_branch(request)
     branch_mappings = []
     logger.info('branch %s requested by control panel' % branch)
-    if request.user.username:
+    if request.user.is_authenticated():
         logger.info('%s logged in' % request.user.username)
     if branch:
         branch_mappings = fuseki_process.query_branch(branch)
@@ -198,12 +198,13 @@ def controlpanel(request):
     else:
         form = forms.CPanelForm(user=request.user)
         con_dict = {}
-        save_string = ''
-        for subgraph in ['mappings.ttl', 'concepts.ttl']:
-            save_string += subgraph + '\n\n'
-            save_string += fuseki_process.save_branch(branch, subgraph, merge=False)
-            save_string += 40*'-'
-        con_dict['save_string'] = save_string
+        if branch:
+            save_string = ''
+            for subgraph in ['mappings.ttl', 'concepts.ttl']:
+                save_string += subgraph + '\n\n'
+                save_string += fuseki_process.save_branch(branch, subgraph, merge=False)
+                save_string += 40*'-'
+            con_dict['save_string'] = save_string
         con_dict['mappings'] = branch_mappings
         if request.user and request.user.username == 'marqh':
             con_dict['metarelateuser'] = 'https://github.com/marqh'
