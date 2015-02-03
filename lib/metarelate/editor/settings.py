@@ -156,7 +156,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 
 AUTHENTICATION_BACKENDS = (
  #'social.backends.github.GithubOAuth2',
-  'metarelate.editor.app.github_oauth.MrGithubOAuth2',
+  'metarelate.editor.app.github_oauth.GithubOAuth2',
 )
 
 AUTH_USER_MODEL = 'app.CustomUser'
@@ -176,7 +176,7 @@ SOCIAL_AUTH_PIPELINE = (
 'social.pipeline.user.create_user',
 'social.pipeline.social_auth.associate_user',
 'social.pipeline.debug.debug',
-'social.pipeline.social_auth.load_extra_data',
+#'social.pipeline.social_auth.load_extra_data',
 'social.pipeline.user.user_details',
 )
 

@@ -201,7 +201,7 @@ def controlpanel(request):
         con_dict['control'] = {'control':'control'}
         con_dict['form'] = form
         if branch and request.user:
-            uname = 'https://github.com/{}'.format(request.user.username)
+            uname = request.user.username
             owner = fuseki_process.branch_owner(branch)
             if owner == uname or uname == 'https://github.com/marqh':
                 con_dict['ownership'] = uname

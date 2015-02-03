@@ -511,7 +511,7 @@ class CPanelForm(forms.Form):
         #if kwargs.get('user'):
         user = kwargs.pop('user')
         #if not user.startswith('http'):
-        self.user = 'https://github.com/{}'.format(user)    
+        self.user = user
         super(CPanelForm, self).__init__(*args, **kwargs)
     def clean(self):
         if self.data.has_key('validate'):

@@ -1,6 +1,6 @@
-from social.backends.github import GithubOAuth2
+import social.backends.github
 
-class MrGithubOAuth2(GithubOAuth2):
+class GithubOAuth2(social.backends.github.GithubOAuth2):
      def get_user_details(self, response):
         """Return user details from Github account"""
         return {'username': response.get('html_url'),
