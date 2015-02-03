@@ -22,8 +22,8 @@ from django.db import models
 
 class CustomUser(AbstractUser):
     username = models.CharField('username', max_length=64, unique=True,
-        help_text=_('Required. 64 characters or fewer. Letters, numbers and '
-                    '@/./+/-/_ characters'),
+        help_text=('Required. 64 characters or fewer. Letters, numbers and '
+                   '@/./+/-/_ characters'),
         validators=[
             validators.RegexValidator(re.compile('^[\w.@+-]+$'), _('Enter a valid username.'), 'invalid')
         ])
