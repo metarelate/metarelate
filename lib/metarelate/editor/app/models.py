@@ -16,6 +16,8 @@
 # along with metarelate. If not, see <http://www.gnu.org/licenses/>.
 
 # Define a custom User class to work with django-social-auth
+import re
+
 from django.contrib.auth.models import AbstractUser
 from django.core import validators
 from django.db import models
