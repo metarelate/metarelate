@@ -27,6 +27,6 @@ class CustomUser(AbstractUser):
         help_text=('Required. 64 characters or fewer. Letters, numbers and '
                    '@/./+/-/_ characters'),
         validators=[
-            validators.RegexValidator(re.compile('^[\w.@+-]+$'), _('Enter a valid username.'), 'invalid')
+            validators.RegexValidator(re.compile('^[\w.@+-]+$'), ('Enter a valid username.'), 'invalid')
         ])
     # pass
