@@ -104,6 +104,7 @@ def ajax_auth(request, backend):
     else:
         raise HttpResponseBadRequest('Wrong backend type')
     user = request.backend.do_auth(token, ajax=True)
+    request.session['access_token'] = request.REQUEST.get('access_token')
     login(request, user)
     data = {'id': user.id, 'username': user.username}
     return HttpResponse(json.dumps(data), mimetype='application/json')
@@ -143,6 +144,7 @@ def controlpanel(request):
     logger.info('branch %s requested by control panel' % branch)
     if request.user.is_authenticated():
         logger.info('%s logged in' % request.user.username)
+        logger.info('access_token: %s' % request.session.get('access_token'))
     if branch:
         branch_mappings = fuseki_process.query_branch(branch)
         branch_mappings = [bm['mapping'].rstrip('>').lstrip('<') for bm in
