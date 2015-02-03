@@ -18,6 +18,7 @@
 # Define a custom User class to work with django-social-auth
 from django.contrib.auth.models import AbstractUser
 from django.core import validators
+from django.db import models
 
 class CustomUser(AbstractUser):
     username = models.CharField(_('username'), max_length=64, unique=True,
