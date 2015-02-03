@@ -156,7 +156,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 
 AUTHENTICATION_BACKENDS = (
  #'social.backends.github.GithubOAuth2',
-  'metarelate.editor.app.github_oauth.GithubOAuth2',
+  'metarelate.editor.app.github_oauth.MrGithubOAuth2',
 )
 
 AUTH_USER_MODEL = 'app.CustomUser'
