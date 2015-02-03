@@ -21,7 +21,7 @@ from django.core import validators
 from django.db import models
 
 class CustomUser(AbstractUser):
-    username = models.CharField(_('username'), max_length=64, unique=True,
+    username = models.CharField('username', max_length=64, unique=True,
         help_text=_('Required. 64 characters or fewer. Letters, numbers and '
                     '@/./+/-/_ characters'),
         validators=[
