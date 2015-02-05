@@ -49,6 +49,8 @@ from social.backends.google import GooglePlusAuth
 from social.backends.utils import load_backends
 from social.apps.django_app.utils import psa
 
+import requests
+
 from metarelate.editor.app.decorators import render_to
 import metarelate.editor.app.forms as forms
 import metarelate
@@ -202,6 +204,8 @@ def controlpanel(request):
             con_dict['metarelateuser'] = 'https://github.com/marqh'
         con_dict['control'] = {'control':'control'}
         con_dict['form'] = form
+        con_dict['branch_url'] = url_qstr(reverse('control_panel'), 
+                                          branch=branch)
         if branch and request.user:
             uname = request.user.username
             owner = fuseki_process.branch_owner(branch)

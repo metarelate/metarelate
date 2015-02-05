@@ -37,25 +37,6 @@
 <p>
 
 
-<!-- {% if search %} -->
-<!-- <p> -->
-<!-- <a href="{{ search.url }}"> {{ search.label }} </a> -->
-<!-- <p> -->
-<!-- {% endif %} -->
-
-<!-- {% if create %} -->
-<!-- <p> -->
-<!-- <a href="{{ create.url }}"> {{ create.label }} </a> -->
-<!-- <p> -->
-<!-- {% endif %} -->
-
-
-<!-- {% if exact %} -->
-<!-- <a href="{{ exact.url }}"> {{ exact.label }} </a> -->
-<!-- <p> -->
-<!-- {% endif %} -->
-
-
 {% if form %}
 
 <h2>Control Panel</h2>
@@ -73,6 +54,15 @@ Validate the current merge of this branch and master:
 <p>
 {% if user.is_authenticated %}
 {% if ownership %}
+
+<p>
+Raise a ticket requesting that this branch be merged onto the project.
+<p>
+I propose these changes to Metarelate's metOcean knowledge base.  The changes are correct, to the best of my knowledge.  I agree to my username being used to label these changes.
+<p>
+<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="issue" value="{{ branch_url }}" label="Issue"/>
+
+<p>
 Delete this branch:
 <p>
 (this cannot be undone)
