@@ -31,5 +31,6 @@ def require_email(strategy, details, user=None, is_new=False, *args, **kwargs):
         else:
             return redirect('require_email')
 
-def token_session(request, response, *args, **kwargs):
-    request.session['access_token'] = response.get('access_token')
+def token_session(strategy, details, *args, **kwargs):
+    response = kwargs.get('response')
+    strategy.request.session['access_token'] = response.get('access_token')
