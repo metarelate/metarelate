@@ -182,7 +182,7 @@ def controlpanel(request):
                         tarinfo.mtime = int(time.time())
                         tarf.addfile(tarinfo, outstring_io)
             elif form.cleaned_data.get('issue'):
-                branch_url = self.data.get('issue')
+                branch_url = url_qstr(reverse('control_panel'), branch=branch)
                 api_uri = 'https://api.github.com'
                 repo_uri = api_uri + '/repos/metarelate/metOcean/issues'
                 atoken = request.session.get('access_token')
@@ -194,12 +194,12 @@ def controlpanel(request):
                                    "agree to my username being used to label "
                                    "these changes.\n\n"
                                    "{}".format(branch_url))}
-                r = requests.post('/'.join([duri, arepo]),
-                  data=mydata,
-                  headers=myheaders,
-                  )
+                r = requests.post(repo_uri,
+                                  data=mydata,
+                                  headers=myheaders)
                 if r.status_code != 201:
-                    print('ticket creation failed; sorry.')
+                    logger.error('ticket creation failed; sorry.')
+                response = HttpResponseRedirect(branch_url)
 
             elif form.cleaned_data.get('delete'):
                 url = reverse('control_panel')
