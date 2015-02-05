@@ -181,6 +181,26 @@ def controlpanel(request):
                         tarinfo.size = len(outstring)
                         tarinfo.mtime = int(time.time())
                         tarf.addfile(tarinfo, outstring_io)
+            elif form.cleaned_data.get('issue'):
+                branch_url = self.data.get('issue')
+                api_uri = 'https://api.github.com'
+                repo_uri = api_uri + '/repos/metarelate/metOcean/issues'
+                atoken = request.session.get('access_token')
+                myheaders = {'Authorization': 'token {}'.format(atoken)}
+                mydata = {'title': "Updated Mappings".format(branch),
+                          'body': ("I propose these changes to Metarelate's"
+                                   "metOcean knowledge base.  The changes are "
+                                   "correct, to the best of my knowledge.  I "
+                                   "agree to my username being used to label "
+                                   "these changes.\n\n"
+                                   "{}".format(branch_url))}
+                r = requests.post('/'.join([duri, arepo]),
+                  data=mydata,
+                  headers=myheaders,
+                  )
+                if r.status_code != 201:
+                    print('ticket creation failed; sorry.')
+
             elif form.cleaned_data.get('delete'):
                 url = reverse('control_panel')
                 url = url_qstr(reverse('control_panel'), branch='')
@@ -191,43 +211,43 @@ def controlpanel(request):
                 response = HttpResponseRedirect(url)
     else:
         form = forms.CPanelForm(user=request.user)
-        con_dict = {}
-        if branch:
-            save_string = ''
-            for subgraph in ['mappings.ttl', 'concepts.ttl']:
-                save_string += subgraph + '\n\n'
-                save_string += fuseki_process.save_branch(branch, subgraph, merge=False)
-                save_string += 40*'-'
-            con_dict['save_string'] = save_string
-        con_dict['mappings'] = branch_mappings
-        if request.user and request.user.username == 'marqh':
-            con_dict['metarelateuser'] = 'https://github.com/marqh'
-        con_dict['control'] = {'control':'control'}
-        con_dict['form'] = form
-        con_dict['branch_url'] = url_qstr(reverse('control_panel'), 
-                                          branch=branch)
-        if branch and request.user:
-            uname = request.user.username
-            owner = fuseki_process.branch_owner(branch)
-            if owner == uname or uname == 'https://github.com/marqh':
-                con_dict['ownership'] = uname
-        con_dict['branch'] = branch
-        con_dict['upload'] = [{'url': url_qstr(reverse('upload', 
-                                                       kwargs={'importer':'stashc_cfname'}), 
-                                               branch=branch), 
-                               'docstring': ('Upload a STASH CF name collection\n\n'
-                                             ': file lines must be of the form: \n\n'
-                                             '|STASH(msi)|CFName|units|force_update(y/n)|\n\n'),
-                               'label': 'STASH Code -> CF name'},
-                              {'url': url_qstr(reverse('upload', 
-                                                       kwargs={'importer':'grib2_cfname'}), 
-                                               branch=branch), 
-                               'docstring': ('Upload a GRIB2 CF name collection\n\n'
-                                             ': file lines must be of the form: \n\n'
-                                             '|Disc|pCat|pNum|CFName|units|force_update(y/n)|\n\n'),
-                               'label': 'GRIB2 Parameter -> CF name'}]
-        context = RequestContext(request, con_dict)
-        response = render_to_response('cpanel.html', context)
+    con_dict = {}
+    if branch:
+        save_string = ''
+        for subgraph in ['mappings.ttl', 'concepts.ttl']:
+            save_string += subgraph + '\n\n'
+            save_string += fuseki_process.save_branch(branch, subgraph, merge=False)
+            save_string += 40*'-'
+        con_dict['save_string'] = save_string
+    con_dict['mappings'] = branch_mappings
+    if request.user and request.user.username == 'marqh':
+        con_dict['metarelateuser'] = 'https://github.com/marqh'
+    con_dict['control'] = {'control':'control'}
+    con_dict['form'] = form
+    con_dict['branch_url'] = url_qstr(reverse('control_panel'), 
+                                      branch=branch)
+    if branch and request.user:
+        uname = request.user.username
+        owner = fuseki_process.branch_owner(branch)
+        if owner == uname or uname == 'https://github.com/marqh':
+            con_dict['ownership'] = uname
+    con_dict['branch'] = branch
+    con_dict['upload'] = [{'url': url_qstr(reverse('upload', 
+                                                   kwargs={'importer':'stashc_cfname'}), 
+                                           branch=branch), 
+                           'docstring': ('Upload a STASH CF name collection\n\n'
+                                         ': file lines must be of the form: \n\n'
+                                         '|STASH(msi)|CFName|units|force_update(y/n)|\n\n'),
+                           'label': 'STASH Code -> CF name'},
+                          {'url': url_qstr(reverse('upload', 
+                                                   kwargs={'importer':'grib2_cfname'}), 
+                                           branch=branch), 
+                           'docstring': ('Upload a GRIB2 CF name collection\n\n'
+                                         ': file lines must be of the form: \n\n'
+                                         '|Disc|pCat|pNum|CFName|units|force_update(y/n)|\n\n'),
+                           'label': 'GRIB2 Parameter -> CF name'}]
+    context = RequestContext(request, con_dict)
+    response = render_to_response('cpanel.html', context)
     return response
 
 def upload(request, importer):

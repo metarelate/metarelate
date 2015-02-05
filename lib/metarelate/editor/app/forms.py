@@ -516,37 +516,16 @@ class CPanelForm(forms.Form):
     def clean(self):
         if self.data.has_key('validate'):
             graph = self.data.get('validate')
-            print 'validate triplestore'
             self.cleaned_data['validation'] = fuseki_process.validate(graph)
         elif self.data.has_key('branch'):
             graph = self.data.get('branch')
-            print 'cut branch'
             graphid = fuseki_process.branch_graph(self.user)
             self.cleaned_data['branch'] = graphid
         elif self.data.has_key('issue'):
             self.cleaned_data['issue'] = True
-            branch_url = self.data.get('issue')
-            api_uri = 'https://api.github.com'
-            repo_uri = api_uri + '/repos/metarelate/metOcean/issues'
-            myheaders = {'Authorization': 'token {}'.format(atoken)}
-            mydata = {'title': "Updated Mappings".format(branch),
-                      'body': ("I propose these changes to Metarelate's"
-                               "metOcean knowledge base.  The changes are "
-                               "correct, to the best of my knowledge.  I "
-                               "agree to my username being used to label "
-                               "these changes.\n\n"
-                               "{}".format(branch_url))}
-            r = requests.post('/'.join([duri, arepo]),
-              data=mydata,
-              headers=myheaders,
-              )
-            if r.status_code != 201:
-                raise forms.ValidationError('ticket creation failed; sorry.')
-
         elif self.data.has_key('delete'):
             self.cleaned_data['delete'] = True
             graph = self.data.get('delete')
-            print 'deleting graph'
             try:
                 fuseki_process.delete_graph(graph, self.user)
             except ValueError, e:
