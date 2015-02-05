@@ -199,6 +199,7 @@ def controlpanel(request):
                                   headers=myheaders)
                 if r.status_code != 201:
                     logger.error('ticket creation failed; sorry.')
+                    logger.error(r.text)
                 response = HttpResponseRedirect(branch_url)
 
             elif form.cleaned_data.get('delete'):

@@ -27,8 +27,9 @@
 <meta name="Description" content="List of formats for Metadata management.">
 <title>Metarelate Editor</title>
 
-<link href="{{ STATIC_URL }}main.css" rel="stylesheet" type="text/css" media="screen" />
-<link href="{{ STATIC_URL }}styles.css" rel="stylesheet" type="text/css" media="screen" />
+{% load staticfiles %}
+<link href="{% static "main.css" %}" rel="stylesheet" type="text/css" media="screen" />
+<link href="{% static "styles.css" %}" rel="stylesheet" type="text/css" media="screen" />
 
 {% block head %}{% endblock %}
 
