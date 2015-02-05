@@ -57,12 +57,24 @@ Validate the current merge of this branch and master:
 {% if user.is_authenticated %}
 {% if ownership %}
 
+{% if upload %}
+
+{% for up in upload %}
+
 <p>
-Raise a ticket requesting that this branch be merged onto the project.
+<a href="{{ up.url }}">{{ up.label }}</a>
+{{ up.docstring }}
+<p>
+
+{% endfor %}
+
+{% endif %}
+
+
+<p>
+To raise a ticket requesting that this branch be merged onto the project, please copy the text below and a link to this page to a new issue on our <a href="https://github.com/metarelate/metOcean/issues/new">github page</a>.
 <p>
 I propose these changes to Metarelate's metOcean knowledge base.  The changes are correct, to the best of my knowledge.  I agree to my username being used to label these changes.
-<p>
-<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="issue" value="{{ branch_url }}" label="Issue"/>
 
 <p>
 Delete this branch:
@@ -79,18 +91,6 @@ Merge this branch:
 <p>
 {% endif %}
 
-{% if upload %}
-
-{% for up in upload %}
-
-<p>
-<a href="{{ up.url }}">{{ up.label }}</a>
-{{ up.docstring }}
-<p>
-
-{% endfor %}
-
-{% endif %}
 {% endif %}
 
 

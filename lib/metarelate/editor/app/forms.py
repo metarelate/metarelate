@@ -521,8 +521,6 @@ class CPanelForm(forms.Form):
             graph = self.data.get('branch')
             graphid = fuseki_process.branch_graph(self.user)
             self.cleaned_data['branch'] = graphid
-        elif self.data.has_key('issue'):
-            self.cleaned_data['issue'] = True
         elif self.data.has_key('delete'):
             self.cleaned_data['delete'] = True
             graph = self.data.get('delete')
