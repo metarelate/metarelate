@@ -27,6 +27,17 @@
 <link href="{% static "main.css" %}"
 <script type="text/javascript" src="{% static "jquery-1.7.2.min.js" %}"></script>
 <script src="{% static "js/RelatedObjectLookups.js" %}"></script>
+<script type="text/javascript" language="javascript">
+function current_url() {
+  var text = "I propose these changes to Metarelate's metOcean knowledge base.\n";
+  text += "The changes are correct, to the best of my knowledge.\n";
+  text += "I agree to my username being used to label these changes.\n";
+
+  var url = window.location ;
+  document.cpanel.issue_text.value = text + url ;
+}
+window.onload = current_url ;
+</script>
 
 {% endblock %}
 
@@ -42,7 +53,7 @@
 {% if form %}
 
 <h2>Control Panel</h2>
-<form action="" method="post">
+<form action="" method="post" name="cpanel">
 
 <!-- <p> -->
 <!-- <input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="load" value="Load Data from Static Data to the local Triplestore"/> -->
@@ -70,11 +81,16 @@ Validate the current merge of this branch and master:
 
 {% endif %}
 
+<p>
 
+To raise a ticket requesting that this branch be merged onto the project, please copy the text below and a link to this page to\
+ a new issue on our <a href="https://github.com/metarelate/metOcean/issues/new" target="_blank">github page</a>.
 <p>
-To raise a ticket requesting that this branch be merged onto the project, please copy the text below and a link to this page to a new issue on our <a href="https://github.com/metarelate/metOcean/issues/new">github page</a>.
-<p>
-I propose these changes to Metarelate's metOcean knowledge base.  The changes are correct, to the best of my knowledge.  I agree to my username being used to label these changes.
+<textarea readonly="readonly" rows="6" cols="128" wrap="soft" name="issue_text">
+
+</textarea>
+
+
 
 <p>
 Delete this branch:
