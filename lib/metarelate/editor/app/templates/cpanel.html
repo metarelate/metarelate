@@ -63,18 +63,18 @@ Validate the current merge of this branch and master:
 <p>
 
 
-{% if branch %}
+ {% if branch %}
 
-{% if review_url %}
+  {% if review_url %}
 
 <h3>This branch is under review</h3>
 
 <a href="{{ review_url }}">{{ review_url }}</a>
 
-{% else %}
+  {% else %}
 
-{% if user.is_authenticated %}
-{% if ownership %}
+   {% if user.is_authenticated %}
+    {% if ownership %}
 
 <p>
 
@@ -86,16 +86,7 @@ To raise a ticket requesting that this branch be merged onto the project, please
 </textarea>
 
 
-
-{% endif %}
-{% endif %}
-
-{% endif %}
-
-{% if user.is_authenticated %}
-{% if ownership %}
-
-{% if upload %}
+     {% if upload %}
 
 {% for up in upload %}
 
@@ -109,7 +100,7 @@ To raise a ticket requesting that this branch be merged onto the project, please
 
 {% endfor %}
 
-{% endif %}
+     {% endif %}
 
 
 
@@ -121,26 +112,27 @@ Delete this branch:
 <input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="delete" value="Delete branch"/>
 <p>
 
-{% if metarelateuser %}
+     {% if metarelateuser %}
 Merge this branch:
 <p>
 <input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="merge" value="Merge branch onto master"/>
 <p>
-{% endif %}
+     {% endif %}
 
-{% endif %}
+    {% endif %}
 
+   {% endif %}
+  {% endif %}
 
-{% else %}
-Create a new branch:
+ {% else %}
+<h3>Create a new branch:</h3>
 <p>
 <input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="branch" value="Create branch"/>
 <p>
-{% endif %}
-{% endif %}
 
+ {% endif %}
 
-{% if mappings %}
+ {% if mappings %}
 <h3>Live mappings in this branch:</h3>
 {% for mapping in mappings %}
 
@@ -151,28 +143,14 @@ Create a new branch:
 
 {% endfor %}
 
-{% endif %}
+ {% endif %}
 
-{% if save_string %}
+ {% if save_string %}
 <textarea readonly="readonly" rows="70" cols="128" wrap="soft">
 {{ save_string }}
 </textarea>
-{% endif %}
+ {% endif %}
 
-{% if invalid %}
-
-{% for inv in invalid %}
-
-  <h3>{{ inv.label }}</h3>
-
-  {% for mapping in inv.mappings %}
-    <ul>
-    <li><a href="{{ mapping.url }}">{{ mapping.label }}</a></li>
-    </ul>
-  {% endfor %}
-
-{% endfor %}
-{% endif %}
 
 
 {% csrf_token %}
