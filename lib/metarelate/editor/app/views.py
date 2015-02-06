@@ -264,9 +264,11 @@ def _uploaders(branch):
              'label': 'GRIB2 Parameter -> CF name'}]
 
 def upload(request, importer):
-    user = 'https://github.com/marqh'
+    user = request.user.username
     if importer not in ['stashc_cfname', 'grib2cf_cfname']:
-        raise ValueError('no matching uploader')
+        logger.error('no matching uploader')
+    if not user:
+        logger.error('no user, but upload requested')
     # find importer: get docstring
     upload_doc = 'upload a stash code to cfname and units table'
     static_dir = metarelate.site_config.get('static_dir')
@@ -278,7 +280,6 @@ def upload(request, importer):
         if form.is_valid():
             url = url_qstr(reverse('control_panel'), branch=branch)
             return HttpResponseRedirect(url)
-                
     else:
         form = forms.UploadForm(importer=importer, user=user, branch=branch)
     con_dict = {'form': form, 'upload_doc': upload_doc}

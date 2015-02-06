@@ -35,7 +35,7 @@
 
 {% for inv in invalid %}
 
-{% if inv.mappings %}
+ {% if inv.mappings %}
 
   <h3>{{ inv.label }}</h3>
 
@@ -45,9 +45,16 @@
     </ul>
   {% endfor %}
 
-{% endif %}
+ {% endif %}
 
 {% endfor %}
+
+{% else %}
+<h3>
+This graph has successfully validated and is suitable for merging.
+</h3>
+
+
 {% endif %}
 
 {% if mappings %}
@@ -61,10 +68,6 @@
 
 {% endfor %}
 
-{% else %}
-<h3>
-This graph has successfully validated and is suitable for merging.
-</h3>
 {% endif %}
 
 <FORM><INPUT Type="button" VALUE="Back" onClick="history.go(-1);return true;"></FORM>
