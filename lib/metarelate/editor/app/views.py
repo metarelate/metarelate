@@ -265,7 +265,7 @@ def _uploaders(branch):
 
 def upload(request, importer):
     branch = _get_branch(request)
-    if not user:
+    if not request.user.username:
         logger.error('no user, but upload requested: redirecting')
         url = url_qstr(reverse('control_panel'), branch=branch)
         return HttpResponseRedirect(url)
