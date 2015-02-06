@@ -797,8 +797,8 @@ def multiple_mappings(test_source=None, graph=None):
     """
     gstr = ''
     if graph:
-        gstr = ('FROM NAMED <http://metarelate.net/{}/mappings.ttl>'
-                'FROM NAMED <http://metarelate.net/{}/concepts.ttl>'
+        gstr = ('FROM NAMED <http://metarelate.net/{}mappings.ttl>'
+                'FROM NAMED <http://metarelate.net/{}concepts.ttl>'
                 ''.format(graph, graph))
     tm_filter = ''
     if test_source:
