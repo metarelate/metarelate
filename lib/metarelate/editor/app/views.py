@@ -250,6 +250,7 @@ def controlpanel(request):
             con_dict['review_url'] = open_ticket
             logger.info('Issue open: {}'.format(open_ticket))
         con_dict['upload'] = _uploaders(branch)
+        con_dict['branch'] = branch
         context = RequestContext(request, con_dict)
         response = render_to_response('cpanel.html', context)
     return response
