@@ -251,28 +251,30 @@ def _uploaders(branch):
     return [{'url': url_qstr(reverse('upload', 
                                      kwargs={'importer':'stashc_cfname'}), 
                              branch=branch), 
-             'docstring': ['Upload a STASH CF name collection'
-                           ': file lines must be of the form:'
+             'docstring': ['Upload a STASH CF name collection',
+                           ': file lines must be of the form:',
                            '|STASH(msi)|CFName|units|force_update(y/n)|'],
              'label': 'STASH Code -> CF name'},
             {'url': url_qstr(reverse('upload',
                                      kwargs={'importer':'grib2_cfname'}), 
                              branch=branch), 
-             'docstring': ['Upload a GRIB2 CF name collection'
-                           ': file lines must be of the form:'
+             'docstring': ['Upload a GRIB2 CF name collection',
+                           ': file lines must be of the form:',
                            '|Disc|pCat|pNum|CFName|units|force_update(y/n)|'],
              'label': 'GRIB2 Parameter -> CF name'}]
 
 def upload(request, importer):
-    user = request.user.username
+    branch = _get_branch(request)
+    if not user:
+        logger.error('no user, but upload requested: redirecting')
+        url = url_qstr(reverse('control_panel'), branch=branch)
+        return HttpResponseRedirect(url)
+    user = '<{}>'.format(request.user.username)
     if importer not in ['stashc_cfname', 'grib2cf_cfname']:
         logger.error('no matching uploader')
-    if not user:
-        logger.error('no user, but upload requested')
     # find importer: get docstring
     upload_doc = 'upload a stash code to cfname and units table'
     static_dir = metarelate.site_config.get('static_dir')
-    branch = _get_branch(request)
     #forms.UploadForm
     if request.method == 'POST':
         form = forms.UploadForm(request.POST, request.FILES, 
