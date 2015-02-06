@@ -174,7 +174,7 @@ def controlpanel(request):
                 response = HttpResponseRedirect(url)
             elif form.cleaned_data.get('delete') and request.user.username:
                 try:
-                    fuseki_process.delete_graph(graph, request.user.username)
+                    fuseki_process.delete_graph(branch, request.user.username)
                     url = url_qstr(reverse('control_panel'), branch='')
                 except ValueError, e:
                     url = url_qstr(reverse('control_panel'), branch=branch)
@@ -190,39 +190,6 @@ def controlpanel(request):
         else:
             url = url_qstr(reverse('control_panel'), branch=branch)
             response = HttpResponseRedirect(url)
-            # elif form.cleaned_data.get('save'):
-            #     response = HttpResponse(content_type='application/x-tar')
-            #     with tarfile.open(name='metarelate.tar.bz', fileobj=response,
-            #                       mode='w:bz2') as tarf:
-            #         for subgraph in ['mappings.ttl', 'concepts.ttl']:
-            #             outstring = form.cleaned_data.get(subgraph, '')
-            #             outstring_io = io.BytesIO(outstring.encode('utf8'))
-            #             tarinfo = tarfile.TarInfo(name=subgraph)
-            #             tarinfo.size = len(outstring)
-            #             tarinfo.mtime = int(time.time())
-            #             tarf.addfile(tarinfo, outstring_io)
-            # elif form.cleaned_data.get('issue'):
-            #     branch_url = url_qstr(reverse('control_panel'), branch=branch)
-            #     api_uri = 'https://api.github.com'
-            #     repo_uri = api_uri + '/repos/metarelate/metOcean/issues'
-            #     atoken = request.session.get('access_token')
-            #     myheaders = {'Authorization': 'token {}'.format(atoken)}
-            #     mydata = {'title': "Updated Mappings".format(branch),
-            #               'body': ("I propose these changes to Metarelate's"
-            #                        "metOcean knowledge base.  The changes are "
-            #                        "correct, to the best of my knowledge.  I "
-            #                        "agree to my username being used to label "
-            #                        "these changes.\n\n"
-            #                        "{}".format(branch_url))}
-            #     r = requests.post(repo_uri,
-            #                       data=mydata,
-            #                       headers=myheaders)
-            #     if r.status_code != 201:
-            #         logger.error('ticket creation failed; sorry.')
-            #         logger.error('{} from {}'.format(r.status_code, repo_uri))
-            #         logger.error(r.text)
-            #     response = HttpResponseRedirect(branch_url)
-
     else:
         form = forms.CPanelForm()
         con_dict = {}
