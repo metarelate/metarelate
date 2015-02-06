@@ -55,6 +55,15 @@ window.onload = current_url ;
 <h2>Control Panel</h2>
 <form action="" method="post" name="cpanel">
 
+<p>
+Validate the current merge of this branch and master:
+<p>
+<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="validate" value="Validate"/>
+
+<p>
+
+
+{% if branch %}
 
 {% if review_url %}
 
@@ -83,12 +92,6 @@ To raise a ticket requesting that this branch be merged onto the project, please
 
 {% endif %}
 
-<p>
-Validate the current merge of this branch and master:
-<p>
-<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="validate" value="Validate"/>
-
-<p>
 {% if user.is_authenticated %}
 {% if ownership %}
 
@@ -128,7 +131,7 @@ Merge this branch:
 {% endif %}
 
 
-{% if not branch %}
+{% else %}
 Create a new branch:
 <p>
 <input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="branch" value="Create branch"/>

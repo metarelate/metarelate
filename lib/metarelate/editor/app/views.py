@@ -245,29 +245,31 @@ def controlpanel(request):
             owner = fuseki_process.branch_owner(branch).get('owner')
             if owner == '<{}>'.format(uname):
                 con_dict['ownership'] = uname
-        open_ticket = _open_ticket(branch)
+        open_ticket = _open_ticket(request, branch)
         if open_ticket:        
             con_dict['review_url'] = open_ticket
-        con_dict['upload'] = _uploaders()
+            logger.info('Issue open: {}'.format(open_ticket))
+        con_dict['upload'] = _uploaders(branch)
         context = RequestContext(request, con_dict)
         response = render_to_response('cpanel.html', context)
     return response
 
-def _open_ticket(branch):
+def _open_ticket(request, branch):
     ticket_url = None
     api_uri = 'https://api.github.com'
     repo_uri = api_uri + '/repos/metarelate/metOcean/issues'
     myheaders = {}
     atoken = request.session.get('access_token')
     if atoken:
-        myheaders['Authorization'] = 'token {}'.format(atoken)}
+        myheaders['Authorization'] = 'token {}'.format(atoken)
     params = {}
     r = requests.get(repo_uri,
                       headers=myheaders)
     if r.status_code == 200:
         results = r.json()
-        aurl = 'https://beta.metarelate.net/metOcean/controlpanel/?branch={}'
-        aurl = aurl.format(branch)
+        aurl = 'https://beta.metarelate.net/metOcean/controlpanel/?{}'
+        urlbranch = urllib.urlencode({'branch':branch})
+        aurl = aurl.format(urlbranch)
         urls = []
         for r in results:
             if aurl in r.get('body', ''):
@@ -277,7 +279,7 @@ def _open_ticket(branch):
     return ticket_url
 
 
-def _uploaders():
+def _uploaders(branch):
     return [{'url': url_qstr(reverse('upload', 
                                      kwargs={'importer':'stashc_cfname'}), 
                              branch=branch), 
