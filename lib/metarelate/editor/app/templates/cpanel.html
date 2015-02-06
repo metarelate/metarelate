@@ -55,31 +55,17 @@ window.onload = current_url ;
 <h2>Control Panel</h2>
 <form action="" method="post" name="cpanel">
 
-<!-- <p> -->
-<!-- <input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="load" value="Load Data from Static Data to the local Triplestore"/> -->
-<!-- <p> -->
-<!-- <input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="revert" value="Revert the Triplestore to the  Static Data State"/> -->
-<p>
-Validate the current merge of this branch and master:
-<p>
-<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="validate" value="{{ branch }}" label="Validate"/>
 
-<p>
+{% if review_url %}
+
+<h3>This branch is under review</h3>
+
+<a href="{{ review_url }}">{{ review_url }}</a>
+
+{% else %}
+
 {% if user.is_authenticated %}
 {% if ownership %}
-
-{% if upload %}
-
-{% for up in upload %}
-
-<p>
-<a href="{{ up.url }}">{{ up.label }}</a>
-{{ up.docstring }}
-<p>
-
-{% endfor %}
-
-{% endif %}
 
 <p>
 
@@ -92,18 +78,50 @@ To raise a ticket requesting that this branch be merged onto the project, please
 
 
 
+{% endif %}
+{% endif %}
+
+{% endif %}
+
+<p>
+Validate the current merge of this branch and master:
+<p>
+<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="validate" value="Validate"/>
+
+<p>
+{% if user.is_authenticated %}
+{% if ownership %}
+
+{% if upload %}
+
+{% for up in upload %}
+
+<p>
+<a href="{{ up.url }}">{{ up.label }}</a>
+{% for dstr in up.docstring %}
+<p>
+{{ dstr }}
+{% endfor %}
+<p>
+
+{% endfor %}
+
+{% endif %}
+
+
+
 <p>
 Delete this branch:
 <p>
 (this cannot be undone)
 <p>
-<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="delete" value="{{ branch }}" label="Branch"/>
+<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="delete" value="Delete branch"/>
 <p>
 
 {% if metarelateuser %}
 Merge this branch:
 <p>
-<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="merge" value="{{ branch }}" label="Merge"/>
+<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="merge" value="Merge branch onto master"/>
 <p>
 {% endif %}
 
@@ -113,7 +131,7 @@ Merge this branch:
 {% if not branch %}
 Create a new branch:
 <p>
-<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="branch" value="branch" label="Branch"/>
+<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="branch" value="Create branch"/>
 <p>
 {% endif %}
 {% endif %}

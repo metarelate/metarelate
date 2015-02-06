@@ -63,6 +63,8 @@ logger = logging.getLogger(__name__)
 
 def logout(request):
     """Logs out user"""
+    if request.user.is_authenticated():
+        logger.info('%s logged out' % request.user.username)    
     auth_logout(request)
     return redirect(reverse('home'))
 
@@ -77,6 +79,7 @@ def context(**extra):
 def login(request):
     """Login view, displays login mechanism"""
     if request.user.is_authenticated():
+        logger.info('%s logged in' % request.user.username)
         return redirect(reverse('control_panel'))
     return context()
 
@@ -144,9 +147,6 @@ def controlpanel(request):
     branch = _get_branch(request)
     branch_mappings = []
     logger.info('branch %s requested by control panel' % branch)
-    if request.user.is_authenticated():
-        logger.info('%s logged in' % request.user.username)
-        logger.info('access_token: %s' % request.session.get('access_token'))
     if branch:
         branch_mappings = fuseki_process.query_branch(branch)
         branch_mappings = [bm['mapping'].rstrip('>').lstrip('<') for bm in
@@ -158,18 +158,38 @@ def controlpanel(request):
                            for bm in branch_mappings]
         branch_mappings = [{'url':'{}?branch={}'.format(bm, branch),
                             'label':bm} for bm in branch_mappings] 
-    if request.method == 'POST' and request.user.username:
-        form = forms.CPanelForm(request.POST, user=request.user.username)
+    if request.method == 'POST':# and request.user.username:
+        form = forms.CPanelForm(request.POST)#, user=request.user.username)
         if form.is_valid():
-            invalids = form.cleaned_data.get('validation')
-            create_branch = form.cleaned_data.get('branch')
-            if invalids:
+            # invalids = form.cleaned_data.get('validation')
+            # create_branch = form.cleaned_data.get('branch')
+            if form.cleaned_data.get('validate'):
+                invalids = fuseki_process.validate(branch)
                 url = url_qstr(reverse('list_mappings'),
                                            ref=json.dumps(invalids))
                 response = HttpResponseRedirect(url)
-            elif create_branch:
-                url = url_qstr(reverse('control_panel'), branch=create_branch)
+            elif form.cleaned_data.get('branch') and request.user.username:
+                graphid = fuseki_process.branch_graph(request.user.username)
+                url = url_qstr(reverse('control_panel'), branch=graphid)
                 response = HttpResponseRedirect(url)
+            elif form.cleaned_data.get('delete') and request.user.username:
+                try:
+                    fuseki_process.delete_graph(graph, request.user.username)
+                    url = url_qstr(reverse('control_panel'), branch='')
+                except ValueError, e:
+                    url = url_qstr(reverse('control_panel'), branch=branch)
+                response = HttpResponseRedirect(url)
+            elif form.cleaned_data.get('merge') and request.user.username:
+                if request.user.username == 'https://github.com/marqh':
+                    all_additions = fuseki_process.merge(branch)
+                    if not all_additions:
+                        logger.error('The merge process failed')
+            else:
+                url = url_qstr(reverse('control_panel'), branch=branch)
+                response = HttpResponseRedirect(url)
+        else:
+            url = url_qstr(reverse('control_panel'), branch=branch)
+            response = HttpResponseRedirect(url)
             # elif form.cleaned_data.get('save'):
             #     response = HttpResponse(content_type='application/x-tar')
             #     with tarfile.open(name='metarelate.tar.bz', fileobj=response,
@@ -203,12 +223,8 @@ def controlpanel(request):
             #         logger.error(r.text)
             #     response = HttpResponseRedirect(branch_url)
 
-            elif form.cleaned_data.get('delete'):
-                url = reverse('control_panel')
-                url = url_qstr(reverse('control_panel'), branch='')
-                response = HttpResponseRedirect(url)
     else:
-        form = forms.CPanelForm(user=request.user)
+        form = forms.CPanelForm()
         con_dict = {}
         if branch:
             save_string = ''
@@ -218,7 +234,7 @@ def controlpanel(request):
                 save_string += 40*'-'
             con_dict['save_string'] = save_string
         con_dict['mappings'] = branch_mappings
-        if request.user and request.user.username == 'marqh':
+        if request.user and request.user.username == 'https://github.com/marqh':
             con_dict['metarelateuser'] = 'https://github.com/marqh'
         con_dict['control'] = {'control':'control'}
         con_dict['form'] = form
@@ -229,24 +245,53 @@ def controlpanel(request):
             owner = fuseki_process.branch_owner(branch).get('owner')
             if owner == '<{}>'.format(uname):
                 con_dict['ownership'] = uname
-        con_dict['branch'] = branch
-        con_dict['upload'] = [{'url': url_qstr(reverse('upload', 
-                                                       kwargs={'importer':'stashc_cfname'}), 
-                                               branch=branch), 
-                               'docstring': ('Upload a STASH CF name collection\n\n'
-                                             ': file lines must be of the form: \n\n'
-                                             '|STASH(msi)|CFName|units|force_update(y/n)|\n\n'),
-                               'label': 'STASH Code -> CF name'},
-                              {'url': url_qstr(reverse('upload', 
-                                                       kwargs={'importer':'grib2_cfname'}), 
-                                               branch=branch), 
-                               'docstring': ('Upload a GRIB2 CF name collection\n\n'
-                                             ': file lines must be of the form: \n\n'
-                                             '|Disc|pCat|pNum|CFName|units|force_update(y/n)|\n\n'),
-                               'label': 'GRIB2 Parameter -> CF name'}]
+        open_ticket = _open_ticket(branch)
+        if open_ticket:        
+            con_dict['review_url'] = open_ticket
+        con_dict['upload'] = _uploaders()
         context = RequestContext(request, con_dict)
         response = render_to_response('cpanel.html', context)
     return response
+
+def _open_ticket(branch):
+    ticket_url = None
+    api_uri = 'https://api.github.com'
+    repo_uri = api_uri + '/repos/metarelate/metOcean/issues'
+    myheaders = {}
+    atoken = request.session.get('access_token')
+    if atoken:
+        myheaders['Authorization'] = 'token {}'.format(atoken)}
+    params = {}
+    r = requests.get(repo_uri,
+                      headers=myheaders)
+    if r.status_code == 200:
+        results = r.json()
+        aurl = 'https://beta.metarelate.net/metOcean/controlpanel/?branch={}'
+        aurl = aurl.format(branch)
+        urls = []
+        for r in results:
+            if aurl in r.get('body', ''):
+                urls.append(r.get('html_url'))
+        if len(urls) == 1:
+            ticket_url, = urls
+    return ticket_url
+
+
+def _uploaders():
+    return [{'url': url_qstr(reverse('upload', 
+                                     kwargs={'importer':'stashc_cfname'}), 
+                             branch=branch), 
+             'docstring': ['Upload a STASH CF name collection'
+                           ': file lines must be of the form:'
+                           '|STASH(msi)|CFName|units|force_update(y/n)|'],
+             'label': 'STASH Code -> CF name'},
+            {'url': url_qstr(reverse('upload',
+                                     kwargs={'importer':'grib2_cfname'}), 
+                             branch=branch), 
+             'docstring': ['Upload a GRIB2 CF name collection'
+                           ': file lines must be of the form:'
+                           '|Disc|pCat|pNum|CFName|units|force_update(y/n)|'],
+             'label': 'GRIB2 Parameter -> CF name'}]
 
 def upload(request, importer):
     user = 'https://github.com/marqh'
