@@ -339,7 +339,10 @@ def mapping(request, mapping_id):
     branch = _get_branch(request)
     mapping = metarelate.Mapping(None)
     mapping.shaid = mapping_id
-    mapping.populate_from_uri(fuseki_process, graph=branch)
+    try:
+        mapping.populate_from_uri(fuseki_process, graph=branch)
+    except Exception:
+        raise Http404
     shaid = mapping.shaid
     form = forms.MappingMetadata(initial=mapping.__dict__)
     con_dict = {'mapping':mapping, 'shaid':shaid, 'form':form, 'branchid':branch}
@@ -384,9 +387,11 @@ def list_mappings(request):
         requestor_path = '{}'
     requestor = json.loads(requestor_path)
     invalids = []
+    validated = True
     for key, inv_mappings in requestor.iteritems():
         invalid = {'label':key, 'mappings':[]}
         for inv_map in inv_mappings:
+            validated = False
             muri = inv_map['amap']
             mapping = metarelate.Mapping(muri)
             url = reverse('mapping', kwargs={'mapping_id':mapping.shaid})
@@ -394,6 +399,8 @@ def list_mappings(request):
             invalid['mappings'].append({'url':url, 'label':label})
         invalids.append(invalid)
     context_dict = {'invalid': invalids}
+    if validated:
+        context_dict['validated'] = validated
     context = RequestContext(request, context_dict)
     return render_to_response('select_list.html', context)
 
