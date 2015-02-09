@@ -112,14 +112,14 @@ Delete this branch:
 <input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="delete" value="Delete branch"/>
 <p>
 
-     {% if metarelateuser %}
+    {% endif %}
+    {% if metarelateuser %}
 Merge this branch:
 <p>
 <input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="merge" value="Merge branch onto master"/>
 <p>
-     {% endif %}
-
     {% endif %}
+
 
    {% endif %}
   {% endif %}
