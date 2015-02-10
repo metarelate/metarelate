@@ -405,7 +405,11 @@ def list_mappings(request):
         invalids.append(invalid)
     context_dict = {'invalid': invalids}
     if validated:
-        context_dict['validated'] = validated
+        context_dict['validated'] = ('This graph has successfully validated '
+                                     'and is suitable for merging.')
+    else:
+        context_dict['validated'] = ('This graph has not validated and should '
+                                     'not be merged.  Details below:')
     context = RequestContext(request, context_dict)
     return render_to_response('select_list.html', context)
 

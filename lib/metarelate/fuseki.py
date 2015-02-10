@@ -414,8 +414,7 @@ class FusekiServer(object):
         """
         self.stop()
         for subgraph in ['mappings.ttl', 'concepts.ttl', 'contacts.ttl']:
-            delstr = ('DELETE DATA { GRAPH <http://metarelate.net/%s {\n'
-                      '?s ?p ?o . }}' % subgraph)
+            delstr = ('DROP GRAPH <http://metarelate.net/%s> ' % subgraph)
             graph = os.path.join(self._static_dir, 'metarelate.net', subgraph)
             tdb_load = [os.path.join(self._jena_dir, 'bin/tdbloader'),
                             '--graph=http://metarelate.net/{}'.format(subgraph),
