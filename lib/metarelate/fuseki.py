@@ -412,7 +412,6 @@ class FusekiServer(object):
         Leave all branches intact.
 
         """
-        self.stop()
         for subgraph in ['mappings.ttl', 'concepts.ttl', 'contacts.ttl']:
             delstr = ('DROP GRAPH <http://metarelate.net/%s> ' % subgraph)
             self.run_query(delstr, update=True)
