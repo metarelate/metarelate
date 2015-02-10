@@ -37,6 +37,9 @@ import metarelate
 import metarelate.prefixes as prefixes
 import metarelate_metocean.validation
 
+import logging
+logger = logging.getLogger(__name__)
+
 HEADER = '''#(C) British Crown Copyright 2012 - 2014 , Met Office 
 #
 # This file is part of metOcean.
@@ -398,6 +401,23 @@ class FusekiServer(object):
                         '}}' % branch)
             map_ids = self.run_query(map_qstr)
         return map_ids
+
+    def load_main_graphs(self):
+        """
+        Clear the main graphs and rebuild them from the local ttl files.
+        Leave all branches intact.
+
+        """
+        self.stop()
+        for subgraph in ['mappings.ttl', 'concepts.ttl', 'contacts.ttl']:
+            delstr = ('DELETE DATA { GRAPH <http://metarelate.net/%s {\n'
+                      '?s ?p ?o . }}' % subgraph)
+            graph = os.path.join(self._static_dir, 'metarelate.net', subgraph)
+            tdb_load = [os.path.join(self._jena_dir, 'bin/tdbloader'),
+                            '--graph=http://metarelate.net/{}'.format(subgraph),
+                            '--loc={}'.format(self._tdb_dir),
+                            graph]
+            subprocess.check_call(tdb_load)
 
     def load(self):
         """

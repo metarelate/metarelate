@@ -71,9 +71,10 @@ Validate the current merge of this branch and master:
 
 <a href="{{ review_url }}">{{ review_url }}</a>
 
+  {% endif %}
 
-   {% if user.is_authenticated %}
-    {% if ownership %}
+  {% if user.is_authenticated %}
+   {% if ownership %}
 
 <p>
 
@@ -85,7 +86,7 @@ To raise a ticket requesting that this branch be merged onto the project, please
 </textarea>
 
 
-     {% if upload %}
+    {% if upload %}
 
 {% for up in upload %}
 
@@ -99,7 +100,7 @@ To raise a ticket requesting that this branch be merged onto the project, please
 
 {% endfor %}
 
-     {% endif %}
+    {% endif %}
 
 
 
@@ -111,16 +112,15 @@ Delete this branch:
 <input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="delete" value="Delete branch"/>
 <p>
 
-    {% endif %}
-    {% if metarelateuser %}
+   {% endif %}
+   {% if metarelateuser %}
 Merge this branch:
 <p>
 <input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="merge" value="Merge branch onto master"/>
 <p>
-    {% endif %}
-
-
    {% endif %}
+
+
   {% endif %}
 
  {% else %}

@@ -184,6 +184,7 @@ def controlpanel(request):
                     all_additions = fuseki_process.merge(branch)
                     if not all_additions:
                         logger.error('The merge process failed')
+                        # redirect to somewhere
             else:
                 url = url_qstr(reverse('control_panel'), branch=branch)
                 response = HttpResponseRedirect(url)

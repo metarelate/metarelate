@@ -144,6 +144,11 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': True,
         },
+        'metarelate.fuseki': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
     },
 }
 
