@@ -465,8 +465,8 @@ class Mapping(_DotMixin):
         return referrer
 
     def populate_from_uri(self, fuseki_process, graph=None):
-        elements, = fuseki_process.run_query(self.sparql_retriever(graph=graph),
-                                             rep=False)
+        elements, = fuseki_process.run_query(self.sparql_retriever(graph=graph,
+                                             rep=False))
         if self.inverted == '"True"':
             if self.invertible != '"True"':
                 raise ValueError('A mapping may not be inverted but not '
