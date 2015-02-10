@@ -422,7 +422,7 @@ class FusekiServer(object):
                             '--graph=http://metarelate.net/{}'.format(subgraph),
                             '--loc={}'.format(self._tdb_dir),
                             graph]
-            subprocess.check_call(tdb_load)=
+            subprocess.check_call(tdb_load)
         self.start()
 
     def load(self):
