@@ -381,7 +381,8 @@ class FusekiServer(object):
                 save_out.append('\t.\n\n{}\n\t{} {} ;'.format(res['s'],
                                                            res['p'],
                                                            res['o']))
-        save_out.append('\t.\n')
+        if save_out:
+            save_out.append('\t.\n')
         save_string = '\n'.join(save_out)
         return save_string
 
