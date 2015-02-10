@@ -312,7 +312,7 @@ class FusekiServer(object):
         filepath = os.path.join(self._static_dir, main_graph, 'lockfile')
         with lockfile(filepath) as l:
             self.rebase_branch(branch)
-            self.save(branch)
+            subgraphs = self.save(branch)
             all_additions = True
             diff = subprocess.check_output(['git', '-C', self._static_dir, 
                                             'diff'])
@@ -323,7 +323,7 @@ class FusekiServer(object):
                 subprocess.check_call(['git', '-C', self._static_dir,
                                        'commit', '-am', 
                                        "'{}'".format(branch)])
-                for subgraph in ['mappings.ttl', 'concepts.ttl']:
+                for subgraph in subgraphs:
                     instr = ('ADD <http://metarelate.net/{b}{s}> TO '
                              '<http://metarelate.net/{s}>'
                              '\n'.format(b=branch, s=subgraph))
@@ -339,6 +339,7 @@ class FusekiServer(object):
         """
         main_graph = metarelate.site_config['graph']
         filepath = os.path.join(self._static_dir, main_graph)
+        subgraphs = []
         for subgraph in ['mappings.ttl', 'concepts.ttl']:
             outfile = os.path.join(filepath, subgraph)
             save_string = self.save_branch(branch, subgraph, merge=True)
@@ -347,6 +348,8 @@ class FusekiServer(object):
                     sg.write(HEADER)
                     for line in save_string.splitlines():
                         sg.write(line + '\n')
+                subgraphs.append(subgraph)
+        return subgraphs
 
     def save_branch(self, branch, subgraph, debug=False, merge=False):
         """
