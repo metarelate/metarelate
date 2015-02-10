@@ -346,7 +346,8 @@ def mapping(request, mapping_id):
     mapping.shaid = mapping_id
     try:
         mapping.populate_from_uri(fuseki_process, graph=branch)
-    except Exception:
+    except Exception, e:
+        logger.error('mapping failed to populate\n{}'.format(e))
         raise Http404
     shaid = mapping.shaid
     form = forms.MappingMetadata(initial=mapping.__dict__)
