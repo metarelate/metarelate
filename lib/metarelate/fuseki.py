@@ -415,6 +415,7 @@ class FusekiServer(object):
         self.stop()
         for subgraph in ['mappings.ttl', 'concepts.ttl', 'contacts.ttl']:
             delstr = ('DROP GRAPH <http://metarelate.net/%s> ' % subgraph)
+            self.run_query(delstr, update=True)
             graph = os.path.join(self._static_dir, 'metarelate.net', subgraph)
             tdb_load = [os.path.join(self._jena_dir, 'bin/tdbloader'),
                             '--graph=http://metarelate.net/{}'.format(subgraph),
