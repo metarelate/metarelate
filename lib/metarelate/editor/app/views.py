@@ -185,6 +185,10 @@ def controlpanel(request):
                     if not all_additions:
                         logger.error('The merge process failed')
                         # redirect to somewhere
+                    else:
+                        logger.info('successfully merged branch')
+                url = url_qstr(reverse('control_panel'), branch=branch)
+                response = HttpResponseRedirect(url)
             else:
                 url = url_qstr(reverse('control_panel'), branch=branch)
                 response = HttpResponseRedirect(url)
