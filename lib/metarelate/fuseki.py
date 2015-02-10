@@ -415,12 +415,15 @@ class FusekiServer(object):
         for subgraph in ['mappings.ttl', 'concepts.ttl', 'contacts.ttl']:
             delstr = ('DROP GRAPH <http://metarelate.net/%s> ' % subgraph)
             self.run_query(delstr, update=True)
+        self.stop()
+        for subgraph in ['mappings.ttl', 'concepts.ttl', 'contacts.ttl']:
             graph = os.path.join(self._static_dir, 'metarelate.net', subgraph)
             tdb_load = [os.path.join(self._jena_dir, 'bin/tdbloader'),
                             '--graph=http://metarelate.net/{}'.format(subgraph),
                             '--loc={}'.format(self._tdb_dir),
                             graph]
-            subprocess.check_call(tdb_load)
+            subprocess.check_call(tdb_load)=
+        self.start()
 
     def load(self):
         """
