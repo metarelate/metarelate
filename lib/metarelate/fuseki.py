@@ -36,6 +36,7 @@ import requests
 import metarelate
 import metarelate.prefixes as prefixes
 import metarelate_metocean.validation
+from metarelate.thread import WorkerThread, MAXTHREADS
 
 import logging
 logger = logging.getLogger(__name__)
@@ -59,9 +60,6 @@ HEADER = '''#(C) British Crown Copyright 2012 - 2014 , Met Office
 '''
 
 PRE = prefixes.Prefixes()
-
-# maximum number of threads for multi-thrteading code
-MAXTHREADS = metarelate.site_config.get('num_workers')
 
 # Configure the Apache Jena environment.
 if metarelate.site_config.get('jena_dir') is not None:
@@ -97,29 +95,6 @@ class lockfile(object):
         self.lockfile.close()
         os.remove(self.fpath)
 
-
-
-class WorkerThread(Thread):
-    """
-    A :class:threading.Thread which moves objects from an input queue to an
-    output deque using a 'dowork' method, as defined by a subclass.
-
-    """
-    def __init__(self, aqueue, adeque, fu_p):
-        self.queue = aqueue
-        self.deque = adeque
-        self.fuseki_process = fu_p
-        Thread.__init__(self)
-        self.daemon = True
-    def run(self):
-        while not self.queue.empty():
-            resource = self.queue.get()
-            try:
-                self.dowork(resource)
-                self.deque.append(resource)
-            except Exception, e:
-                print e
-            self.queue.task_done()
 
 class MappingPopulateWorker(WorkerThread):
     """
