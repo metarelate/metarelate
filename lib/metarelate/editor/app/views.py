@@ -243,10 +243,9 @@ def _branches(request):
         qstr = ('SELECT ?g WHERE {\n'
                 '?g dc:creator %s . }\n' % user)
         results = fuseki_process.run_query(qstr)
-        logger.info('branches: {}'.format(results))
         for res in results:
             graph = res.get('g')
-            rexp = '<http://metarelate.net/([0-9a-f]+)mappings.ttl>'
+            rexp = '<http://metarelate.net/([0-9a-f/]+)mappings.ttl>'
             branchid = re.findall(rexp, graph)
             if branchid and len(branchid) == 1:
                 branches.append(branchid[0])
