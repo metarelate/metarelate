@@ -124,7 +124,7 @@ def update(config):
             if os.environ.has_key(env_var):
                 result = os.environ[env_var]
             if result is None:
-                msg = ('Metarelate Configuration - Missing triplestore '
+                msg = ('Metarelate Configuration - Missing triplestore ' 
                        'directory: environment variable {!r} for the Apache '
                        'Jena triple store database.')
                 raise ValueError(msg.format(env_var))

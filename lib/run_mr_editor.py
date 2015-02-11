@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# (C) British Crown Copyright 2011 - 2012, Met Office
+# (C) British Crown Copyright 2011 - 2015, Met Office
 #
 # This file is part of metarelate.
 #
@@ -21,7 +21,7 @@ import sys
 
 if len(sys.argv) == 1:
     sys.argv.append('runserver')
-    sys.argv.append('--noreload')
+    #sys.argv.append('--noreload')
 
 from django.core.management import execute_from_command_line
 
@@ -30,7 +30,10 @@ import metarelate.editor.settings as settings
 import metarelate.fuseki as fu
 
 if __name__ == "__main__":
-    with fu.FusekiServer() as server:
+    # with fu.FusekiServer() as server:
+    if True:
+        server = fu.FusekiServer()
+        #server.load()
         settings.fuseki_process = server
         # execute_from_command_line(settings)
         os.environ.setdefault("DJANGO_SETTINGS_MODULE", "metarelate.editor.settings")

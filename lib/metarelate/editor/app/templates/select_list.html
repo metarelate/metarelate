@@ -31,11 +31,20 @@
 
 {% block content %}
 
+{% if validated %}
+
+<h3>
+{{ validated }}
+</h3>
+
+{% endif %}
+
+
 {% if invalid %}
 
 {% for inv in invalid %}
 
-{% if inv.mappings %}
+ {% if inv.mappings %}
 
   <h3>{{ inv.label }}</h3>
 
@@ -45,10 +54,12 @@
     </ul>
   {% endfor %}
 
-{% endif %}
+ {% endif %}
 
 {% endfor %}
+
 {% endif %}
+
 
 {% if mappings %}
 
@@ -62,6 +73,8 @@
 {% endfor %}
 
 {% endif %}
+
+<FORM><INPUT Type="button" VALUE="Back" onClick="history.go(-1);return true;"></FORM>
 
 {% endblock %}
 

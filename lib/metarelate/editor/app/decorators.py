@@ -1,9 +1,4 @@
-
-{% extends "base.html" %}
-{% load dict_keys %}
-{% load inclusions %}
-<!--
-# (C) British Crown Copyright 2013, Met Office
+# (C) British Crown Copyright 2015, Met Office
 #
 # This file is part of metarelate.
 #
@@ -19,24 +14,21 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with metarelate. If not, see <http://www.gnu.org/licenses/>.
--->
 
 
-{% block title %}: {{ title }}{% endblock %}
+from functools import wraps
 
-{% block head %}
-<script type="text/javascript" src="/static/js/jquery.min.js"></script>
-<script type="text/javascript" src="/static/js/RelatedObjectLookups.js"></script> 
-{% endblock %}
+from django.template import RequestContext
+from django.shortcuts import render_to_response
 
 
-
-{% block content %}
-
-<!-- <p>The time is {% current_time "%Y-%m-%d %I:%M %p" %}.</p> -->
-<p>
-<a href="{% url 'search' %}">Search</a>
-<p>
-<img src="{% url 'homegraph' %}" />
-
-{% endblock %}
+def render_to(tpl):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(request, *args, **kwargs):
+            out = func(request, *args, **kwargs)
+            if isinstance(out, dict):
+                out = render_to_response(tpl, out, RequestContext(request))
+            return out
+        return wrapper
+    return decorator

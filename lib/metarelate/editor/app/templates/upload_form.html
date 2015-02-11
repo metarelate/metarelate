@@ -1,7 +1,5 @@
-
 {% extends "base.html" %}
-{% load dict_keys %}
-{% load inclusions %}
+
 <!--
 # (C) British Crown Copyright 2013, Met Office
 #
@@ -21,7 +19,6 @@
 # along with metarelate. If not, see <http://www.gnu.org/licenses/>.
 -->
 
-
 {% block title %}: {{ title }}{% endblock %}
 
 {% block head %}
@@ -33,10 +30,33 @@
 
 {% block content %}
 
-<!-- <p>The time is {% current_time "%Y-%m-%d %I:%M %p" %}.</p> -->
-<p>
-<a href="{% url 'search' %}">Search</a>
-<p>
-<img src="{% url 'homegraph' %}" />
+
+{% if form %}
+<form enctype="multipart/form-data" method="post" action="">
+
+
+{% csrf_token %}
+
+<table class="recordtable">
+{{ form.as_table }}
+</table>
+
+
+
+<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} value="upload batch input file" />
+
+</form>
+
+
+
+{% endif %} 
+
+{% if links %}
+<ul>
+{% for link in links %}
+<li><a href="{{ link.url }}">{{ link.label }}</a></li>
+{% endfor %}
+</ul>
+{% endif %}
 
 {% endblock %}

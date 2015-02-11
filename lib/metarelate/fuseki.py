@@ -1,4 +1,4 @@
-# (C) British Crown Copyright 2011 - 2013, Met Office
+# (C) British Crown Copyright 2011 - 2015, Met Office
 # 
 # This file is part of metarelate.
 # 
@@ -16,6 +16,7 @@
 # along with metarelate. If not, see <http://www.gnu.org/licenses/>.
 
 from collections import deque
+from datetime import datetime
 import glob
 from inspect import getmembers, isfunction
 import json
@@ -34,7 +35,11 @@ import requests
 
 import metarelate
 import metarelate.prefixes as prefixes
+import metarelate_metocean.validation
+from metarelate.thread import WorkerThread, MAXTHREADS
 
+import logging
+logger = logging.getLogger(__name__)
 
 HEADER = '''#(C) British Crown Copyright 2012 - 2014 , Met Office 
 #
@@ -56,9 +61,6 @@ HEADER = '''#(C) British Crown Copyright 2012 - 2014 , Met Office
 
 PRE = prefixes.Prefixes()
 
-# maximum number of threads for multi-thrteading code
-MAXTHREADS = metarelate.site_config.get('num_workers')
-
 # Configure the Apache Jena environment.
 if metarelate.site_config.get('jena_dir') is not None:
     os.environ['JENAROOT'] = metarelate.site_config['jena_dir']
@@ -75,28 +77,24 @@ else:
         'for metarelate.'
     raise ValueError(msg)
 
+class lockfile(object):
+    def __init__(self, fpath):
+        self.fpath = fpath
 
-class WorkerThread(Thread):
-    """
-    A :class:threading.Thread which moves objects from an input queue to an
-    output deque using a 'dowork' method, as defined by a subclass.
+    def __enter__(self):
+	i = 0
+        while os.path.exists(self.fpath):
+            time.sleep(1)
+            i += 1
+            if i > 64:
+		raise ValueError('lockfile has been locked '
+                                 'a long time')
+        self.lockfile = open(self.fpath, 'w')
 
-    """
-    def __init__(self, aqueue, adeque, fu_p):
-        self.queue = aqueue
-        self.deque = adeque
-        self.fuseki_process = fu_p
-        Thread.__init__(self)
-        self.daemon = True
-    def run(self):
-        while not self.queue.empty():
-            resource = self.queue.get()
-            try:
-                self.dowork(resource)
-                self.deque.append(resource)
-            except Exception, e:
-                print e
-            self.queue.task_done()
+    def __exit__(self, *args):
+        self.lockfile.close()
+        os.remove(self.fpath)
+
 
 class MappingPopulateWorker(WorkerThread):
     """
@@ -112,7 +110,9 @@ class FusekiServer(object):
     an Apache Jena triple store database and Fuseki SPARQL server.
     
     """
-    def __init__(self, host='localhost', test=False):
+    def __init__(self, host='localhost', test=False, update=True):
+
+        self.update=update
 
         self._jena_dir = metarelate.site_config['jena_dir']
         self._fuseki_dir = metarelate.site_config['fuseki_dir']
@@ -178,10 +178,11 @@ class FusekiServer(object):
             os.chdir(nohup_dir)
             args = ['nohup',
                     os.path.join(self._fuseki_dir, 'fuseki-server'),
-                    '--loc={}'.format(self._tdb_dir),
-                    '--update',
-                    '--port={}'.format(self.port),
-                    '/{}'.format(self._fuseki_dataset)]
+                    '--loc={}'.format(self._tdb_dir)]
+            if self.update:
+                args.append('--update')
+            args.append('--port={}'.format(self.port))
+            args.append('/{}'.format(self._fuseki_dataset))
             self._process = subprocess.Popen(args)
             os.chdir(cwd)
             for attempt in xrange(metarelate.site_config['timeout_attempts']):
@@ -193,18 +194,12 @@ class FusekiServer(object):
                     'to start.'
                 raise RuntimeError(msg)
 
-    def stop(self, save=False):
+    def stop(self):
         """
         Shutdown the metarelate Apache Fuseki SPARQL server.
 
-        Kwargs:
-         * save:
-            Save any cache results to the configured Apache Jena triple
-            store database.
             
         """
-        if save:
-            self.save()
         if self.alive():
             pid = self._process.pid
             self._process.terminate()
@@ -244,15 +239,16 @@ class FusekiServer(object):
             result = True
         except socket.error:
             pass
-        if result and self._process is None:
-            msg = 'There is currently another service on port {!r}.'
-            raise RuntimeError(msg.format(self.port))
+        # if result and self._process is None:
+        #     msg = 'There is currently another service on port {!r}.'
+        #     raise RuntimeError(msg.format(self.port))
         return result
 
     def clean(self):
         """
         Delete all of the files in the configured Apache Jena triple
         store database.
+        :o
 
         """
         if self.alive():
@@ -262,150 +258,149 @@ class FusekiServer(object):
             os.remove(tdb_file)
         return glob.glob(files)
 
-    def save(self):
+    def rebase_branch(self, branch):
         """
-        write out all saveCache flagged changes in the metarelate graph,
-        appending to the relevant ttl files
-        remove saveCache flags after saving
-        
+        remove any triples in the branch that already exist
+        in the main graphs
         """
-        
+        if branch == '' or branch == '/':
+            raise ValueError("branch cannot be '' or '/'")
+        for subgraph in ['mappings.ttl', 'concepts.ttl']:
+            instr = ('DELETE { GRAPH <http://metarelate.net/%(b)s%(s)s> {\n '
+                     '?s ?p ?o . } }\n'
+                     'WHERE { GRAPH <http://metarelate.net/%(b)s%(s)s> {\n'
+                     '?s ?p ?o } \n'
+                     'EXISTS {GRAPH <http://metarelate.net/%(s)s> {\n'
+                     '?s ?p ?o } } \n'
+                     '}\n' % {'b':branch, 's':subgraph})
+            self.run_query(instr, update=True)
+
+    def merge(self, branch):
+        """
+        check the save process meets the save criteria
+        merge the changes onto the git backup
+        merge the branch into the main graph
+        """
+        if branch == '' or branch == '/':
+            raise ValueError("branch cannot be '' or '/'")
         main_graph = metarelate.site_config['graph']
-        files = os.path.join(self._static_dir, main_graph, '*.ttl')
-        for subgraph in glob.glob(files):
-            graph = 'http://%s/%s' % (main_graph, subgraph.split('/')[-1])
-            save_string = self.save_cache(graph)
+        filepath = os.path.join(self._static_dir, main_graph, 'lockfile')
+        with lockfile(filepath) as l:
+            self.rebase_branch(branch)
+            subgraphs = self.save(branch)
+            all_additions = True
+            diff = subprocess.check_output(['git', '-C', self._static_dir, 
+                                            'diff'])
+            for line in diff.split('\n'):
+                if not line.startswith('---') and line.startswith('-'):
+                    all_additions = False
+            if all_additions:
+                subprocess.check_call(['git', '-C', self._static_dir,
+                                       'commit', '-am', 
+                                       "'{}'".format(branch),
+                                       '--author="marqh <markh@metarelate.net>"'])
+                for subgraph in subgraphs:
+                    instr = ('ADD <http://metarelate.net/{b}{s}> TO '
+                             '<http://metarelate.net/{s}>'
+                             '\n'.format(b=branch, s=subgraph))
+                    self.run_query(instr, update=True)
+                self.rebase_branch(branch)
+        return all_additions
+            
+
+    def save(self, branch):
+        """
+        write out all of the branch changes to a ttl file collection
+        
+        """
+        main_graph = metarelate.site_config['graph']
+        filepath = os.path.join(self._static_dir, main_graph)
+        subgraphs = []
+        for subgraph in ['mappings.ttl', 'concepts.ttl']:
+            outfile = os.path.join(filepath, subgraph)
+            save_string = self.save_branch(branch, subgraph, merge=True)
             if save_string:
-                with open(subgraph, 'w') as sg:
+                with open(outfile, 'w') as sg:
                     sg.write(HEADER)
                     for line in save_string.splitlines():
                         sg.write(line + '\n')
+            if self.save_branch(branch, subgraph):
+                subgraphs.append(subgraph)
+        return subgraphs
 
-    def save_cache(self, graph, debug=False):
+    def save_branch(self, branch, subgraph, debug=False, merge=False):
         """
-        export new records from a graph in the triple store to an external location,
-        as flagged by the manager application
-        clear the 'not saved' flags on records, updating a graph in the triple store
-        with the fact that changes have been persisted to ttl
+        export new records from a graph in the triple store to a string
 
         """
-        nstr = '''
-        SELECT ?s ?p ?o
-        WHERE {
-        GRAPH <%s>
-        {
-        ?s ?p ?o ;
-            mr:saveCache "True" .
-        }
-        } 
-        ''' % graph
-        n_res = self.run_query(nstr)
-        delstr = '''
-        DELETE
-        {  GRAPH <%s>
-            {
-            ?s mr:saveCache "True" .
-            }
-        }
-        WHERE
-        {  GRAPH <%s>
-            {
-        ?s ?p ?o ;
-            mr:saveCache "True" .
-            }
-        } 
-        ''' % (graph,graph)
-        delete_results = self.run_query(delstr, update=True, debug=debug)
-        qstr = '''
-        SELECT
-            ?s ?p ?o
-        WHERE
-        {
-        GRAPH <%s>
-        {
-        ?s ?p ?o .
-        }
-        }
-        order by ?s ?p ?o
-        ''' % graph
+        graph = ('FROM NAMED <http://metarelate.net/{}{}>\n'
+                 ''.format(branch, subgraph))
+        if merge:
+            graph = graph + ('FROM NAMED <http://metarelate.net/{}>\n'
+                 ''.format(subgraph))
+        qstr = ('SELECT ?s ?p ?o\n'
+                '%s'
+                'WHERE { GRAPH ?g {\n'
+                '    ?s ?p ?o .\n'
+                '} }\n'
+                'order by ?s ?p ?o\n' % graph)
         results = self.run_query(qstr, debug=debug)
         save_string = ''
         save_out = []
-        if n_res:
-            subj = ''
-            for res in results:
-                if res['s'] == subj:
-                    save_out.append('\t{} {} ;'.format(res['p'], res['o']))
-                elif subj == '':
-                    subj = res['s']
-                    save_out.append('\n{}\n\t{} {} ;'.format(res['s'],
-                                                               res['p'],
-                                                               res['o']))
-                else:
-                    subj = res['s']
-                    save_out.append('\t.\n\n{}\n\t{} {} ;'.format(res['s'],
-                                                               res['p'],
-                                                               res['o']))
-            save_string = '\n'.join(save_out)
+        subj = ''
+        for res in results:
+            if res['s'] == subj:
+                save_out.append('\t{} {} ;'.format(res['p'], res['o']))
+            elif subj == '':
+                subj = res['s']
+                save_out.append('\n{}\n\t{} {} ;'.format(res['s'],
+                                                           res['p'],
+                                                           res['o']))
+            else:
+                subj = res['s']
+                save_out.append('\t.\n\n{}\n\t{} {} ;'.format(res['s'],
+                                                           res['p'],
+                                                           res['o']))
+        if save_out:
+            save_out.append('\t.\n')
+        save_string = '\n'.join(save_out)
         return save_string
 
+    def query_branch(self, branch=None):
+        """
+        return the mappings which are valid in the provided graph
+        """
+        map_ids = []
+        if branch is not None:
+            map_qstr = ('SELECT ?mapping \n'
+                        'WHERE { \n'
+                        'GRAPH <http://metarelate.net/%smappings.ttl> { \n'
+                        '?mapping rdf:type mr:Mapping .\n'
+                        # why this optional??
+                        'OPTIONAL {?mapping dc:replaces ?replaces .}\n'
+                        'MINUS {?mapping ^dc:replaces+ ?anothermap} \n'
+                        '}}' % branch)
+            map_ids = self.run_query(map_qstr)
+        return map_ids
 
-    def revert(self):
+    def load_main_graphs(self):
         """
-        identify all cached changes in the metarelate graph
-        and remove them, reverting the TDB to the same state
-        as the saved ttl files
-        
-        """
-        qstr = '''
-        DELETE
-        {  GRAPH <%s>
-            {
-            ?s ?p ?o .
-            }
-        }
-        WHERE
-        {  GRAPH <%s>
-            {
-            ?s ?p ?o ;
-            mr:saveCache "True" .
-            }
-        } 
-        '''
-        main_graph = metarelate.site_config['graph']
-        files = os.path.join(self._static_dir, main_graph, '*.ttl')
-        for infile in glob.glob(files):
-            ingraph = infile.split('/')[-1]
-            graph = 'http://%s/%s' % (main_graph, ingraph)
-            qstring = qstr % (graph, graph)
-            revert_string = self.run_query(qstring, update=True)
-
-    def query_cache(self):
-        """
-        identify all cached changes in the metarelate graph
+        Clear the main graphs and rebuild them from the local ttl files.
+        Leave all branches intact.
 
         """
-        qstr = '''
-        SELECT ?s ?p ?o
-        WHERE
-        {  GRAPH <%s>
-            {
-        ?s ?p ?o ;
-            mr:saveCache "True" .
-            }
-        } 
-        '''
-        results = []
-        main_graph = metarelate.site_config['graph']
-        files = os.path.join(self._static_dir, main_graph, '*.ttl')
-        for infile in glob.glob(files):
-            ingraph = infile.split('/')[-1]
-            graph = 'http://%s/%s' % (main_graph, ingraph)
-            query_string = qstr % (graph)
-            result = self.run_query(query_string)
-            results = results + result
-        return results
-
+        for subgraph in ['mappings.ttl', 'concepts.ttl', 'contacts.ttl']:
+            delstr = ('DROP GRAPH <http://metarelate.net/%s> ' % subgraph)
+            self.run_query(delstr, update=True)
+        self.stop()
+        for subgraph in ['mappings.ttl', 'concepts.ttl', 'contacts.ttl']:
+            graph = os.path.join(self._static_dir, 'metarelate.net', subgraph)
+            tdb_load = [os.path.join(self._jena_dir, 'bin/tdbloader'),
+                            '--graph=http://metarelate.net/{}'.format(subgraph),
+                            '--loc={}'.format(self._tdb_dir),
+                            graph]
+            subprocess.check_call(tdb_load)
+        self.start()
 
     def load(self):
         """
@@ -428,32 +423,25 @@ class FusekiServer(object):
                             insubgraph]
                 print ' '.join(tdb_load)
                 subprocess.check_call(tdb_load)
+        self.start()
 
-    def validate(self):
+    def validate(self, graph=None):
         """
         run the validation queries
 
         """
         failures = {}
+        print('multiples')
         mm_string = ('The following mappings are ambiguous, providing multiple'
                     ' targets in the same format for a particular source')
-        failures[mm_string] = self.run_query(multiple_mappings())
+        failures[mm_string] = self.run_query(multiple_mappings(graph=graph))
+        vtests = [o[0] for o in getmembers(metarelate_metocean.validation) if isfunction(o[1]) 
+                  and not o[0].startswith('_')]
 
-        static_dir = metarelate.site_config.get('static_dir')
-        if static_dir:
-            dpdir = metarelate.site_config['static_dir'].rstrip('staticData')
-
-            sys.path.append(os.path.join(dpdir, 'lib'))
-
-            import metarelate_metocean.validation
-
-            vtests = [o[0] for o in getmembers(metarelate_metocean.validation) if isfunction(o[1]) 
-                      and not o[0].startswith('_')]
-
-            for vtest in vtests:
-                res = metarelate_metocean.validation.__dict__[vtest].__call__(self)
-                metarelate.careful_update(failures, res)
-
+        for vtest in vtests:
+            print(vtest)
+            res = metarelate_metocean.validation.__dict__[vtest].__call__(self, graph)
+            metarelate.careful_update(failures, res)
         return failures
 
     def search(self, statements):#, additive):
@@ -468,8 +456,8 @@ class FusekiServer(object):
         return the results
         
         """
-        if not self.alive():
-            self.restart()
+        # if not self.alive():
+        #     self.restart()
         pref = prefixes.Prefixes().sparql
         baseurl = "http://{}:{}/{}/".format(self.host, self.port,
                                            self._fuseki_dataset)
@@ -631,7 +619,7 @@ class FusekiServer(object):
             raise ValueError(ec)
         return results
 
-    def find_valid_mapping(self, source, target):
+    def find_valid_mapping(self, source, target, graph=None):
         """
         Returns a mapping instance which links the source to the target,
         or None, or an error if multiple mappings exist
@@ -651,34 +639,32 @@ class FusekiServer(object):
             raise ValueError('target must be ametarelate Component or None')
         result = None
         if source is not None:
-            source_qstr, sinstr = source.creation_sparql()
+            source_qstr, sinstr = source.creation_sparql(graph)
             source_uri = self.run_query(source_qstr)
             if len(source_uri) > 1:
                 raise ValueError('Source Component exists in duplicate in store')
             elif source_uri:
                 source_uri = source_uri[0]['component']
-                if source.uri.data != source_uri:
-                    raise ValueError('Source Component URI is different from '
-                                     'a duplicate Component in the store')
         if target is not None:
-            target_qstr, instr = target.creation_sparql()
+            target_qstr, instr = target.creation_sparql(graph)
             target_uri = self.run_query(target_qstr)
             if len(target_uri) > 1:
                 raise ValueError('Target Component exists in duplicate in store')
             elif target_uri:
                 target_uri = target_uri[0]['component']
-                if target.uri.data != target_uri:
-                    raise ValueError('Target Component URI is different from '
-                                     'a duplicate Component in the store')
         if source_uri and target_uri:
+            graphs = ('FROM <http://metarelate.net/mappings.ttl> \n')
+            if graph:
+                graphs = graphs + ('FROM <http://metarelate.net/'
+                                   '{}mappings.ttl> \n'.format(graph))
             map_qstr = ('SELECT ?mapping \n'
+                        '%s'
                         'WHERE { \n'
-                        'GRAPH <http://metarelate.net/mappings.ttl> { \n'
                         '?mapping mr:source %s ;\n'
                         '\tmr:target %s .\n'
                         'OPTIONAL {?mapping dc:replaces ?replaces .}\n'
                         'MINUS {?mapping ^dc:replaces+ ?anothermap} \n'
-                        '}}' % (source_uri, target_uri)) 
+                        '}' % (graphs, source_uri, target_uri)) 
             map_ids = self.run_query(map_qstr)
             if len(map_ids) > 1:
                 raise ValueError('multiple valid mapping for the same source'
@@ -710,31 +696,69 @@ class FusekiServer(object):
         summary = metarelate.KBaseSummary(results)
         return summary.dot()
 
-    # def _summary_graph(self):
-    #     qstr = ('SELECT ?fromformat ?toformat (count(?mapping) as ?mappings) '
-    #             'WHERE { '
-    #             'GRAPH <http://metarelate.net/mappings.ttl> { '
-    #             '?mapping rdf:type mr:Mapping . '
-    #             'MINUS {?mapping ^dc:replaces+ ?anothermap} '
-    #             '{?mapping mr:source ?source ; '
-    #             ' mr:target ?target .} '
-    #             'UNION '
-    #             '{?mapping mr:invertible "True" ; '
-    #             ' mr:source ?target ; '
-    #             ' mr:target ?source .} '
-    #             '}'
-    #             'GRAPH <http://metarelate.net/concepts.ttl> { '
-    #             '?source rdf:type ?fromformat . '
-    #             '?target rdf:type ?toformat . '
-    #             'FILTER(?toformat !=  '
-    #             '<http://www.metarelate.net/vocabulary/index.html#Component>) '
-    #             'FILTER(?fromformat != '
-    #             '<http://www.metarelate.net/vocabulary/index.html#Component>) '
-    #             '}} '
-    #             'group by ?fromformat ?toformat')
-    #     results = self.run_query(qstr)
-    #     summary = metarelate.BaseSummary(results)
-    #     return summary.dot()
+    def branch_graph(self, user):
+        if not user.startswith('https://github.com/'):
+            raise ValueError('invalid user URI: {}'.format(user))
+        else:
+            user = '<{}>'.format(user)
+        datestamp = datetime.now().isoformat()
+        graphid = metarelate.make_hash({user: datestamp})
+        instr = ('create GRAPH <http://metarelate.net/{g}/concepts.ttl> '
+                 '\n'.format(g=graphid))
+        self.run_query(instr, update=True)
+        instr = ('create GRAPH <http://metarelate.net/{g}/mappings.ttl>'
+                 '\n'.format(g=graphid))
+        self.run_query(instr, update=True)
+        instr = ('INSERT DATA {\n '
+                 '<http://metarelate.net/%(g)s/concepts.ttl>'
+                 ' dc:creator %(u)s .\n'
+                 '<http://metarelate.net/%(g)s/mappings.ttl>'
+                 ' dc:creator %(u)s .\n'
+                 '}' % {'g':graphid, 'u':user})
+        self.run_query(instr, update=True)
+        return '{}/'.format(graphid)
+    
+    def branch_owner(self, graphid):
+        qstr = ('SELECT DISTINCT ?owner WHERE {'
+                '<http://metarelate.net/%(g)sconcepts.ttl>'
+                ' dc:creator ?owner .\n'
+                '<http://metarelate.net/%(g)smappings.ttl>'
+                ' dc:creator ?owner .\n'
+                '}'% {'g':graphid})
+        results = self.run_query(qstr)
+        if len(results) > 1:
+            raise ValueError('multiple owners not allowed')
+        elif len(results) == 1:
+            result, = results
+        else:
+            result = ''
+        return result
+
+    def delete_graph(self, graphid, user):
+        if graphid == '':
+            raise ValueError('Only branch graphs may be deleted')
+        if '{}'.format(graphid) == '':
+            raise ValueError('Only branch graphs may be deleted')
+        if not user.startswith('https://github.com/'):
+            raise ValueError('invalid user URI: {}'.format(user))
+        else:
+            user = '<{}>'.format(user)
+        branch_owner = self.branch_owner(graphid)['owner']
+        if user != branch_owner:
+            raise ValueError('this graph is not owned by {}'.format(user))
+        instr = ('DROP GRAPH <http://metarelate.net/{g}concepts.ttl> '
+                 '\n'.format(g=graphid))
+        self.run_query(instr, update=True)
+        instr = ('DELETE DATA { <http://metarelate.net/%(g)sconcepts.ttl> '
+                 'dc:creator %(u)s .}' % {'g':graphid, 'u':user})
+        self.run_query(instr, update=True)
+        instr = ('DROP GRAPH <http://metarelate.net/{g}mappings.ttl>'
+                 '\n'.format(g=graphid))
+        self.run_query(instr, update=True)
+        instr = ('DELETE DATA { <http://metarelate.net/%(g)smappings.ttl> '
+                 'dc:creator %(u)s .}' % {'g':graphid, 'u':user})
+        self.run_query(instr, update=True)
+        
 
 
 def process_data(jsondata):
@@ -772,57 +796,69 @@ def process_data(jsondata):
             resultslist.append(tmpdict)
     return resultslist
 
-def multiple_mappings(test_source=None):
+def multiple_mappings(test_source=None, graph=None):
     """
     returns all the mappings which map the same source to a different target
     where the targets are the same format
     filter to a single test mapping with test_map
     
     """
+    gstr = ''
+    if graph:
+        gstr = ('FROM <http://metarelate.net/{}mappings.ttl>'
+                'FROM <http://metarelate.net/{}concepts.ttl>'
+                ''.format(graph, graph))
     tm_filter = ''
     if test_source:
         pattern = '<http.*>'
         pattern = re.compile(pattern)
         if pattern.match(test_source):
             tm_filter = '\n\tFILTER(?asource = {})'.format(test_source)
-    qstr = '''SELECT ?amap ?asource ?atarget ?bmap ?bsource ?btarget
-    (GROUP_CONCAT(DISTINCT(?value); SEPARATOR='&') AS ?signature)
-    WHERE {
-    GRAPH <http://metarelate.net/mappings.ttl> { {
-    ?amap mr:source ?asource ;
-         mr:target ?atarget . } 
-    UNION 
-        { 
-    ?amap mr:invertible "True" ;
-         mr:target ?asource ;
-         mr:source ?atarget . } 
-    MINUS {?amap ^dc:replaces+ ?anothermap} %s
-    } 
-    GRAPH <http://metarelate.net/mappings.ttl> { {
-    ?bmap mr:source ?bsource ;
-         mr:target ?btarget . } 
-    UNION  
-        { 
-    ?bmap mr:invertible "True" ;
-         mr:target ?bsource ;
-         mr:source ?btarget . } 
-    MINUS {?bmap ^dc:replaces+ ?bnothermap}
-    filter (?bmap != ?amap)
-    filter (?bsource = ?asource)
-    filter (?btarget != ?atarget)
-    } 
-    GRAPH <http://metarelate.net/concepts.ttl> {
-    ?asource rdf:type ?asourceformat .
-    ?bsource rdf:type ?bsourceformat .
-    ?atarget rdf:type ?atargetformat .
-    ?btarget rdf:type ?btargetformat .
-    }
-    filter (?btargetformat = ?atargetformat)
-
-    }
-    GROUP BY ?amap ?asource ?atarget ?bmap ?bsource ?btarget
-    ORDER BY ?asource
-    ''' % tm_filter
+    op = opf = ''
+    if metarelate_metocean.validation.subformat_predicates:
+        for subf_pred in metarelate_metocean.validation.subformat_predicates:
+            op += ('OPTIONAL {?asource %(s)s ?as_subf}\n\tOPTIONAL {?bsource %(s)s ?bs_subf}'
+                   '' % {'s':subf_pred})
+            opf += ('FILTER(?as_subf != ?bs_subf)')
+    qstr = ('SELECT ?amap ?asource ?atarget ?bmap ?bsource ?btarget\n'
+            '(GROUP_CONCAT(DISTINCT(?valuemap); SEPARATOR="&") AS ?valuemaps)\n'
+            '(CONCAT(str(?amap), ": ", str(?bmap)) AS ?signature)\n'
+            'FROM <http://metarelate.net/mappings.ttl>\n'
+            'FROM <http://metarelate.net/concepts.ttl>\n'
+            '%(gs)s\n'
+            'WHERE {{\n'
+            '?amap mr:source ?asource ;\n'
+            'mr:target ?atarget . } \n'
+            'UNION \n'
+            '{\n'
+            '?amap mr:invertible "True" ;\n'
+            'mr:target ?asource ;\n'
+            'mr:source ?atarget . } \n'
+            'MINUS {?amap ^dc:replaces+ ?anothermap} \n'
+            '%(tm)s\n'
+            '{\n'
+            '?bmap mr:source ?bsource ;\n'
+            'mr:target ?btarget . } \n'
+            'UNION  \n'
+            '{ \n'
+            '?bmap mr:invertible "True" ;\n'
+            'mr:target ?bsource ;\n'
+            'mr:source ?btarget . } \n'
+            'MINUS {?bmap ^dc:replaces+ ?bnothermap}\n'
+            'filter (?bmap != ?amap)\n'
+            'filter (?bsource = ?asource)\n'
+            'filter (?btarget != ?atarget)\n'
+            '?asource rdf:type ?asourceformat .\n'
+            '?bsource rdf:type ?bsourceformat .\n'
+            '?atarget rdf:type ?atargetformat .\n'
+            '?btarget rdf:type ?btargetformat .\n'
+            '%(op)s\n'
+            'filter (?btargetformat = ?atargetformat)\n'
+            '%(opf)s\n'
+            '}\n'
+            'GROUP BY ?amap ?asource ?atarget ?bmap ?bsource ?btarget\n'
+            'ORDER BY ?asource\n'
+            '' % ({'gs':gstr, 'tm':tm_filter, 'op':op, 'opf':opf}))
     return qstr
 
 # def range_component_mapping():
@@ -842,24 +878,34 @@ def mapping_search(statements=None):#, additive=False):
     if statements is None:
         statements = []
     statement_strings = []
+    filter_strings = []
     for i, statement in enumerate(statements):
         
         inpred = statement.get('predicate')
-        if inpred:
-            pred = '<{}>'.format(inpred)
-        else:
-            pred = '?{}pred'.format(i)
+        # if inpred:
+        #     pred = '<{}>'.format(inpred)
+        # else:
+        #     pred = '?{}pred'.format(i)
+        pred = '?{}pred'.format(i)
         inobj = statement.get('rdfobject')
-        if inobj:
-            rdfobj = '<{}>'.format(inobj)
-        else:
-            rdfobj = '?{}obj'.format(i)
+        # if inobj:
+        #     rdfobj = '<{}>'.format(inobj)
+        # else:
+        #     rdfobj = '?{}obj'.format(i)
+        rdfobj = '?{}obj'.format(i)
         ststring = '?aconcept %(p)s %(o)s .' % {'p':pred, 'o':rdfobj}
         statement_strings.append(ststring)
+        fstring = 'FILTER(regex(str(?{}pred), "{}"))'.format(i, inpred)
+        filter_strings.append(fstring)
+        fstring = 'FILTER(regex(str(?{}obj), "{}"))'.format(i, inobj)
+        filter_strings.append(fstring)
     statements = '\n'.join(statement_strings)
+    filters = '\n'.join(filter_strings)
     query_string = ('SELECT DISTINCT ?amap \n'
+                    '(CONCAT(str(?amap)) AS ?signature) \n'
                     'WHERE { \n'
                     'GRAPH <http://metarelate.net/concepts.ttl> { \n'
+                    '%s\n'
                     '%s\n'
                     '} \n'
                     'GRAPH <http://metarelate.net/mappings.ttl> { \n'
@@ -867,7 +913,7 @@ def mapping_search(statements=None):#, additive=False):
                     'UNION\n'
                     '{?amap mr:source ?aconcept . }\n'
                     'MINUS {?amap ^dc:replaces+ ?anothermap} \n'
-                    '}}' % statements)
+                    '}}' % (statements, filters))
             
     return query_string
             

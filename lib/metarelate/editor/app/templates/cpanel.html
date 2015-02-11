@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+<!--
+# (C) British Crown Copyright 2013, Met Office
+#
+# This file is part of metarelate.
+#
+# metarelate is free software: you can redistribute it and/or 
+# modify it under the terms of the GNU Lesser General Public License 
+# as published by the Free Software Foundation, either version 3 of 
+# the License, or (at your option) any later version.
+#
+# metarelate is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with metarelate. If not, see <http://www.gnu.org/licenses/>.
+-->
+
+
+{% block title %}: {{ title }}{% endblock %}
+
+{% block head %}
+{% load staticfiles %}
+<link href="{% static "main.css" %}"
+<script type="text/javascript" src="{% static "jquery-1.7.2.min.js" %}"></script>
+<script src="{% static "js/RelatedObjectLookups.js" %}"></script>
+<script type="text/javascript" language="javascript">
+function current_url() {
+  var text = "I propose these changes to Metarelate's metOcean knowledge base.\n";
+  text += "The changes are correct, to the best of my knowledge.\n";
+  text += "I agree to my username being used to label these changes.\n";
+  {% if contacts %}
+  text += "Notify:\n";
+  {% for contact in contacts %}
+  text += "@{{ contact }}\n";
+  {% endfor %}
+  {% endif %}
+
+  var url = window.location ;
+  document.cpanel.issue_text.value = text + url ;
+}
+window.onload = current_url ;
+</script>
+
+{% endblock %}
+
+
+
+{% block content %}
+
+<p>
+<a href="{% url 'search' %}"> search </a>
+<p>
+
+
+{% if form %}
+
+<h2>Control Panel</h2>
+<form action="" method="post" name="cpanel">
+
+<p>
+Validate the current merge of this branch and master:
+<p>
+<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="validate" value="Validate"/>
+
+<p>
+
+
+ {% if branch %}
+
+  {% if review_url %}
+
+<h3>This branch is under review</h3>
+
+<a href="{{ review_url }}">{{ review_url }}</a>
+
+  {% endif %}
+
+  {% if user.is_authenticated %}
+   {% if ownership %}
+
+<p>
+
+To raise a ticket requesting that this branch be merged onto the project, please copy the text below and a link to this page to
+ a new issue on our <a href="https://github.com/metarelate/metOcean/issues/new" target="_blank">github page</a>.
+<p>
+<textarea readonly="readonly" rows="6" cols="128" wrap="soft" name="issue_text">
+
+</textarea>
+
+
+    {% if upload %}
+
+{% for up in upload %}
+
+<p>
+<a href="{{ up.url }}">{{ up.label }}</a>
+{% for dstr in up.docstring %}
+<p>
+{{ dstr }}
+{% endfor %}
+<p>
+
+{% endfor %}
+
+    {% endif %}
+
+
+
+<p>
+Delete this branch:
+<p>
+(this cannot be undone)
+<p>
+<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="delete" value="Delete branch"/>
+<p>
+
+   {% endif %}
+   {% if metarelateuser %}
+Merge this branch:
+<p>
+<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="merge" value="Merge branch onto master"/>
+<p>
+   {% endif %}
+
+
+  {% endif %}
+
+ {% else %}
+  {% if user.is_authenticated %}
+<h3>Create a new branch:</h3>
+<p>
+<input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="branch" value="Create branch"/>
+<p>
+   {% if branches %}
+<h3>Current Branches<h3>
+   {% for branch in branches %}
+<a href="{{ branch }}">{{ branch }}</a><p>
+   {% endfor %}
+   {% endif %}
+  {% endif %}
+ {% endif %}
+
+ {% if mappings %}
+<h3>Live mappings in this branch:</h3>
+{% for mapping in mappings %}
+
+    <ul>
+    <li><a href="{{ mapping.url }}">{{ mapping.label }}</a></li>
+    </ul>
+
+
+{% endfor %}
+
+ {% endif %}
+
+ {% if save_string %}
+<textarea readonly="readonly" rows="70" cols="128" wrap="soft">
+{{ save_string }}
+</textarea>
+ {% endif %}
+
+
+
+{% csrf_token %}
+
+{{ form.as_p }}
+
+
+
+</form>
+{% endif %}
+
+
+{% endblock %}

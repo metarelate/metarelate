@@ -1,9 +1,4 @@
-
-{% extends "base.html" %}
-{% load dict_keys %}
-{% load inclusions %}
-<!--
-# (C) British Crown Copyright 2013, Met Office
+# (C) British Crown Copyright 2015, Met Office
 #
 # This file is part of metarelate.
 #
@@ -19,24 +14,17 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with metarelate. If not, see <http://www.gnu.org/licenses/>.
--->
+
+from django.conf import settings
+from django.core.mail import send_mail
+from django.core.urlresolvers import reverse
 
 
-{% block title %}: {{ title }}{% endblock %}
-
-{% block head %}
-<script type="text/javascript" src="/static/js/jquery.min.js"></script>
-<script type="text/javascript" src="/static/js/RelatedObjectLookups.js"></script> 
-{% endblock %}
-
-
-
-{% block content %}
-
-<!-- <p>The time is {% current_time "%Y-%m-%d %I:%M %p" %}.</p> -->
-<p>
-<a href="{% url 'search' %}">Search</a>
-<p>
-<img src="{% url 'homegraph' %}" />
-
-{% endblock %}
+def send_validation(strategy, backend, code):
+    url = '{0}?verification_code={1}'.format(
+        reverse('social:complete', args=(backend.name,)),
+        code.code
+    )
+    url = strategy.request.build_absolute_uri(url)
+    send_mail('Validate your account', 'Validate your account {0}'.format(url),
+              settings.EMAIL_FROM, [code.email], fail_silently=False)

@@ -1,9 +1,4 @@
-
-{% extends "base.html" %}
-{% load dict_keys %}
-{% load inclusions %}
-<!--
-# (C) British Crown Copyright 2013, Met Office
+# (C) British Crown Copyright 2015, Met Office
 #
 # This file is part of metarelate.
 #
@@ -19,24 +14,23 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with metarelate. If not, see <http://www.gnu.org/licenses/>.
--->
+
+from django.shortcuts import redirect
+
+from social.pipeline.partial import partial
 
 
-{% block title %}: {{ title }}{% endblock %}
+@partial
+def require_email(strategy, details, user=None, is_new=False, *args, **kwargs):
+    if kwargs.get('ajax') or user and user.email:
+        return
+    elif is_new and not details.get('email'):
+        email = strategy.request_data().get('email')
+        if email:
+            details['email'] = email
+        else:
+            return redirect('require_email')
 
-{% block head %}
-<script type="text/javascript" src="/static/js/jquery.min.js"></script>
-<script type="text/javascript" src="/static/js/RelatedObjectLookups.js"></script> 
-{% endblock %}
-
-
-
-{% block content %}
-
-<!-- <p>The time is {% current_time "%Y-%m-%d %I:%M %p" %}.</p> -->
-<p>
-<a href="{% url 'search' %}">Search</a>
-<p>
-<img src="{% url 'homegraph' %}" />
-
-{% endblock %}
+def token_session(strategy, details, *args, **kwargs):
+    response = kwargs.get('response')
+    strategy.request.session['access_token'] = response.get('access_token')

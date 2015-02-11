@@ -1,4 +1,4 @@
-# (C) British Crown Copyright 2013, Met Office
+# (C) British Crown Copyright 2013 - 2015, Met Office
 #
 # This file is part of metarelate.
 #
@@ -19,6 +19,7 @@ from collections import Iterable, MutableMapping, namedtuple
 from datetime import datetime
 import hashlib
 import os
+import urllib
 import urlparse
 import time
 import warnings
@@ -77,8 +78,8 @@ def get_notation(uri):
                 if isinstance(result, dict):
                     result = result.get('@value')
             except ValueError, e:
-                if e.message == 'No JSON object could be decoded':
-                    result = uri.split('/')[-1]
+                ## hack to use the last part of the uri for now
+                result = uri.split('/')[-1]
         else:
             ## hack to use the last part of the uri for now
             result = uri.split('/')[-1]
@@ -113,9 +114,10 @@ class _DotMixin(object):
                 #     text = '\%s' % symbol
                 result.append(text)
             return ''.join(result)
-        for symbol in ['<', '>', ':', '.', '/', '-']:
+        for symbol in ['<', '>', ':', '.', '/', '-', '"']:
             label = escape(label, symbol)
         return label
+        # return urllib.quote(label, '')
 
 
 class KBaseSummary(_DotMixin):
@@ -376,28 +378,26 @@ class Mapping(_DotMixin):
                           labelloc='t', labeljust='l',
                           fontsize=15)
         label = self.dot_escape(self.uri.data)
-        node = pydot.Node(label, label='Mapping',
+        node = pydot.Node(label, label=self.uri.data,
                           shape='box', peripheries='2',
                           style='filled',
                           colorscheme='dark28', fillcolor='1',
                           fontsize=8)
         node.uri = self.uri.data
         graph.add_node(node)
-        sgraph = pydot.Cluster('Source', label='Source Concept',
+        sgraph = pydot.Cluster('Source', label=self.source.com_type.data,
                                labelloc='b',
                                style='filled', color='lightgrey')
         snode = self.source.dot(sgraph, node)
         edge = pydot.Edge(node, snode, dir='back',
-                          label='Concept', fontsize=7,
                           tailport='s', headport='n')
         graph.add_edge(edge)
         graph.add_subgraph(sgraph)
-        tgraph = pydot.Cluster('Target', label='Target Concept',
+        tgraph = pydot.Cluster('Target', label=self.target.com_type.data,
                                labelloc='b',
                                style='filled', color='lightgrey')
         tnode = self.target.dot(tgraph, node)
         edge = pydot.Edge(node, tnode,
-                          label='Concept', fontsize=7,
                           tailport='s', headport='n')
         graph.add_edge(edge)
         graph.add_subgraph(tgraph)
@@ -442,12 +442,12 @@ class Mapping(_DotMixin):
         return podict
 
 
-    def create_rdf(self, fuseki_process):
+    def create_rdf(self, fuseki_process, graph=None):
         """
         create the rdf representation using the provided fuseki process
 
         """
-        qstr, instr = self.sparql_creator(self._podict())
+        qstr, instr = self.sparql_creator(self._podict(), graph)
         result = fuseki_process.create(qstr, instr)
         self.uri = Item(result['mapping'])
 
@@ -464,8 +464,9 @@ class Mapping(_DotMixin):
         ## what about other attributes?? not implemented yet
         return referrer
 
-    def populate_from_uri(self, fuseki_process):
-        elements, = fuseki_process.run_query(self.sparql_retriever())
+    def populate_from_uri(self, fuseki_process, graph=None):
+        elements, = fuseki_process.run_query(self.sparql_retriever(graph=graph,
+                                             rep=False))
         if self.inverted == '"True"':
             if self.invertible != '"True"':
                 raise ValueError('A mapping may not be inverted but not '
@@ -475,8 +476,8 @@ class Mapping(_DotMixin):
         else:
             self.source = Component(elements.get('source'))
             self.target = Component(elements.get('target'))
-        self.source.populate_from_uri(fuseki_process)
-        self.target.populate_from_uri(fuseki_process)
+        self.source.populate_from_uri(fuseki_process, graph)
+        self.target.populate_from_uri(fuseki_process, graph)
         self.date = elements.get('date')
         self.creator = elements.get('creator')
         self.invertible = elements.get('invertible')
@@ -504,40 +505,43 @@ class Mapping(_DotMixin):
             careful_update(target_ids, prop.get_identifiers(fuseki_process))
         return (source_ids, target_ids)
 
-    def sparql_retriever(self, rep=True):
+    def sparql_retriever(self, rep=True, graph=None):
         vstr = ''
         if rep:
             vstr += '\n\tMINUS {?mapping ^dc:replaces+ ?anothermap}'
-        qstr = '''SELECT ?mapping ?source ?target ?invertible ?replaces 
-                         ?note ?date ?creator ?rights ?dateAccepted
-        (GROUP_CONCAT(DISTINCT(?rightsHolder); SEPARATOR = '&') AS ?rightsHolders)
-        (GROUP_CONCAT(DISTINCT(?contibutor); SEPARATOR = '&') AS ?contributors)
-        (GROUP_CONCAT(DISTINCT(?valueMap); SEPARATOR = '&') AS ?valueMaps)
-        WHERE {
-        GRAPH <http://metarelate.net/mappings.ttl> {
-        ?mapping mr:source ?source ;
-             mr:target ?target ;
-             mr:invertible ?invertible ;
-             dc:date ?date ;
-             dc:creator ?creator .
-        OPTIONAL {?mapping dc:replaces ?replaces .}
-        OPTIONAL {?mapping skos:note ?note .}
-        OPTIONAL {?mapping mr:hasValueMap ?valueMap .}
-        OPTIONAL {?mapping dc:rightsHolder ?rights .}
-        OPTIONAL {?mapping dc:rightsHolder ?rightsHolder .}
-        OPTIONAL {?mapping dc:contributor ?contributor .}
-        OPTIONAL {?mapping dc:dateAccepted ?dateAccepted .}
-        FILTER(?mapping = %s)
-        %s
-        }
-        }
-        GROUP BY ?mapping ?source ?target ?invertible ?replaces
-                 ?note ?date ?creator ?rights ?dateAccepted
-        ''' % (self.uri.data, vstr)
+        graphs = ('FROM <http://metarelate.net/mappings.ttl>\n')
+        if graph:
+            graphs = graphs + ('FROM <http://metarelate.net/'
+                               '{}mappings.ttl>\n'.format(graph))
+        qstr = ("SELECT ?mapping ?source ?target ?invertible ?replaces\n"
+                "       ?note ?date ?creator ?rights ?dateAccepted\n"
+                "(GROUP_CONCAT(DISTINCT(?rightsHolder); SEPARATOR = '&') AS ?rightsHolders)\n"
+                "(GROUP_CONCAT(DISTINCT(?contibutor); SEPARATOR = '&') AS ?contributors)\n"
+                "(GROUP_CONCAT(DISTINCT(?valueMap); SEPARATOR = '&') AS ?valueMaps)\n"
+                "%s"
+                "WHERE {\n"
+                "?mapping mr:source ?source ;\n"
+                "     mr:target ?target ;\n"
+                "     mr:invertible ?invertible ;\n"
+                "     dc:date ?date ;\n"
+                "     dc:creator ?creator .\n"
+                "OPTIONAL {?mapping dc:replaces ?replaces .}\n"
+                "OPTIONAL {?mapping skos:note ?note .}\n"
+                "OPTIONAL {?mapping mr:hasValueMap ?valueMap .}\n"
+                "OPTIONAL {?mapping dc:rightsHolder ?rights .}\n"
+                "OPTIONAL {?mapping dc:rightsHolder ?rightsHolder .}\n"
+                "OPTIONAL {?mapping dc:contributor ?contributor .}\n"
+                "OPTIONAL {?mapping dc:dateAccepted ?dateAccepted .}\n"
+                "FILTER(?mapping = %s)\n"
+                "%s\n}\n"
+                "GROUP BY ?mapping ?source ?target ?invertible ?replaces\n"
+                "         ?note ?date ?creator ?rights ?dateAccepted"
+                " \n"% (graphs, self.uri.data, vstr))
         return qstr
 
-    @staticmethod
-    def sparql_creator(po_dict):
+    def sparql_creator(self, po_dict, graph=None):
+        if graph is None:
+            raise ValueError('graph cannot be None')
         subj_pref = 'http://www.metarelate.net/{}/mapping'
         subj_pref = subj_pref.format(site_config['fuseki_dataset'])
         allowed_preds = set(('mr:source', 'mr:target', 'mr:invertible',
@@ -578,20 +582,21 @@ class Mapping(_DotMixin):
                 %s %s ;''' % (pred, po_dict[pred])
         sha1 = make_hash(po_dict, ['''dc:date'''])
         mapping = '%s/%s' % (subj_pref, sha1)
-        qstr = '''SELECT ?mapping
-        WHERE {
-        GRAPH <http://metarelate.net/mappings.ttl> {
-        ?mapping rdf:type mr:Mapping .
-        FILTER(?mapping = <%s>)
-        } }''' % mapping
+        qstr = ('SELECT ?mapping\n'
+                'FROM NAMED <http://metarelate.net/mappings.ttl>\n'
+                'FROM NAMED <http://metarelate.net/%smappings.ttl>\n'
+                'WHERE {\n'
+                'GRAPH  ?g {\n'
+                '?mapping rdf:type mr:Mapping .\n'
+                'FILTER(?mapping = <%s>)'
+                '        } }' % (graph, mapping))
         instr = '''INSERT DATA {
-        GRAPH <http://metarelate.net/mappings.ttl> {
+        GRAPH <http://metarelate.net/%smappings.ttl> {
         <%s> a mr:Mapping ;
                     %s
-                    mr:saveCache "True" .
         }
         }
-        ''' % (mapping, search_string)
+        ''' % (graph, mapping, search_string)
         return qstr, instr
 
 
@@ -751,8 +756,10 @@ class Component(_DotMixin):
                               fontsize=15)
             parent = Mapping(Item('',''))
             _returngraph = True
-        label = self.dot_escape('{}_{}'.format(parent.uri, self.uri.data))
-        nlabel = self.dot_escape(self.com_type.data)
+        # label = self.dot_escape('{}_{}'.format(parent.uri, self.uri.data))
+        # nlabel = self.dot_escape(self.com_type.data)
+        label = self.dot_escape(self.uri.data)
+        nlabel = self.uri.data
         node = pydot.Node(label, label=nlabel,
                           style='filled', peripheries='2',
                           colorscheme='dark28', fillcolor='3',
@@ -770,8 +777,8 @@ class Component(_DotMixin):
             result = node
         return result
 
-    def populate_from_uri(self, fuseki_process):
-        statements = fuseki_process.run_query(self.sparql_retriever())
+    def populate_from_uri(self, fuseki_process, graph=None):
+        statements = fuseki_process.run_query(self.sparql_retriever(graph=graph))
         for statement in statements:
             if statement.get('p') == '<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>':
                 self.com_type = Item(statement.get('o'),
@@ -794,58 +801,56 @@ class Component(_DotMixin):
                     self.properties.append(StatementProperty(predicate, 
                                                              rdfobject))
 
-    def sparql_retriever(self):
+    def sparql_retriever(self, graph=None):
         if self.uri is None:
             raise ValueError('URI required, None found')
-        qstr = ('SELECT ?component ?p ?o '
-                'WHERE {GRAPH <http://metarelate.net/concepts.ttl> {'
-                '?component ?p ?o ; '
-                'rdf:type mr:Component .'
-                'FILTER(?component = %s) '
-                'FILTER(?o != mr:Component) '
-                'FILTER(?p != mr:saveCache) '
-                '}}' % self.uri.data)
+        graphs = ('FROM NAMED <http://metarelate.net/concepts.ttl>\n')
+        if graph:
+            graphs = graphs + ('FROM NAMED <http://metarelate.net/'
+                               '{}concepts.ttl>\n'.format(graph))
+        qstr = ('SELECT ?component ?p ?o \n'
+                '%s'
+                'WHERE {\n'
+                'GRAPH ?g {\n'
+                '?component ?p ?o ; \n'
+                'rdf:type mr:Component .\n'
+                'FILTER(?component = %s) \n'
+                'FILTER(?o != mr:Component) } \n'
+                '}\n' % (graphs, self.uri.data))
         return qstr
 
-    def sparql_creator(self, po_dict):
+    def sparql_creator(self, po_dict, graph=None):
+        if graph is None:
+            raise ValueError('graph cannot be None')
         subj_pref = 'http://www.metarelate.net/{}/component'
         subj_pref = subj_pref.format(site_config['fuseki_dataset'])
         search_string = ''
-        n_statements = 2
+        n_statements = 1
         ## type and savecache
         for pred, objs in po_dict.iteritems():
             for obj in objs:
                 search_string += '\t\t{p} {o} \n;'.format(p=pred, o=obj)
-                n_statements +=1
-        qstr = ('SELECT ?component WHERE {{\n'
+                n_statements += 1
+        qstr = ('SELECT ?component \n'
+                'FROM NAMED <http://metarelate.net/concepts.ttl>\n'
+                'FROM NAMED <http://metarelate.net/%sconcepts.ttl>\n'
+                'WHERE {\n'
                 '{SELECT ?component (COUNT(?p) as ?statements)\n'
                 'WHERE {\n'
-                'GRAPH <http://metarelate.net/concepts.ttl> {\n'
+                'GRAPH ?g {\n'
                 '?component ?p ?o ;\n'
                 '\t%s'
-                '\tmr:saveCache "True" ;\n'
                 '\t. }}\n'
                 '\tGROUP by ?component\n'
                 '}\n'
                 '\t FILTER(?statements = %i)\n'
-                '}UNION{'
-                '{SELECT ?component (COUNT(?p) as ?statements)\n'
-                'WHERE {\n'
-                'GRAPH <http://metarelate.net/concepts.ttl> {\n'
-                '?component ?p ?o ;\n'
-                '\t%s '
-                '\t.}}\n'
-                '\tGROUP by ?component\n'
-                '}\n'
-                '\t FILTER(?statements = %i)\n'
-                '}}\n' % (search_string, n_statements, search_string, n_statements-1))
+                '}\n' % (graph, search_string, n_statements))
         sha1 = make_hash(po_dict)
         instr = ('INSERT DATA {\n'
-                 '\tGRAPH <http://metarelate.net/concepts.ttl> {\n'
+                 '\tGRAPH <http://metarelate.net/%sconcepts.ttl> {\n'
                  '\t<%s/%s> rdf:type mr:Component ;\n'
                  '\t%s\n'
-                 '\tmr:saveCache "True" .\n'
-                 '}}' % (subj_pref, sha1, search_string))
+                 '}}' % (graph, subj_pref, sha1, search_string))
         return qstr, instr
 
     # def json_referrer(self):
@@ -893,19 +898,19 @@ class Component(_DotMixin):
                 raise TypeError('property not a recognised type:\n{}'.format(type(prop)))
         return podict
 
-    def creation_sparql(self):
+    def creation_sparql(self, graph):
         """
         return SPARQL string for creation of a Concept
 
         """
-        return self.sparql_creator(self._podict())
+        return self.sparql_creator(self._podict(), graph=graph)
 
-    def create_rdf(self, fuseki_process):
+    def create_rdf(self, fuseki_process, graph=None):
         """
         create rdf representation using the provided fuseki process
 
         """
-        qstr, instr = self.creation_sparql()
+        qstr, instr = self.creation_sparql(graph=graph)
         result = fuseki_process.create(qstr, instr)
         self.uri = Item(result['component'])
 
@@ -977,7 +982,9 @@ class ComponentProperty(Property):
             edge.set_label(self.dot_escape(name))
             edge.set_fontsize(7)
         graph.add_edge(edge)
-
+        edge = pydot.Edge(node, anode,
+                          tailport='s', headport='n')
+        graph.add_edge(edge)
 
 class StatementProperty(Property):
     """
@@ -1119,6 +1126,8 @@ class StatementProperty(Property):
         items.append(self.predicate.dot())
         items.append(self.rdfobject.dot())
         items = ': '.join(items)
+        items = '\n'.join([self.predicate.data.strip('<>'), 
+                           self.rdfobject.data.strip('<>')])
         label = self.dot_escape('{}_{}'.format(self.predicate.data, 
                                                self.rdfobject.data))
         node = pydot.Node(label, label=items,
@@ -1129,9 +1138,10 @@ class StatementProperty(Property):
         graph.add_node(node)
         edge = pydot.Edge(parent, node,
                           tailport='s', headport='n')
-        if name is not None:
-            edge.set_label(self.dot_escape(name))
-            edge.set_fontsize(7)
+        # name = 'hmmm'
+        # if name is not None:
+        #     edge.set_label(self.dot_escape(name))
+        #     edge.set_fontsize(7)
         graph.add_edge(edge)
 
 
@@ -1226,7 +1236,7 @@ class Item(_DotMixin, namedtuple('Item', 'data notation')):
 
     def dot(self):
         """
-        Return a Dot escaped string representation of the mapping item.
+        Return a string representation of the mapping item.
 
         If the skos notation is available, this has priority.
 
@@ -1234,10 +1244,10 @@ class Item(_DotMixin, namedtuple('Item', 'data notation')):
             String.
 
         """
-        label = self.dot_escape(self.data)
+        label = self.data
         if self.notation is not None:
-            label = self.dot_escape(str(self.notation))
-        return label
+            label = self.notation
+        return self.dot_escape(label)
 
 
 # class ValueMap(object):

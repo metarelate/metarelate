@@ -1,9 +1,4 @@
-
-{% extends "base.html" %}
-{% load dict_keys %}
-{% load inclusions %}
-<!--
-# (C) British Crown Copyright 2013, Met Office
+# (C) British Crown Copyright 2015, Met Office
 #
 # This file is part of metarelate.
 #
@@ -19,24 +14,10 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with metarelate. If not, see <http://www.gnu.org/licenses/>.
--->
 
+# Define a custom User class to work with django-social-auth
 
-{% block title %}: {{ title }}{% endblock %}
+from django.contrib.auth.models import AbstractUser
 
-{% block head %}
-<script type="text/javascript" src="/static/js/jquery.min.js"></script>
-<script type="text/javascript" src="/static/js/RelatedObjectLookups.js"></script> 
-{% endblock %}
-
-
-
-{% block content %}
-
-<!-- <p>The time is {% current_time "%Y-%m-%d %I:%M %p" %}.</p> -->
-<p>
-<a href="{% url 'search' %}">Search</a>
-<p>
-<img src="{% url 'homegraph' %}" />
-
-{% endblock %}
+class CustomUser(AbstractUser):
+    pass

@@ -27,13 +27,31 @@
 <meta name="Description" content="List of formats for Metadata management.">
 <title>Metarelate Editor</title>
 
-<link href="{{ STATIC_URL }}main.css" rel="stylesheet" type="text/css" media="screen" />
-<link href="{{ STATIC_URL }}styles.css" rel="stylesheet" type="text/css" media="screen" />
+{% load staticfiles %}
+<link href="{% static "main.css" %}" rel="stylesheet" type="text/css" media="screen" />
+<link href="{% static "styles.css" %}" rel="stylesheet" type="text/css" media="screen" />
 
 {% block head %}{% endblock %}
 
 </head>
 <body>
+
+{% if user.is_authenticated %}
+
+<p>
+You are logged in as <code>{{ user.username }}</code>
+<p>
+        <a class="btn btn-primary" href="/metOcean/logout/">
+          <i class="fa fa-sign-out"></i>
+          Logout
+        </a>
+
+{% else %}
+
+<a href="{% url 'login' %}">login</a>
+
+{% endif %}
+<p>
 <a href="{% url 'home' %}">home</a>
 <h1>Meteorological and Oceanographic Metadata Relationships</h1> 
 <div class="toplistbar">
