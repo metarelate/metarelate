@@ -509,9 +509,9 @@ class Mapping(_DotMixin):
         vstr = ''
         if rep:
             vstr += '\n\tMINUS {?mapping ^dc:replaces+ ?anothermap}'
-        graphs = ('FROM NAMED <http://metarelate.net/mappings.ttl>\n')
+        graphs = ('FROM <http://metarelate.net/mappings.ttl>\n')
         if graph:
-            graphs = graphs + ('FROM NAMED <http://metarelate.net/'
+            graphs = graphs + ('FROM <http://metarelate.net/'
                                '{}mappings.ttl>\n'.format(graph))
         qstr = ("SELECT ?mapping ?source ?target ?invertible ?replaces\n"
                 "       ?note ?date ?creator ?rights ?dateAccepted\n"
@@ -520,7 +520,6 @@ class Mapping(_DotMixin):
                 "(GROUP_CONCAT(DISTINCT(?valueMap); SEPARATOR = '&') AS ?valueMaps)\n"
                 "%s"
                 "WHERE {\n"
-                "{GRAPH ?g {\n"
                 "?mapping mr:source ?source ;\n"
                 "     mr:target ?target ;\n"
                 "     mr:invertible ?invertible ;\n"
@@ -535,7 +534,6 @@ class Mapping(_DotMixin):
                 "OPTIONAL {?mapping dc:dateAccepted ?dateAccepted .}\n"
                 "FILTER(?mapping = %s)\n"
                 "%s\n}}\n"
-                "}\n"
                 "GROUP BY ?mapping ?source ?target ?invertible ?replaces\n"
                 "         ?note ?date ?creator ?rights ?dateAccepted"
                 " \n"% (graphs, self.uri.data, vstr))

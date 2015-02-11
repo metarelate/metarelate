@@ -651,19 +651,18 @@ class FusekiServer(object):
             elif target_uri:
                 target_uri = target_uri[0]['component']
         if source_uri and target_uri:
-            graphs = ('FROM NAMED <http://metarelate.net/mappings.ttl> \n')
+            graphs = ('FROM <http://metarelate.net/mappings.ttl> \n')
             if graph:
-                graphs = graphs + ('FROM NAMED <http://metarelate.net/'
+                graphs = graphs + ('FROM <http://metarelate.net/'
                                    '{}mappings.ttl> \n'.format(graph))
             map_qstr = ('SELECT ?mapping \n'
                         '%s'
                         'WHERE { \n'
-                        'GRAPH ?g { \n'
                         '?mapping mr:source %s ;\n'
                         '\tmr:target %s .\n'
                         'OPTIONAL {?mapping dc:replaces ?replaces .}\n'
                         'MINUS {?mapping ^dc:replaces+ ?anothermap} \n'
-                        '}}' % (graphs, source_uri, target_uri)) 
+                        '}' % (graphs, source_uri, target_uri)) 
             map_ids = self.run_query(map_qstr)
             if len(map_ids) > 1:
                 raise ValueError('multiple valid mapping for the same source'
@@ -798,8 +797,8 @@ def multiple_mappings(test_source=None, graph=None):
     """
     gstr = ''
     if graph:
-        gstr = ('FROM NAMED <http://metarelate.net/{}mappings.ttl>'
-                'FROM NAMED <http://metarelate.net/{}concepts.ttl>'
+        gstr = ('FROM <http://metarelate.net/{}mappings.ttl>'
+                'FROM <http://metarelate.net/{}concepts.ttl>'
                 ''.format(graph, graph))
     tm_filter = ''
     if test_source:
@@ -813,49 +812,45 @@ def multiple_mappings(test_source=None, graph=None):
             op += ('OPTIONAL {?asource %(s)s ?as_subf}\n\tOPTIONAL {?bsource %(s)s ?bs_subf}'
                    '' % {'s':subf_pred})
             opf += ('FILTER(?as_subf != ?bs_subf)')
-    qstr = '''SELECT ?amap ?asource ?atarget ?bmap ?bsource ?btarget
-    (GROUP_CONCAT(DISTINCT(?valuemap); SEPARATOR='&') AS ?valuemaps)
-    (CONCAT(str(?amap), ': ', str(?bmap)) AS ?signature)
-    FROM NAMED <http://metarelate.net/mappings.ttl>
-    FROM NAMED <http://metarelate.net/concepts.ttl>
-    %(gs)s
-    WHERE {
-    GRAPH ?gm { {
-    ?amap mr:source ?asource ;
-         mr:target ?atarget . } 
-    UNION 
-        { 
-    ?amap mr:invertible "True" ;
-         mr:target ?asource ;
-         mr:source ?atarget . } 
-    MINUS {?amap ^dc:replaces+ ?anothermap} 
-    %(tm)s
-    {
-    ?bmap mr:source ?bsource ;
-         mr:target ?btarget . } 
-    UNION  
-        { 
-    ?bmap mr:invertible "True" ;
-         mr:target ?bsource ;
-         mr:source ?btarget . } 
-    MINUS {?bmap ^dc:replaces+ ?bnothermap}
-    filter (?bmap != ?amap)
-    filter (?bsource = ?asource)
-    filter (?btarget != ?atarget)
-    } 
-    GRAPH ?gc {
-    ?asource rdf:type ?asourceformat .
-    ?bsource rdf:type ?bsourceformat .
-    ?atarget rdf:type ?atargetformat .
-    ?btarget rdf:type ?btargetformat .
-    %(op)s
-    }
-    filter (?btargetformat = ?atargetformat)
-    %(opf)s
-    }
-    GROUP BY ?amap ?asource ?atarget ?bmap ?bsource ?btarget
-    ORDER BY ?asource
-    ''' % ({'gs':gstr, 'tm':tm_filter, 'op':op, 'opf':opf})
+    qstr = ('SELECT ?amap ?asource ?atarget ?bmap ?bsource ?btarget\n'
+            '(GROUP_CONCAT(DISTINCT(?valuemap); SEPARATOR="&") AS ?valuemaps)\n'
+            '(CONCAT(str(?amap), ": ", str(?bmap)) AS ?signature)\n'
+            'FROM <http://metarelate.net/mappings.ttl>\n'
+            'FROM <http://metarelate.net/concepts.ttl>\n'
+            '%(gs)s\n'
+            'WHERE {{\n'
+            '?amap mr:source ?asource ;\n'
+            'mr:target ?atarget . } \n'
+            'UNION \n'
+            '{\n'
+            '?amap mr:invertible "True" ;\n'
+            'mr:target ?asource ;\n'
+            'mr:source ?atarget . } \n'
+            'MINUS {?amap ^dc:replaces+ ?anothermap} \n'
+            '%(tm)s\n'
+            '{\n'
+            '?bmap mr:source ?bsource ;\n'
+            'mr:target ?btarget . } \n'
+            'UNION  \n'
+            '{ \n'
+            '?bmap mr:invertible "True" ;\n'
+            'mr:target ?bsource ;\n'
+            'mr:source ?btarget . } \n'
+            'MINUS {?bmap ^dc:replaces+ ?bnothermap}\n'
+            'filter (?bmap != ?amap)\n'
+            'filter (?bsource = ?asource)\n'
+            'filter (?btarget != ?atarget)\n'
+            '?asource rdf:type ?asourceformat .\n'
+            '?bsource rdf:type ?bsourceformat .\n'
+            '?atarget rdf:type ?atargetformat .\n'
+            '?btarget rdf:type ?btargetformat .\n'
+            '%(op)s\n'
+            'filter (?btargetformat = ?atargetformat)\n'
+            '%(opf)s\n'
+            '}\n'
+            'GROUP BY ?amap ?asource ?atarget ?bmap ?bsource ?btarget\n'
+            'ORDER BY ?asource\n'
+            '' % ({'gs':gstr, 'tm':tm_filter, 'op':op, 'opf':opf}))
     return qstr
 
 # def range_component_mapping():
