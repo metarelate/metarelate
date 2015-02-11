@@ -130,11 +130,18 @@ Merge this branch:
   {% endif %}
 
  {% else %}
+  {% if user.is_authenticated %}
 <h3>Create a new branch:</h3>
 <p>
 <input class="recordbutton" type="submit" {% if read_only %}disabled="disabled"{% endif %} name="branch" value="Create branch"/>
 <p>
-
+   {% if branches %}
+<h3>Current Branches<h3>
+   {% for branch in branches %}
+<a href="{{ branch }}">{{ branch }}</a><p>
+   {% endfor %}
+   {% endif %}
+  {% endif %}
  {% endif %}
 
  {% if mappings %}

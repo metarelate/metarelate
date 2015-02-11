@@ -224,11 +224,32 @@ def controlpanel(request):
         if open_ticket:        
             con_dict['review_url'] = open_ticket
             logger.info('Issue open: {}'.format(open_ticket))
+        if not branch and request.user.is_authenticated():
+            branches = _branches(request)
+            if branches:
+                urls = [url_qstr(reverse('control_panel'), branch=b) for
+                        b in branches]
+                con_dict['branches'] = urls
         con_dict['upload'] = _uploaders(branch)
         con_dict['branch'] = branch
         context = RequestContext(request, con_dict)
         response = render_to_response('cpanel.html', context)
     return response
+
+def _branches(request):
+    branches = []
+    if request.user.is_authenticated():
+        user = '<{}>'.format(request.user.username)
+        qstr = ('SELECT ?g WHERE {\n'
+                '?g dc:creator %s . }\n' % user)
+        results = fuseki_process.run_query(qstr)
+        for res in results:
+            graph = res.get('g')
+            rexp = '<http://metarelate.net/([0-9a-f]+)mappings.ttl>'
+            branchid = re.findall(rexp, graph)
+            if branchid and len(branchid) == 1:
+                branches.append(branchid[0])
+    return branches
 
 def _open_ticket(request, branch):
     ticket_url = None

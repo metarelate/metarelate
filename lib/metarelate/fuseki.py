@@ -297,7 +297,8 @@ class FusekiServer(object):
             if all_additions:
                 subprocess.check_call(['git', '-C', self._static_dir,
                                        'commit', '-am', 
-                                       "'{}'".format(branch)])
+                                       "'{}'".format(branch),
+                                       '--author="marqh <markh@metarelate.net>"'])
                 for subgraph in subgraphs:
                     instr = ('ADD <http://metarelate.net/{b}{s}> TO '
                              '<http://metarelate.net/{s}>'
@@ -323,6 +324,7 @@ class FusekiServer(object):
                     sg.write(HEADER)
                     for line in save_string.splitlines():
                         sg.write(line + '\n')
+            if self.save_branch(branch, subgraph):
                 subgraphs.append(subgraph)
         return subgraphs
 
@@ -747,8 +749,14 @@ class FusekiServer(object):
         instr = ('DROP GRAPH <http://metarelate.net/{g}concepts.ttl> '
                  '\n'.format(g=graphid))
         self.run_query(instr, update=True)
+        instr = ('DELETE DATA <http://metarelate.net/{g}concepts.ttl> '
+                 'dc:creator {u} .'.format(g=graphid, u=user))
+        self.run_query(instr, update=True)
         instr = ('DROP GRAPH <http://metarelate.net/{g}mappings.ttl>'
                  '\n'.format(g=graphid))
+        self.run_query(instr, update=True)
+        instr = ('DELETE DATA <http://metarelate.net/{g}mappings.ttl> '
+                 'dc:creator {u} .'.format(g=graphid, u=user))
         self.run_query(instr, update=True)
         
 
