@@ -206,7 +206,7 @@ def controlpanel(request):
                 save_string += 40*'-' + '\n'
             con_dict['save_string'] = save_string
         contacts = set(re.findall("<https://github.com/(a-zA-Z0-9-]+)>",
-                                  savestring))
+                                  save_string))
         con_dict['contacts'] = list(contacts)
         con_dict['mappings'] = branch_mappings
         if request.user and request.user.username == 'https://github.com/marqh':
