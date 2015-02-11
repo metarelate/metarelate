@@ -749,13 +749,13 @@ class FusekiServer(object):
         instr = ('DROP GRAPH <http://metarelate.net/{g}concepts.ttl> '
                  '\n'.format(g=graphid))
         self.run_query(instr, update=True)
-        instr = ('DELETE DATA <http://metarelate.net/{g}concepts.ttl> '
+        instr = ('DELETE DATA { <http://metarelate.net/{g}concepts.ttl> .}'
                  'dc:creator {u} .'.format(g=graphid, u=user))
         self.run_query(instr, update=True)
         instr = ('DROP GRAPH <http://metarelate.net/{g}mappings.ttl>'
                  '\n'.format(g=graphid))
         self.run_query(instr, update=True)
-        instr = ('DELETE DATA <http://metarelate.net/{g}mappings.ttl> '
+        instr = ('DELETE DATA { <http://metarelate.net/{g}mappings.ttl> .}'
                  'dc:creator {u} .'.format(g=graphid, u=user))
         self.run_query(instr, update=True)
         
