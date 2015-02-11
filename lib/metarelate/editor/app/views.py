@@ -205,7 +205,7 @@ def controlpanel(request):
                 save_string += fuseki_process.save_branch(branch, subgraph, merge=False)
                 save_string += 40*'-' + '\n'
             con_dict['save_string'] = save_string
-        contacts = set(re.findall("<https://github.com/(a-zA-Z0-9-]+)>",
+        contacts = set(re.findall("<https://github.com/([a-zA-Z0-9-]+)>",
                                   save_string))
         con_dict['contacts'] = list(contacts)
         con_dict['mappings'] = branch_mappings
