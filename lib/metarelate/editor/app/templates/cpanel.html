@@ -32,6 +32,12 @@ function current_url() {
   var text = "I propose these changes to Metarelate's metOcean knowledge base.\n";
   text += "The changes are correct, to the best of my knowledge.\n";
   text += "I agree to my username being used to label these changes.\n";
+  {% if contacts %}
+  text += "Notify:\n";
+  {% for contact in contacts %}
+  text += "@{{ contact }}\n";
+  {% endfor %}
+  {% endif %}
 
   var url = window.location ;
   document.cpanel.issue_text.value = text + url ;
