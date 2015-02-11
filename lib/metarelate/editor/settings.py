@@ -121,7 +121,7 @@ INSTALLED_APPS = (
     # 'django.contrib.admindocs',
 )
 
-SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 
 LOGGING = {
     'version': 1,

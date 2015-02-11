@@ -533,7 +533,7 @@ class Mapping(_DotMixin):
                 "OPTIONAL {?mapping dc:contributor ?contributor .}\n"
                 "OPTIONAL {?mapping dc:dateAccepted ?dateAccepted .}\n"
                 "FILTER(?mapping = %s)\n"
-                "%s\n}}\n"
+                "%s\n}\n"
                 "GROUP BY ?mapping ?source ?target ?invertible ?replaces\n"
                 "         ?note ?date ?creator ?rights ?dateAccepted"
                 " \n"% (graphs, self.uri.data, vstr))
