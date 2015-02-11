@@ -750,13 +750,13 @@ class FusekiServer(object):
                  '\n'.format(g=graphid))
         self.run_query(instr, update=True)
         instr = ('DELETE DATA { <http://metarelate.net/%(g)sconcepts.ttl> .}'
-                 'dc:creator %(u)s .' % {g:graphid, u:user})
+                 'dc:creator %(u)s .' % {'g':graphid, 'u':user})
         self.run_query(instr, update=True)
         instr = ('DROP GRAPH <http://metarelate.net/{g}mappings.ttl>'
                  '\n'.format(g=graphid))
         self.run_query(instr, update=True)
         instr = ('DELETE DATA { <http://metarelate.net/%(g)smappings.ttl> .}'
-                 'dc:creator %(u)s .' % {g:graphid, u:user})
+                 'dc:creator %(u)s .' % {'g':graphid, 'u':user})
         self.run_query(instr, update=True)
         
 
