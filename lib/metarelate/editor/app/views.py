@@ -217,7 +217,9 @@ def controlpanel(request):
                                           branch=branch)
         if branch and request.user:
             uname = request.user.username
-            owner = fuseki_process.branch_owner(branch).get('owner')
+            owner = fuseki_process.branch_owner(branch)
+            if owner:
+                owner = owner.get('owner')
             if owner == '<{}>'.format(uname):
                 con_dict['ownership'] = uname
         open_ticket = _open_ticket(request, branch)
