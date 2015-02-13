@@ -541,10 +541,12 @@ class UploadForm(forms.Form):
                 self.uploader.parse_file(fuseki_process, self.upfile,
                                          self.user, self.branch)
             except ValueError, e:
-                raise forms.ValidationError('the file failed to parse\n'
-                                            '{}'.format(e))
-
-
+                verrs = [forms.ValidationError('The file failed to parse;'
+                                               ' in order to process this file'
+                                               ' you should consider:')]
+                for err in e.message.split('||\n'):
+                    verrs.append(forms.ValidationError(err))
+                raise forms.ValidationError(verrs)
         return self.cleaned_data
 
 class ContactForm(forms.Form):

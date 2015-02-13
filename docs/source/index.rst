@@ -3,12 +3,14 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to MetaRelate's documentation!
-======================================
+Welcome to MetaRelate
+=====================
 
 MetaRelate is a project aiming to deliver metadata interoperbility by relating metadata schemes.  The key purpose is to provide the information necessary to convert the metadata of a dataset from one format to another. 
 
 Its primary focus in the early stages of the project is working within the Meteorology and Oceanography domain.
+
+The Meteorology and Oceanography translation knowledge base is available: http://beta.metarelate.net/metOcean/
 
 Contents:
 

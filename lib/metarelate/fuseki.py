@@ -275,7 +275,7 @@ class FusekiServer(object):
                      '}\n' % {'b':branch, 's':subgraph})
             self.run_query(instr, update=True)
 
-    def merge(self, branch):
+    def merge(self, branch, ticket):
         """
         check the save process meets the save criteria
         merge the changes onto the git backup
@@ -297,7 +297,7 @@ class FusekiServer(object):
             if all_additions:
                 subprocess.check_call(['git', '-C', self._static_dir,
                                        'commit', '-am', 
-                                       "'{}'".format(branch),
+                                       "{}".format(ticket),
                                        '--author="marqh <markh@metarelate.net>"'])
                 for subgraph in subgraphs:
                     instr = ('ADD <http://metarelate.net/{b}{s}> TO '

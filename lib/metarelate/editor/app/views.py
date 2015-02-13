@@ -158,6 +158,7 @@ def controlpanel(request):
                            for bm in branch_mappings]
         branch_mappings = [{'url':'{}?branch={}'.format(bm, branch),
                             'label':bm} for bm in branch_mappings] 
+    open_ticket = _open_ticket(request, branch)
     if request.method == 'POST':# and request.user.username:
         form = forms.CPanelForm(request.POST)#, user=request.user.username)
         if form.is_valid():
@@ -181,7 +182,7 @@ def controlpanel(request):
                 response = HttpResponseRedirect(url)
             elif form.cleaned_data.get('merge') and request.user.username:
                 if request.user.username == 'https://github.com/marqh':
-                    all_additions = fuseki_process.merge(branch)
+                    all_additions = fuseki_process.merge(branch, open_ticket)
                     if not all_additions:
                         logger.error('The merge process failed')
                         # redirect to somewhere
@@ -217,10 +218,12 @@ def controlpanel(request):
                                           branch=branch)
         if branch and request.user:
             uname = request.user.username
-            owner = fuseki_process.branch_owner(branch).get('owner')
+            owner = fuseki_process.branch_owner(branch)
+            if owner:
+                owner = owner.get('owner')
             if owner == '<{}>'.format(uname):
                 con_dict['ownership'] = uname
-        open_ticket = _open_ticket(request, branch)
+        #open_ticket = _open_ticket(request, branch)
         if open_ticket:        
             con_dict['review_url'] = open_ticket
             logger.info('Issue open: {}'.format(open_ticket))
