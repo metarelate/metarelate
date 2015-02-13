@@ -543,7 +543,7 @@ class UploadForm(forms.Form):
             except ValueError, e:
                 verrs = [forms.ValidationError('The file failed to parse;'
                                                ' in order to process this file'
-                                               ' you should consider:')]:
+                                               ' you should consider:')]
                 for err in e.message.split('||\n'):
                     verrs.append(forms.ValidationError(err))
                 raise forms.ValidationError(verrs)
