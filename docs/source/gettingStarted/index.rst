@@ -3,7 +3,7 @@ Getting Started with MetaRelate
 
 MetaRelate is a project to relate definitions within metadata schemes: it provides guidance on how to interpret a metadata definition from one scheme within another.
 
-Getting started using the information requires the installation of some software, the project does not yet have a live web interface to the relationships.
+Getting started using the information requires the installation of some software.
 
 The project is hosted on `Github, at MetaRelate <https://github.com/metarelate>`_
 
@@ -13,33 +13,21 @@ The API and editor is a Github repository, `MetaRelate <https://github.com/metar
 
 Translation knowledge is held in separate projects.  
 
-The Meteorology and Oceanography translation knowledge base is maintained at `metOcean <https://github.com/metarelate/metocean>`_.
+The Meteorology and Oceanography translation knowledge base is available: http://beta.metarelate.net/metOcean/
 
 The metarelate projects use Python, Django, Jena and Fuseki to provide the capabilities to manage a repository of translation information, an application programming interface and a user interface.
 
-Software
-=========
+Live Knowledgebase
+==================
 
-Metarelate is a knowledge base support system, providing information management for metadata translations.
+There is a live knowledgebase for meteorology and oceanography metadata mappings, hosted at `here <http://www.metarelate.net/metOcean/>`_
 
-This project provides software to manage the knowledge base and the knowledge base content. The knowledge is stored as RDF Turtle datasets in data repository, referred to as StaticData.
-
-To contribute to the project, the required static data should be used to populate a local triple store which the management software may access. 
-
-The software can be run from the source, or installed, whichever is preferred.  There are run-time paths which must be managed by each session, this are controlled with user-defined environment variables.
-
-See the README.md for installation instructions.  In particular note the use of environment variables such as METARELATE_STATIC_DIR.  These enable many users to share the same installation of the metarelate software but each access their own local triplestore and static data, linked to a particular knowledge base.
+There is a contributor work flow on this site, enabling submission of simple new and updated mappings to the knowledgebase.
 
 Use
 ===
 
 The metarelate API provides programmatic access to the data in the local triple store.  This API enables valid and relevant information to be retrieved and converted to a form which can be used by other applications.
-
-Editor
-------
-
-* To run the editor application:
-    1. ./run_mr_editor.py
 
 Translation Retrieval
 ---------------------
