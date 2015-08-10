@@ -293,7 +293,15 @@ def _uploaders(branch):
              'docstring': ['Upload a GRIB2 CF name collection',
                            ': file lines must be of the form:',
                            '|Disc|pCat|pNum|CFName|units|force_update(y/n)|'],
-             'label': 'GRIB2 Parameter -> CF name'}]
+             'label': 'GRIB2 Parameter -> CF name'},
+            {'url': url_qstr(reverse('upload',
+                                     kwargs={'importer': 'stash_grib'}),
+                             branch=branch),
+             'docstring': ['Upload a STASH: CF name: GRIB2 collection',
+                           ': file lines must be of the form:',
+                           '|STASH(msi)|CFName|units|Disc|pCat|pNum|force_update(y/n)|'],
+             'label': 'STASH -> CF name -> GRIB2 Parameter'},
+                             ]
 
 def upload(request, importer):
     branch = _get_branch(request)
@@ -302,7 +310,7 @@ def upload(request, importer):
         url = url_qstr(reverse('control_panel'), branch=branch)
         return HttpResponseRedirect(url)
     user = '<{}>'.format(request.user.username)
-    if importer not in ['stashc_cfname', 'grib2cf_cfname']:
+    if importer not in ['stashc_cfname', 'grib2cf_cfname', 'stash_grib']:
         logger.error('no matching uploader')
     # find importer: get docstring
     upload_doc = 'upload a stash code to cfname and units table'
