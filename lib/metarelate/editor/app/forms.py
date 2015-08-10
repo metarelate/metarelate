@@ -34,7 +34,7 @@ import metarelate
 import metarelate.prefixes as prefixes
 from metarelate.editor.settings import READ_ONLY
 from metarelate.editor.settings import fuseki_process
-from metarelate_metocean.upload import stashc_cfname, grib2_cfname
+
 
 DS = metarelate.site_config['fuseki_dataset']
 
@@ -525,18 +525,24 @@ class UploadForm(forms.Form):
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user')
         self.branch = kwargs.pop('branch')
-        importer = kwargs.pop('importer')
-        if importer == 'stashc_cfname':
-            self.uploader = stashc_cfname
-        elif importer == 'grib2_cfname':
-            self.uploader = grib2_cfname
         if len(args) == 2:
             self.upfile = args[1].get('docfile', None)
+        try:
+            from metarelate_metocean.upload import stashc_cfname, grib2_cfname, stash_grib
+            importer = kwargs.pop('importer')
+            if importer == 'stashc_cfname':
+                self.uploader = stashc_cfname
+            elif importer == 'grib2_cfname':
+                self.uploader = grib2_cfname
+            elif importer == 'stash_grib':
+                self.uploader = stash_grib
+        except ImportError:
+            self.uploader = None
         super(UploadForm, self).__init__(*args, **kwargs)
 
     def clean(self):
         # validate file
-        if self.upfile is not None:
+        if self.upfile is not None and self.uploader is not None:
             try:
                 self.uploader.parse_file(fuseki_process, self.upfile,
                                          self.user, self.branch)
