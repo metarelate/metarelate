@@ -12,7 +12,7 @@ urlpatterns = patterns('',
     url(r'^newmapping/$', 'metarelate.editor.app.views.newmapping', name='newmapping'),
     url(r'^anewmapping/$', 'metarelate.editor.app.views.anewmapping', name='anewmapping'),
 
-    url(r'^list_mappings/(?P<validate$>[^/]+)/$', 'metarelate.editor.app.views.list_mappings',
+    url(r'^list_mappings/(?P<validate>[^/]+)/$', 'metarelate.editor.app.views.list_mappings',
         name='list_mappings'),
     url(r'^review/$', 'metarelate.editor.app.views.review', name='review'),
     url(r'^search/$', 'metarelate.editor.app.views.search', name='search'),
