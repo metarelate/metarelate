@@ -421,6 +421,10 @@ def list_mappings(request, validate):
     by concept by source then target
     
     """
+    if validate	== 'False':
+	validate = False
+    else:
+	validate = True
     requestor_path = request.GET.get('ref', '')
     requestor_path = urllib.unquote(requestor_path).decode('utf8')
     if requestor_path == '':
