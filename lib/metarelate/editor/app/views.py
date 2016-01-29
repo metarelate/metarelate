@@ -165,9 +165,9 @@ def controlpanel(request):
             # invalids = form.cleaned_data.get('validation')
             # create_branch = form.cleaned_data.get('branch')
             if form.cleaned_data.get('validate'):
-                invalids = fuseki_process.validate(branch)
-                url = url_qstr(reverse('list_mappings'),
-                                           ref=json.dumps(invalids))
+                url = url_qstr(reverse('list_mappings',
+                                       kwargs={'validate': True}),
+                                       ref=json.dumps(branch))
                 response = HttpResponseRedirect(url)
             elif form.cleaned_data.get('branch') and request.user.username:
                 graphid = fuseki_process.branch_graph(request.user.username)
@@ -415,8 +415,7 @@ def component(request, component_id):
     return response
 
 
-
-def list_mappings(request):
+def list_mappings(request, validate):
     """
     list mappings which reference the concept search criteria
     by concept by source then target
@@ -427,23 +426,27 @@ def list_mappings(request):
     if requestor_path == '':
         requestor_path = '{}'
     requestor = json.loads(requestor_path)
-    invalids = []
+    if validate:
+        results = fuseki_process.validate(requestor)
+    else:
+        results = fuseki_process.search(requestor)
+    mapping_links = []
     validated = True
-    for key, inv_mappings in requestor.iteritems():
-        invalid = {'label':key, 'mappings':[]}
+    for key, inv_mappings in results.iteritems():
+        mapping_link = {'label':key, 'mappings':[]}
         for inv_map in inv_mappings:
             validated = False
             muri = inv_map['amap']
             mapping = metarelate.Mapping(muri)
             url = reverse('mapping', kwargs={'mapping_id':mapping.shaid})
             label = inv_map.get('signature', [])
-            invalid['mappings'].append({'url':url, 'label':label})
-        invalids.append(invalid)
-    context_dict = {'invalid': invalids}
-    if validated:
+            mapping_link['mappings'].append({'url':url, 'label':label})
+        mapping_links.append(mapping_link)
+    context_dict = {'invalid': mapping_links}
+    if validate and validated:
         context_dict['validated'] = ('This graph has successfully validated '
                                      'and is suitable for merging.')
-    else:
+    elif validate:
         context_dict['validated'] = ('This graph has not validated and should '
                                      'not be merged.  Details below:')
     context = RequestContext(request, context_dict)
@@ -466,9 +469,9 @@ def search(request):
                 rdfobject = sform.get('rdfobject')
                 statements.append({'predicate':predicate, 
                                    'rdfobject':rdfobject})
-            sresults = fuseki_process.search(statements)
-            url = url_qstr(reverse('list_mappings'), 
-                           ref=json.dumps(sresults))
+            url = url_qstr(reverse('list_mappings',
+                                   kwargs={'validate': False}), 
+                           ref=json.dumps(statements))
             return HttpResponseRedirect(url)
     else:
         formset = SearchFormset()
