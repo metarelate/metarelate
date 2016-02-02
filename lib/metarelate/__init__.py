@@ -18,6 +18,7 @@
 from collections import Iterable, MutableMapping, namedtuple
 from datetime import datetime
 import hashlib
+import json
 import os
 import urllib
 import urlparse
@@ -411,6 +412,15 @@ class Mapping(_DotMixin):
                               tailport='s', headport='n')
             graph.add_edge(edge)
         return graph
+
+    def jsonld(self):
+        mapping_podict = self._podict()
+        #mapping_podict.pop('dc:date', None)
+        #mapping_podict.pop('dc:dateAccepted', None)
+        mapping_podict['mr:source'] = self.source.jsonld()
+        mapping_podict['mr:target'] = self.target.jsonld()
+        mapping_podict['@id'] = self.uri.data
+        return json.dumps(mapping_podict)
 
     def _podict(self):
         """
@@ -872,6 +882,26 @@ class Component(_DotMixin):
     #             prop_ref = comp.json_referrer()
     #             referrer['mr:hasComponent'].append(prop_ref)
     #     return referrer
+
+    def jsonld(self):
+        podict = {}
+        podict['rdf:type'] = [self.com_type.data]
+        podict['@id'] = self.uri.data
+        for aprop in self.properties:
+            if isinstance(aprop, StatementProperty):
+                if aprop.predicate.data in podict:
+                    podict[aprop.predicate.data].append(aprop.rdfobject.data)
+                else:
+                    podict[aprop.predicate.data] = [aprop.rdfobject.data]
+            elif isinstance(aprop, ComponentProperty):
+                if aprop.predicate.data in podict:
+                    podict[aprop.predicate.data].append(aprop.component.jsonld())
+                else:
+                    podict[aprop.predicate.data] = [aprop.component.jsonld()]
+            else:
+                raise TypeError('property not a recognised type:\n{}'.format(type(prop)))
+        return podict
+
 
     def _podict(self):
         """

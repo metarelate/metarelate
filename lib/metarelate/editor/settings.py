@@ -1,3 +1,8 @@
+try:
+    from settings_local import *
+except ImportError:
+    pass
+
 # Django settings for editor project.
 
 DEBUG = True
@@ -130,7 +135,7 @@ LOGGING = {
         'file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
-            'filename': '/path/to/django/debug.log',
+            'filename': LOGFILE,
         },
     },
     'loggers': {
@@ -190,10 +195,3 @@ SOCIAL_AUTH_PIPELINE = (
 
 TEST_RUNNER = 'django.test.runner.DiscoverRunner'
 
-SOCIAL_AUTH_GITHUB_KEY = 
-SOCIAL_AUTH_GITHUB_SECRET =
-
-try:
-    from settings_local import *
-except ImportError:
-    pass

@@ -528,7 +528,7 @@ class UploadForm(forms.Form):
         if len(args) == 2:
             self.upfile = args[1].get('docfile', None)
         try:
-            from metarelate_metocean.upload import stashc_cfname, grib2_cfname, stash_grib
+            from metarelate_metocean.upload import stashc_cfname, grib2_cfname, stash_grib, mapping_jsonld
             importer = kwargs.pop('importer')
             if importer == 'stashc_cfname':
                 self.uploader = stashc_cfname
@@ -536,6 +536,8 @@ class UploadForm(forms.Form):
                 self.uploader = grib2_cfname
             elif importer == 'stash_grib':
                 self.uploader = stash_grib
+            elif importer == 'general':
+                self.uploader = mapping_jsonld
         except ImportError:
             self.uploader = None
         super(UploadForm, self).__init__(*args, **kwargs)
