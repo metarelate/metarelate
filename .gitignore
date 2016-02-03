@@ -18,6 +18,9 @@ lib/metarelate/nohup.out
 lib/metarelate/tests/nohup.out
 lib/metarelate/tests/results/dot_actual
 
+#editor settings
+lib/metarelate/editor/settings_local.py
+
 # editor images
 lib/metarelate/editor/app/static/tmp_images/*.*
 
