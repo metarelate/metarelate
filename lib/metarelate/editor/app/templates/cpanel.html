@@ -95,7 +95,7 @@ To raise a ticket requesting that this branch be merged onto the project, please
     {% if upload %}
 <table border="1" class="recordtable">
 {% for up in upload %}
-<tr>
+<tr><td>
 <p>
 <a href="{{ up.url }}">{{ up.label }}</a>
 {% for dstr in up.docstring %}
@@ -103,7 +103,7 @@ To raise a ticket requesting that this branch be merged onto the project, please
 {{ dstr }}
 {% endfor %}
 <p>
-</tr>
+</td></tr>
 {% endfor %}
 </table>
     {% endif %}
