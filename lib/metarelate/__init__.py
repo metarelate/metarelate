@@ -529,7 +529,7 @@ class Mapping(_DotMixin):
         qstr = ("SELECT ?mapping ?source ?target ?invertible ?replaces\n"
                 "       ?note ?date ?creator ?rights ?dateAccepted\n"
                 "(GROUP_CONCAT(DISTINCT(?rightsHolder); SEPARATOR = '&') AS ?rightsHolders)\n"
-                "(GROUP_CONCAT(DISTINCT(?contibutor); SEPARATOR = '&') AS ?contributors)\n"
+                "(GROUP_CONCAT(DISTINCT(?contributor); SEPARATOR = '&') AS ?contributors)\n"
                 "(GROUP_CONCAT(DISTINCT(?valueMap); SEPARATOR = '&') AS ?valueMaps)\n"
                 "%s"
                 "WHERE {\n"
