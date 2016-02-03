@@ -499,13 +499,13 @@ class Mapping(_DotMixin):
         if elements.get('note'):
             self.note = elements.get('note')
         if elements.get('valuemaps'):
-            self.valuemaps = elements.get('valuemaps')
+            self.valuemaps = elements.get('valuemaps').split('&')
         if elements.get('rights'):
             self.rights = elements.get('rights')
         if elements.get('rightsHolders'):
-            self.rightsHolder = elements.get('rightsHolders')
+            self.rightsHolders = elements.get('rightsHolders').split('&')
         if elements.get('contributors'):
-            self.contributors = elements.get('contributors')
+            self.contributors = elements.get('contributors').split('&')
         if elements.get('dateAccepted'):
             self.dateAccepted = elements.get('dateAccepted')
 
