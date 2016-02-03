@@ -283,24 +283,36 @@ def _uploaders(branch):
     return [{'url': url_qstr(reverse('upload', 
                                      kwargs={'importer':'stashc_cfname'}), 
                              branch=branch), 
-             'docstring': ['Upload a STASH CF name collection',
-                           ': file lines must be of the form:',
-                           '|STASH(msi)|CFName|units|force_update(y/n)|'],
+             'docstring': ['Upload a STASH CF name collection:',
+                           'the first file line must be exactly:',
+                           '|STASH(msi)|CFName|units|force_update(y/n)|',
+                           'all subsequent data lines must be of that form;',
+                           'y in the forced_update column will replace a conflicting entry.'],
              'label': 'STASH Code -> CF name'},
             {'url': url_qstr(reverse('upload',
                                      kwargs={'importer':'grib2_cfname'}), 
                              branch=branch), 
              'docstring': ['Upload a GRIB2 CF name collection',
-                           ': file lines must be of the form:',
-                           '|Disc|pCat|pNum|CFName|units|force_update(y/n)|'],
+                           'the first file line must be exactly:',
+                           '|Disc|pCat|pNum|CFName|units|force_update(y/n)|',
+                           'all subsequent data lines must be of that form;',
+                           'y in the forced_update column will replace a conflicting entry.'],
              'label': 'GRIB2 Parameter -> CF name'},
             {'url': url_qstr(reverse('upload',
                                      kwargs={'importer': 'stash_grib'}),
                              branch=branch),
              'docstring': ['Upload a STASH: CF name: GRIB2 collection',
-                           ': file lines must be of the form:',
-                           '|STASH(msi)|CFName|units|Disc|pCat|pNum|force_update(y/n)|'],
+                           'the first file line must be exactly:',
+                           '|STASH(msi)|CFName|units|Disc|pCat|pNum|force_update(y/n)|',
+                           'all subsequent data lines must be of that form;',
+                           'y in the forced_update column will replace a conflicting entry.'],
              'label': 'STASH -> CF name -> GRIB2 Parameter'},
+            {'url': url_qstr(reverse('upload',
+                                     kwargs={'importer': 'general'}),
+                             branch=branch),
+             'docstring': ['Upload a general translation:',
+                           'The file must be valid json-ld and metarelate conformant'],
+             'label': 'General translation.'},
                              ]
 
 def upload(request, importer):
@@ -310,7 +322,8 @@ def upload(request, importer):
         url = url_qstr(reverse('control_panel'), branch=branch)
         return HttpResponseRedirect(url)
     user = '<{}>'.format(request.user.username)
-    if importer not in ['stashc_cfname', 'grib2cf_cfname', 'stash_grib']:
+    if importer not in ['stashc_cfname', 'grib2cf_cfname', 'stash_grib',
+                        'general']:
         logger.error('no matching uploader')
     # find importer: get docstring
     upload_doc = 'upload a stash code to cfname and units table'
@@ -386,11 +399,28 @@ def mapping(request, mapping_id):
         raise Http404
     shaid = mapping.shaid
     form = forms.MappingMetadata(initial=mapping.__dict__)
-    con_dict = {'mapping':mapping, 'shaid':shaid, 'form':form, 'branchid':branch}
+    jsonld_url = url_qstr(reverse('mapping_json',
+                                  kwargs={'mapping_id':mapping.shaid}),
+                          branch=branch)
+    con_dict = {'mapping':mapping, 'shaid':shaid, 'form':form,
+                'branchid':branch,
+                'json_ld': jsonld_url}
     context = RequestContext(request, con_dict)
     response = render_to_response('viewmapping.html', context)
     return response
 
+def mapping_json(request, mapping_id):
+    branch = _get_branch(request)
+    mapping = metarelate.Mapping(None)
+    mapping.shaid = mapping_id
+    try:
+        mapping.populate_from_uri(fuseki_process, graph=branch)
+    except Exception, e:
+        logger.error('mapping failed to populate\n{}'.format(e))
+        raise Http404
+    response = HttpResponse(content_type="application/json")
+    response.write(mapping.jsonld())
+    return response
 
 def component_view_graph(request, component_id):
     """"""

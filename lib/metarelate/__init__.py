@@ -18,6 +18,7 @@
 from collections import Iterable, MutableMapping, namedtuple
 from datetime import datetime
 import hashlib
+import json
 import os
 import urllib
 import urlparse
@@ -412,6 +413,18 @@ class Mapping(_DotMixin):
             graph.add_edge(edge)
         return graph
 
+    def jsonld(self):
+        mapping_podict = self._podict()
+        mapping_podict['mr:source'] = self.source.jsonld()
+        mapping_podict['mr:target'] = self.target.jsonld()
+        mapping_podict['@id'] = self.uri.data
+        mapping_podict['rdf:type'] = 'mr:Mapping'
+        mapping_podict['@context'] = {'mr': 'http://www.metarelate.net/vocabulary/index.html#',
+                                      'dc': 'http://purl.org/dc/terms/',
+                                      'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+                                      'skos': 'http://www.w3.org/2004/02/skos/core#'}
+        return json.dumps(mapping_podict)
+
     def _podict(self):
         """
         Return a dictionary of predicates and objects for a rdf representation
@@ -436,7 +449,7 @@ class Mapping(_DotMixin):
         if self.rights:
             podict['dc:rights'] = self.rights.data
         if self.rightsHolders:
-            podict['dc:rightsHolders'] = [rh.data for rh in self.rightsHolders]
+            podict['dc:rightsHolder'] = [rh.data for rh in self.rightsHolders]
         if self.contributors:
             podict['dc:contributor'] = [cont.data for cont in self.contributors]
         return podict
@@ -486,13 +499,13 @@ class Mapping(_DotMixin):
         if elements.get('note'):
             self.note = elements.get('note')
         if elements.get('valuemaps'):
-            self.valuemaps = elements.get('valuemaps')
+            self.valuemaps = elements.get('valuemaps').split('&')
         if elements.get('rights'):
             self.rights = elements.get('rights')
         if elements.get('rightsHolders'):
-            self.rightsHolder = elements.get('rightsHolders')
+            self.rightsHolders = elements.get('rightsHolders').split('&')
         if elements.get('contributors'):
-            self.contributors = elements.get('contributors')
+            self.contributors = elements.get('contributors').split('&')
         if elements.get('dateAccepted'):
             self.dateAccepted = elements.get('dateAccepted')
 
@@ -516,7 +529,7 @@ class Mapping(_DotMixin):
         qstr = ("SELECT ?mapping ?source ?target ?invertible ?replaces\n"
                 "       ?note ?date ?creator ?rights ?dateAccepted\n"
                 "(GROUP_CONCAT(DISTINCT(?rightsHolder); SEPARATOR = '&') AS ?rightsHolders)\n"
-                "(GROUP_CONCAT(DISTINCT(?contibutor); SEPARATOR = '&') AS ?contributors)\n"
+                "(GROUP_CONCAT(DISTINCT(?contributor); SEPARATOR = '&') AS ?contributors)\n"
                 "(GROUP_CONCAT(DISTINCT(?valueMap); SEPARATOR = '&') AS ?valueMaps)\n"
                 "%s"
                 "WHERE {\n"
@@ -872,6 +885,26 @@ class Component(_DotMixin):
     #             prop_ref = comp.json_referrer()
     #             referrer['mr:hasComponent'].append(prop_ref)
     #     return referrer
+
+    def jsonld(self):
+        podict = {}
+        podict['rdf:type'] = [self.com_type.data]
+        podict['@id'] = self.uri.data
+        for aprop in self.properties:
+            if isinstance(aprop, StatementProperty):
+                if aprop.predicate.data in podict:
+                    podict[aprop.predicate.data].append(aprop.rdfobject.data)
+                else:
+                    podict[aprop.predicate.data] = [aprop.rdfobject.data]
+            elif isinstance(aprop, ComponentProperty):
+                if aprop.predicate.data in podict:
+                    podict[aprop.predicate.data].append(aprop.component.jsonld())
+                else:
+                    podict[aprop.predicate.data] = [aprop.component.jsonld()]
+            else:
+                raise TypeError('property not a recognised type:\n{}'.format(type(prop)))
+        return podict
+
 
     def _podict(self):
         """
