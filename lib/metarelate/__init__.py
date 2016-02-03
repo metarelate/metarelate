@@ -415,11 +415,14 @@ class Mapping(_DotMixin):
 
     def jsonld(self):
         mapping_podict = self._podict()
-        #mapping_podict.pop('dc:date', None)
-        #mapping_podict.pop('dc:dateAccepted', None)
         mapping_podict['mr:source'] = self.source.jsonld()
         mapping_podict['mr:target'] = self.target.jsonld()
         mapping_podict['@id'] = self.uri.data
+        mapping_podict['rdf:type'] = 'mr:Mapping'
+        mapping_podict['@context'] = {'mr': 'http://www.metarelate.net/vocabulary/index.html#',
+                                      'dc': 'http://purl.org/dc/terms/',
+                                      'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+                                      'skos': 'http://www.w3.org/2004/02/skos/core#'}
         return json.dumps(mapping_podict)
 
     def _podict(self):
@@ -446,7 +449,7 @@ class Mapping(_DotMixin):
         if self.rights:
             podict['dc:rights'] = self.rights.data
         if self.rightsHolders:
-            podict['dc:rightsHolders'] = [rh.data for rh in self.rightsHolders]
+            podict['dc:rightsHolder'] = [rh.data for rh in self.rightsHolders]
         if self.contributors:
             podict['dc:contributor'] = [cont.data for cont in self.contributors]
         return podict
