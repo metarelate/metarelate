@@ -575,8 +575,7 @@ class FusekiServer(object):
         map_templates = self.run_query(qstr)
         return json.dumps(map_templates)
 
-    def retrieve_mappings(self, sourcetype, targettype, kbase_uri=None,
-                          service=None):
+    def retrieve_mappings(self, sourcetype, targettype, service=None):
         sourcetype = metarelate.Item(sourcetype)
         targettype = metarelate.Item(targettype)
         templates = self.retrieve_mapping_templates(sourcetype, targettype, service=service)
