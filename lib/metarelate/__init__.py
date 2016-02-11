@@ -477,9 +477,10 @@ class Mapping(_DotMixin):
         ## what about other attributes?? not implemented yet
         return referrer
 
-    def populate_from_uri(self, fuseki_process, graph=None):
+    def populate_from_uri(self, fuseki_process, graph=None, service=None):
         elements, = fuseki_process.run_query(self.sparql_retriever(graph=graph,
-                                             rep=False))
+                                                                   rep=False,
+                                                                   service=service))
         if self.inverted == '"True"':
             if self.invertible != '"True"':
                 raise ValueError('A mapping may not be inverted but not '
@@ -489,8 +490,8 @@ class Mapping(_DotMixin):
         else:
             self.source = Component(elements.get('source'))
             self.target = Component(elements.get('target'))
-        self.source.populate_from_uri(fuseki_process, graph)
-        self.target.populate_from_uri(fuseki_process, graph)
+        self.source.populate_from_uri(fuseki_process, graph, service)
+        self.target.populate_from_uri(fuseki_process, graph, service)
         self.date = elements.get('date')
         self.creator = elements.get('creator')
         self.invertible = elements.get('invertible')
@@ -518,21 +519,22 @@ class Mapping(_DotMixin):
             careful_update(target_ids, prop.get_identifiers(fuseki_process))
         return (source_ids, target_ids)
 
-    def sparql_retriever(self, rep=True, graph=None):
+    def sparql_retriever(self, rep=True, graph=None, service=None):
+        graph_pattern = 'http://metarelate.net/{}mappings.ttl'
         vstr = ''
         if rep:
             vstr += '\n\tMINUS {?mapping ^dc:replaces+ ?anothermap}'
-        graphs = ('FROM <http://metarelate.net/mappings.ttl>\n')
+        graphs = ('FROM NAMED <{}>\n'.format(graph_pattern.format('')))
         if graph:
-            graphs = graphs + ('FROM <http://metarelate.net/'
-                               '{}mappings.ttl>\n'.format(graph))
+            graphs = graphs + ('FROM NAMED <{}>\n'.format(graph_pattern.format(graph)))
         qstr = ("SELECT ?mapping ?source ?target ?invertible ?replaces\n"
                 "       ?note ?date ?creator ?rights ?dateAccepted\n"
-                "(GROUP_CONCAT(DISTINCT(?rightsHolder); SEPARATOR = '&') AS ?rightsHolders)\n"
-                "(GROUP_CONCAT(DISTINCT(?contributor); SEPARATOR = '&') AS ?contributors)\n"
-                "(GROUP_CONCAT(DISTINCT(?valueMap); SEPARATOR = '&') AS ?valueMaps)\n"
+                "(GROUP_CONCAT(?rightsHolder; SEPARATOR = '&') AS ?rightsHolders)\n"
+                "(GROUP_CONCAT(?contributor; SEPARATOR = '&') AS ?contributors)\n"
+                "(GROUP_CONCAT(?valueMap; SEPARATOR = '&') AS ?valueMaps)\n"
                 "%s"
                 "WHERE {\n"
+                "graph ?g {\n"
                 "?mapping mr:source ?source ;\n"
                 "     mr:target ?target ;\n"
                 "     mr:invertible ?invertible ;\n"
@@ -546,10 +548,23 @@ class Mapping(_DotMixin):
                 "OPTIONAL {?mapping dc:contributor ?contributor .}\n"
                 "OPTIONAL {?mapping dc:dateAccepted ?dateAccepted .}\n"
                 "FILTER(?mapping = %s)\n"
-                "%s\n}\n"
+                "%s"
+                "}\n\n}\n"
                 "GROUP BY ?mapping ?source ?target ?invertible ?replaces\n"
                 "         ?note ?date ?creator ?rights ?dateAccepted"
-                " \n"% (graphs, self.uri.data, vstr))
+                " \n")
+        if service is not None:
+            graphs = ''
+            service = '{}?named-graph-uri={}'.format(service, graph_pattern.format(''))
+            qstr = ("SELECT ?mapping ?source ?target ?invertible ?replaces\n"
+                    "       ?note ?date ?creator ?rights ?dateAccepted\n"
+                    "       ?rightsHolders ?contributors ?valueMaps\n"
+                    "WHERE {\n"
+                    "SERVICE <%s> {"
+                    "%s"
+                    "}}" % (service, qstr % (graphs, self.uri.data, vstr)))
+        else:
+            qstr = qstr % (graphs, self.uri.data, vstr)
         return qstr
 
     def sparql_creator(self, po_dict, graph=None):
@@ -790,8 +805,9 @@ class Component(_DotMixin):
             result = node
         return result
 
-    def populate_from_uri(self, fuseki_process, graph=None):
-        statements = fuseki_process.run_query(self.sparql_retriever(graph=graph))
+    def populate_from_uri(self, fuseki_process, graph=None, service=None):
+        statements = fuseki_process.run_query(self.sparql_retriever(graph=graph,
+                                                                    service=service))
         for statement in statements:
             if statement.get('p') == '<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>':
                 self.com_type = Item(statement.get('o'),
@@ -807,20 +823,20 @@ class Component(_DotMixin):
                 subc = '<http://www.metarelate.net/metOcean/component/'
                 if rdfobject.data.startswith(subc):
                     comp = Component(rdfobject.data)
-                    comp.populate_from_uri(fuseki_process)
+                    comp.populate_from_uri(fuseki_process, graph, service)
                     self.properties.append(ComponentProperty(predicate,
                                                              comp))
                 else:
                     self.properties.append(StatementProperty(predicate, 
                                                              rdfobject))
 
-    def sparql_retriever(self, graph=None):
+    def sparql_retriever(self, graph=None, service=None):
+        g_pattern = 'http://metarelate.net/{}concepts.ttl'
         if self.uri is None:
             raise ValueError('URI required, None found')
-        graphs = ('FROM NAMED <http://metarelate.net/concepts.ttl>\n')
+        graphs = ('FROM NAMED <{}>\n'.format(g_pattern.format('')))
         if graph:
-            graphs = graphs + ('FROM NAMED <http://metarelate.net/'
-                               '{}concepts.ttl>\n'.format(graph))
+            graphs = graphs + ('FROM NAMED <>\n'.format(g_pattern.format(graph)))
         qstr = ('SELECT ?component ?p ?o \n'
                 '%s'
                 'WHERE {\n'
@@ -829,7 +845,17 @@ class Component(_DotMixin):
                 'rdf:type mr:Component .\n'
                 'FILTER(?component = %s) \n'
                 'FILTER(?o != mr:Component) } \n'
-                '}\n' % (graphs, self.uri.data))
+                '}\n')
+        if service is not None:
+            graphs = ''
+            service = '{}?named-graph-uri={}'.format(service, g_pattern.format(''))
+            qstr = ("SELECT ?component ?p ?o \n"
+                    "WHERE {\n"
+                    "SERVICE <%s> {"
+                    "%s"
+                    "}}" % (service, qstr % (graphs, self.uri.data)))
+        else:
+            qstr = qstr % (graphs, self.uri.data)
         return qstr
 
     def sparql_creator(self, po_dict, graph=None):

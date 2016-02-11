@@ -28,10 +28,11 @@ class WorkerThread(Thread):
     output deque using a 'dowork' method, as defined by a subclass.
 
     """
-    def __init__(self, aqueue, adeque, fu_p=None):
+    def __init__(self, aqueue, adeque, fu_p=None, service=None):
         self.queue = aqueue
         self.deque = adeque
         self.fuseki_process = fu_p
+        self.service = service
         Thread.__init__(self)
         self.daemon = True
     def run(self):

@@ -101,7 +101,7 @@ class MappingPopulateWorker(WorkerThread):
     WorkerThread for populating a Mapping instance from its URI.
     """
     def dowork(self, resource):
-        resource.populate_from_uri(self.fuseki_process)
+        resource.populate_from_uri(self.fuseki_process, service=self.service)
 
 
 class FusekiServer(object):
@@ -307,6 +307,13 @@ class FusekiServer(object):
                 self.rebase_branch(branch)
         return all_additions
             
+    def latest_sha(self):
+        """
+        Returns the latest commit sha from the metarelate git data store. 
+        """
+        git_sha = subprocess.check_output(['git', '-C', self._static_dir, 
+                                            'rev-parse', 'HEAD'])
+        return git_sha
 
     def save(self, branch):
         """
@@ -520,7 +527,7 @@ class FusekiServer(object):
         results = self.run_query(qstr, debug=debug)
         return results
 
-    def retrieve_mapping_templates(self, sourcetype, targettype):
+    def retrieve_mapping_templates(self, sourcetype, targettype, service=None):
         """
         return the format specific mappings for a particular source
         and target component type
@@ -534,7 +541,7 @@ class FusekiServer(object):
             raise ValueError('sourcetype and targettype must both be URIs')
 
         qstr = ('SELECT ?mapping ?source ?target ?invertible ?inverted '
-                '''(GROUP_CONCAT(DISTINCT(?valueMap); SEPARATOR = '&') AS ?valueMaps) '''
+                '''(GROUP_CONCAT(?valueMap; SEPARATOR = '&') AS ?valueMaps) '''
                 'WHERE {  '
                 'GRAPH <http://metarelate.net/mappings.ttl> { { '
                 '?mapping mr:source ?source ; '
@@ -558,18 +565,20 @@ class FusekiServer(object):
                 '}} '
                 'GROUP BY ?mapping ?source ?target ?inverted ?invertible '
                 'ORDER BY ?mapping') % (sourcetype.data, targettype.data)
+        if service is not None:
+            qstr = ('SELECT ?mapping ?source ?target ?invertible ?inverted '
+                    '?valueMaps '
+                    'WHERE {  '
+                    "SERVICE <%s> {"
+                    "%s"
+                    "}}" % (service, qstr))
         map_templates = self.run_query(qstr)
         return json.dumps(map_templates)
 
-    def retrieve_mappings(self, sourcetype, targettype, kbase_uri=None):
-        if kbase_uri is None:
-            templates = self.retrieve_mapping_templates(sourcetype, targettype)
-        else:
-            sourcetype = metarelate.Item(sourcetype)
-            targettype = metarelate.Item(targettype)
-            query = {'source':sourcetype.data, 'target':targettype.data}
-            ## check how to pass query params to request
-            templates = requests.get(kbase_uri, query)
+    def retrieve_mappings(self, sourcetype, targettype, service=None):
+        sourcetype = metarelate.Item(sourcetype)
+        targettype = metarelate.Item(targettype)
+        templates = self.retrieve_mapping_templates(sourcetype, targettype, service=service)
         map_templates = json.loads(templates)
         mapping_list = deque()
         mapping_queue = Queue()
@@ -580,7 +589,8 @@ class FusekiServer(object):
                                                  inverted=mt.get('inverted')))
             mq += 1
         for i in range(MAXTHREADS):
-            MappingPopulateWorker(mapping_queue, mapping_list, self).start()
+            MappingPopulateWorker(mapping_queue, mapping_list,
+                                  self, service).start()
         mapping_queue.join()
         if len(mapping_list) != mq:
             msg = '{} entries in mapping_list, expected {}'

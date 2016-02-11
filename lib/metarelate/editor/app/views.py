@@ -376,6 +376,11 @@ def retrieve_mappings(request):
     response.write(map_templates)
     return response
 
+def latest_sha(request):
+    response = HttpResponse(content_type = "text/plain")
+    response.write(fuseki_process.latest_sha())
+    return response
+
 def mapping_view_graph(request, mapping_id):
     """"""
     branch = _get_branch(request)
