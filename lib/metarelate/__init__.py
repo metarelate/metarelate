@@ -169,39 +169,6 @@ class KBaseSummary(_DotMixin):
             graph.add_subgraph(g)
         graph.write_dot('/tmp/mydot.dot')
         return graph
-
-# class BaseSummary(_DotMixin):
-#     """"""
-#     def __init__(self, results):
-#         self.results = results
-#     def dot(self):
-#         graph = pydot.Dot(graph_type='digraph',
-#                           label='Metarelate {}'.format(site_config['fuseki_dataset']),
-#                           labelloc='t', labeljust='l',
-#                           fontsize=15)
-
-#         for result in self.results:
-#             fnode = pydot.Node(self.dot_escape(result.get('fromformat')),
-#                                label=result.get('fromformat'),
-#                                peripheries='2',
-#                                style='filled',
-#                                colorscheme='dark28', fillcolor='3',
-#                                fontsize=8)
-#             tnode = pydot.Node(self.dot_escape(result.get('toformat')),
-#                                label=result.get('toformat'),
-#                                peripheries='2',
-#                                style='filled',
-#                                colorscheme='dark28', fillcolor='3',
-#                                fontsize=8)
-#             fnode.uri = result.get('fromformat')
-#             tnode.uri = result.get('toformat')
-#             graph.add_node(fnode)
-#             graph.add_node(tnode)
-#             fedge = pydot.Edge(fnode, tnode,
-#                                shape='curve', labeldistance='2',
-#                                fontsize=11, headlabel=result.get('mappings'))
-#             graph.add_edge(fedge)
-#         return graph
         
 
 class Mapping(_DotMixin):
@@ -892,25 +859,6 @@ class Component(_DotMixin):
                  '}}' % (graph, subj_pref, sha1, search_string))
         return qstr, instr
 
-    # def json_referrer(self):
-    #     """
-    #     return the data contents of the component instance ready for encoding
-    #     as a json string
-
-    #     """
-    #     ## not updated yet
-    #     if len(self) == 1 and self.uri.data == self.components[0].uri.data:
-    #         prop_ref = self.components[0].json_referrer()
-    #         prop_ref['rdf:type'] = self.com_type.data
-    #         referrer = prop_ref
-    #     else:
-    #         referrer = {'component': self.uri.data,
-    #                     prop_ref['rdf:type'] : self.com_type.data,
-    #                     'mr:hasComponent': []}
-    #         for comp in self.components:
-    #             prop_ref = comp.json_referrer()
-    #             referrer['mr:hasComponent'].append(prop_ref)
-    #     return referrer
 
     def jsonld(self):
         podict = {}
@@ -1075,8 +1023,6 @@ class StatementProperty(Property):
 
     def __repr__(self):
         return '{!r}:{!r}'.format(self.predicate, self.rdfobject)
-    # def as_rdf(self, fuseki_process=None):
-    #     return (self.predicate, self.rdfobject)
 
     def get_identifiers(self, fuseki_process):
         """Returns a dictionary of key value pairs, providing a pattern
@@ -1197,10 +1143,6 @@ class StatementProperty(Property):
         graph.add_node(node)
         edge = pydot.Edge(parent, node,
                           tailport='s', headport='n')
-        # name = 'hmmm'
-        # if name is not None:
-        #     edge.set_label(self.dot_escape(name))
-        #     edge.set_fontsize(7)
         graph.add_edge(edge)
 
 
@@ -1235,12 +1177,6 @@ class Item(_DotMixin, namedtuple('Item', 'data notation')):
                             notation.startswith('"') and notation.endswith('"'):
                         notation = notation[1:-1]
                     new_notation = notation
-                #else:
-                    #look up notation
-                    #but it's immutable
-                    #so write a func in fuseki which takes a notation free Item
-                    #and returns an Item with its notation
-                    #pass
                 res = super(Item, cls).__new__(cls, new_data, new_notation)
         return res
 

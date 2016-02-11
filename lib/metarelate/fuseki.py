@@ -123,12 +123,6 @@ class FusekiServer(object):
             static_key = 'test_{}'.format(static_key)
             tdb_key = 'test_{}'.format(tdb_key)
         
-        # if metarelate.site_config.get(static_key) is None:
-        #     msg = 'The {}static data directory for the Apache Jena database' \
-        #         'has not been configured for metarelate.'
-        #     raise ValueError(msg.format('test ' if test else ''))
-        # else:
-            # self._static_dir = metarelate.site_config[static_key]
         self._static_dir = '/dev/null'
         if metarelate.site_config.get(static_key) is not None:
             self._static_dir = metarelate.site_config[static_key]
@@ -239,9 +233,6 @@ class FusekiServer(object):
             result = True
         except socket.error:
             pass
-        # if result and self._process is None:
-        #     msg = 'There is currently another service on port {!r}.'
-        #     raise RuntimeError(msg.format(self.port))
         return result
 
     def clean(self):
@@ -463,8 +454,6 @@ class FusekiServer(object):
         return the results
         
         """
-        # if not self.alive():
-        #     self.restart()
         pref = prefixes.Prefixes().sparql
         baseurl = "http://{}:{}/{}/".format(self.host, self.port,
                                            self._fuseki_dataset)
@@ -871,17 +860,6 @@ def multiple_mappings(test_source=None, graph=None):
             '' % ({'gs':gstr, 'tm':tm_filter, 'op':op, 'opf':opf}))
     return qstr
 
-# def range_component_mapping():
-#     qstr = ('SELECT ?amap\n'
-#             'WHERE\n'
-#             'GRAPH <http://metarelate.net/concepts.ttl> {\n'
-#             '?aconcept ?p ?o .\n'
-#             '?p rdfs:range ?range .\n'
-#             '?o rdf:type ?otype .\n'
-#             '} }\n'
-#             '\n'
-#             '')
-#     return qstr
 
 def mapping_search(statements=None):#, additive=False):
     """"""
@@ -892,16 +870,8 @@ def mapping_search(statements=None):#, additive=False):
     for i, statement in enumerate(statements):
         
         inpred = statement.get('predicate')
-        # if inpred:
-        #     pred = '<{}>'.format(inpred)
-        # else:
-        #     pred = '?{}pred'.format(i)
         pred = '?{}pred'.format(i)
         inobj = statement.get('rdfobject')
-        # if inobj:
-        #     rdfobj = '<{}>'.format(inobj)
-        # else:
-        #     rdfobj = '?{}obj'.format(i)
         rdfobj = '?{}obj'.format(i)
         ststring = '?aconcept %(p)s %(o)s .' % {'p':pred, 'o':rdfobj}
         statement_strings.append(ststring)
