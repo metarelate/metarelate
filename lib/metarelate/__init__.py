@@ -477,9 +477,10 @@ class Mapping(_DotMixin):
         ## what about other attributes?? not implemented yet
         return referrer
 
-    def populate_from_uri(self, fuseki_process, graph=None):
+    def populate_from_uri(self, fuseki_process, graph=None, service=None):
         elements, = fuseki_process.run_query(self.sparql_retriever(graph=graph,
-                                             rep=False))
+                                                                   rep=False,
+                                                                   service=service))
         if self.inverted == '"True"':
             if self.invertible != '"True"':
                 raise ValueError('A mapping may not be inverted but not '
@@ -518,7 +519,7 @@ class Mapping(_DotMixin):
             careful_update(target_ids, prop.get_identifiers(fuseki_process))
         return (source_ids, target_ids)
 
-    def sparql_retriever(self, rep=True, graph=None):
+    def sparql_retriever(self, rep=True, graph=None, service=None):
         vstr = ''
         if rep:
             vstr += '\n\tMINUS {?mapping ^dc:replaces+ ?anothermap}'
@@ -528,11 +529,15 @@ class Mapping(_DotMixin):
                                '{}mappings.ttl>\n'.format(graph))
         qstr = ("SELECT ?mapping ?source ?target ?invertible ?replaces\n"
                 "       ?note ?date ?creator ?rights ?dateAccepted\n"
-                "(GROUP_CONCAT(DISTINCT(?rightsHolder); SEPARATOR = '&') AS ?rightsHolders)\n"
-                "(GROUP_CONCAT(DISTINCT(?contributor); SEPARATOR = '&') AS ?contributors)\n"
-                "(GROUP_CONCAT(DISTINCT(?valueMap); SEPARATOR = '&') AS ?valueMaps)\n"
+                # "(GROUP_CONCAT(DISTINCT(?rightsHolder); SEPARATOR = '&') AS ?rightsHolders)\n"
+                # "(GROUP_CONCAT(DISTINCT(?contributor); SEPARATOR = '&') AS ?contributors)\n"
+                # "(GROUP_CONCAT(DISTINCT(?valueMap); SEPARATOR = '&') AS ?valueMaps)\n"
+                "(GROUP_CONCAT(?rightsHolder; SEPARATOR = '&') AS ?rightsHolders)\n"
+                "(GROUP_CONCAT(?contributor; SEPARATOR = '&') AS ?contributors)\n"
+                "(GROUP_CONCAT(?valueMap; SEPARATOR = '&') AS ?valueMaps)\n"
                 "%s"
                 "WHERE {\n"
+                "%s"
                 "?mapping mr:source ?source ;\n"
                 "     mr:target ?target ;\n"
                 "     mr:invertible ?invertible ;\n"
@@ -546,10 +551,26 @@ class Mapping(_DotMixin):
                 "OPTIONAL {?mapping dc:contributor ?contributor .}\n"
                 "OPTIONAL {?mapping dc:dateAccepted ?dateAccepted .}\n"
                 "FILTER(?mapping = %s)\n"
+                "%s"
                 "%s\n}\n"
                 "GROUP BY ?mapping ?source ?target ?invertible ?replaces\n"
                 "         ?note ?date ?creator ?rights ?dateAccepted"
-                " \n"% (graphs, self.uri.data, vstr))
+                " \n")
+        if service is not None:
+            graphs = ''
+            g1 = 'graph ?g {\n'
+            g2 = '}\n'
+            service = ('{}?named-graph-uri=http://metarelate.net/mappings.ttl').format(service)
+            qstr = ("SELECT ?mapping ?source ?target ?invertible ?replaces\n"
+                    "       ?note ?date ?creator ?rights ?dateAccepted\n"
+                    "       ?rightsHolders ?contributors ?valueMaps\n"
+                    "WHERE {\n"
+                    "SERVICE <%s> {"
+                    "%s"
+                    "}}" % (service, qstr % (graphs, g1, self.uri.data, vstr, g2)))
+        else:
+            g1 = g2 = ''
+            qstr = qstr % (graphs, g1, self.uri.data, vstr, g2)
         return qstr
 
     def sparql_creator(self, po_dict, graph=None):
@@ -790,8 +811,9 @@ class Component(_DotMixin):
             result = node
         return result
 
-    def populate_from_uri(self, fuseki_process, graph=None):
-        statements = fuseki_process.run_query(self.sparql_retriever(graph=graph))
+    def populate_from_uri(self, fuseki_process, graph=None, service=None):
+        statements = fuseki_process.run_query(self.sparql_retriever(graph=graph,
+                                                                    service=service))
         for statement in statements:
             if statement.get('p') == '<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>':
                 self.com_type = Item(statement.get('o'),
@@ -814,7 +836,7 @@ class Component(_DotMixin):
                     self.properties.append(StatementProperty(predicate, 
                                                              rdfobject))
 
-    def sparql_retriever(self, graph=None):
+    def sparql_retriever(self, graph=None, service=None):
         if self.uri is None:
             raise ValueError('URI required, None found')
         graphs = ('FROM NAMED <http://metarelate.net/concepts.ttl>\n')
@@ -829,7 +851,17 @@ class Component(_DotMixin):
                 'rdf:type mr:Component .\n'
                 'FILTER(?component = %s) \n'
                 'FILTER(?o != mr:Component) } \n'
-                '}\n' % (graphs, self.uri.data))
+                '}\n')
+        if service is not None:
+            graphs = ''
+            service = ('{}?named-graph-uri=http://metarelate.net/concepts.ttl').format(service)
+            qstr = ("SELECT ?component ?p ?o \n"
+                    "WHERE {\n"
+                    "SERVICE <%s> {"
+                    "%s"
+                    "}}" % (service, qstr % (graphs, self.uri.data)))
+        else:
+            qstr = qstr % (graphs, self.uri.data)
         return qstr
 
     def sparql_creator(self, po_dict, graph=None):
