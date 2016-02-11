@@ -378,7 +378,7 @@ def retrieve_mappings(request):
 
 def latest_sha(request):
     response = HttpResponse(content_type = "text/plain")
-    response.write(fuseki_process.latest_sha)
+    response.write(fuseki_process.latest_sha())
     return response
 
 def mapping_view_graph(request, mapping_id):

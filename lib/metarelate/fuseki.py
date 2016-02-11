@@ -580,14 +580,6 @@ class FusekiServer(object):
         sourcetype = metarelate.Item(sourcetype)
         targettype = metarelate.Item(targettype)
         templates = self.retrieve_mapping_templates(sourcetype, targettype, service=service)
-        # if kbase_uri is None:
-        #     templates = self.retrieve_mapping_templates(sourcetype, targettype)
-        # else:
-        #     sourcetype = metarelate.Item(sourcetype)
-        #     targettype = metarelate.Item(targettype)
-        #     query = {'source':sourcetype.data, 'target':targettype.data}
-        #     ## check how to pass query params to request
-        #     templates = requests.get(kbase_uri, query)
         map_templates = json.loads(templates)
         mapping_list = deque()
         mapping_queue = Queue()
