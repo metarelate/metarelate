@@ -490,8 +490,8 @@ class Mapping(_DotMixin):
         else:
             self.source = Component(elements.get('source'))
             self.target = Component(elements.get('target'))
-        self.source.populate_from_uri(fuseki_process, graph)
-        self.target.populate_from_uri(fuseki_process, graph)
+        self.source.populate_from_uri(fuseki_process, graph, service)
+        self.target.populate_from_uri(fuseki_process, graph, service)
         self.date = elements.get('date')
         self.creator = elements.get('creator')
         self.invertible = elements.get('invertible')
