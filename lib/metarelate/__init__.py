@@ -520,24 +520,21 @@ class Mapping(_DotMixin):
         return (source_ids, target_ids)
 
     def sparql_retriever(self, rep=True, graph=None, service=None):
+        graph_pattern = 'http://metarelate.net/{}mappings.ttl'
         vstr = ''
         if rep:
             vstr += '\n\tMINUS {?mapping ^dc:replaces+ ?anothermap}'
-        graphs = ('FROM <http://metarelate.net/mappings.ttl>\n')
+        graphs = ('FROM NAMED <{}>\n'.format(graph_pattern.format('')))
         if graph:
-            graphs = graphs + ('FROM <http://metarelate.net/'
-                               '{}mappings.ttl>\n'.format(graph))
+            graphs = graphs + ('FROM NAMED <{}>\n'.format(graph_pattern.format(graph)))
         qstr = ("SELECT ?mapping ?source ?target ?invertible ?replaces\n"
                 "       ?note ?date ?creator ?rights ?dateAccepted\n"
-                # "(GROUP_CONCAT(DISTINCT(?rightsHolder); SEPARATOR = '&') AS ?rightsHolders)\n"
-                # "(GROUP_CONCAT(DISTINCT(?contributor); SEPARATOR = '&') AS ?contributors)\n"
-                # "(GROUP_CONCAT(DISTINCT(?valueMap); SEPARATOR = '&') AS ?valueMaps)\n"
                 "(GROUP_CONCAT(?rightsHolder; SEPARATOR = '&') AS ?rightsHolders)\n"
                 "(GROUP_CONCAT(?contributor; SEPARATOR = '&') AS ?contributors)\n"
                 "(GROUP_CONCAT(?valueMap; SEPARATOR = '&') AS ?valueMaps)\n"
                 "%s"
                 "WHERE {\n"
-                "%s"
+                "graph ?g {\n"
                 "?mapping mr:source ?source ;\n"
                 "     mr:target ?target ;\n"
                 "     mr:invertible ?invertible ;\n"
@@ -552,25 +549,22 @@ class Mapping(_DotMixin):
                 "OPTIONAL {?mapping dc:dateAccepted ?dateAccepted .}\n"
                 "FILTER(?mapping = %s)\n"
                 "%s"
-                "%s\n}\n"
+                "}\n\n}\n"
                 "GROUP BY ?mapping ?source ?target ?invertible ?replaces\n"
                 "         ?note ?date ?creator ?rights ?dateAccepted"
                 " \n")
         if service is not None:
             graphs = ''
-            g1 = 'graph ?g {\n'
-            g2 = '}\n'
-            service = ('{}?named-graph-uri=http://metarelate.net/mappings.ttl').format(service)
+            service = '{}?named-graph-uri={}'.format(service, graph_pattern.format(''))
             qstr = ("SELECT ?mapping ?source ?target ?invertible ?replaces\n"
                     "       ?note ?date ?creator ?rights ?dateAccepted\n"
                     "       ?rightsHolders ?contributors ?valueMaps\n"
                     "WHERE {\n"
                     "SERVICE <%s> {"
                     "%s"
-                    "}}" % (service, qstr % (graphs, g1, self.uri.data, vstr, g2)))
+                    "}}" % (service, qstr % (graphs, self.uri.data, vstr)))
         else:
-            g1 = g2 = ''
-            qstr = qstr % (graphs, g1, self.uri.data, vstr, g2)
+            qstr = qstr % (graphs, self.uri.data, vstr)
         return qstr
 
     def sparql_creator(self, po_dict, graph=None):
@@ -837,12 +831,12 @@ class Component(_DotMixin):
                                                              rdfobject))
 
     def sparql_retriever(self, graph=None, service=None):
+        g_pattern = 'http://metarelate.net/{}concepts.ttl'
         if self.uri is None:
             raise ValueError('URI required, None found')
-        graphs = ('FROM NAMED <http://metarelate.net/concepts.ttl>\n')
+        graphs = ('FROM NAMED <{}>\n'.format(g_pattern.format('')))
         if graph:
-            graphs = graphs + ('FROM NAMED <http://metarelate.net/'
-                               '{}concepts.ttl>\n'.format(graph))
+            graphs = graphs + ('FROM NAMED <>\n'.format(g_pattern.format(graph)))
         qstr = ('SELECT ?component ?p ?o \n'
                 '%s'
                 'WHERE {\n'
@@ -854,7 +848,7 @@ class Component(_DotMixin):
                 '}\n')
         if service is not None:
             graphs = ''
-            service = ('{}?named-graph-uri=http://metarelate.net/concepts.ttl').format(service)
+            service = '{}?named-graph-uri={}'.format(service, g_pattern.format(''))
             qstr = ("SELECT ?component ?p ?o \n"
                     "WHERE {\n"
                     "SERVICE <%s> {"
