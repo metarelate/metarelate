@@ -307,6 +307,13 @@ class FusekiServer(object):
                 self.rebase_branch(branch)
         return all_additions
             
+    def latest_sha(self):
+        """
+        Returns the latest commit sha from the metarelate git data store. 
+        """
+        git_sha = subprocess.check_output(['git', '-C', self._static_dir, 
+                                            'rev-parse', 'HEAD'])
+        return git_sha
 
     def save(self, branch):
         """

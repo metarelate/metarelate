@@ -823,7 +823,7 @@ class Component(_DotMixin):
                 subc = '<http://www.metarelate.net/metOcean/component/'
                 if rdfobject.data.startswith(subc):
                     comp = Component(rdfobject.data)
-                    comp.populate_from_uri(fuseki_process)
+                    comp.populate_from_uri(fuseki_process, graph, service)
                     self.properties.append(ComponentProperty(predicate,
                                                              comp))
                 else:
