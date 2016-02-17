@@ -803,7 +803,7 @@ class Component(_DotMixin):
             raise ValueError('URI required, None found')
         graphs = ('FROM NAMED <{}>\n'.format(g_pattern.format('')))
         if graph:
-            graphs = graphs + ('FROM NAMED <>\n'.format(g_pattern.format(graph)))
+            graphs = graphs + ('FROM NAMED <{}>\n'.format(g_pattern.format(graph)))
         qstr = ('SELECT ?component ?p ?o \n'
                 '%s'
                 'WHERE {\n'
