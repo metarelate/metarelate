@@ -34,10 +34,8 @@ class TestRunner(Command):
         for module in modules:
             args[1] = module
             msg = 'Running test discovery on module {!r} with {} processor{}.'
-            print
-            print msg.format(module, n_processors,
-                             's' if n_processors > 1 else '')
-            print
+            print(msg.format(module, n_processors,
+                             's' if n_processors > 1 else ''))
             success &= nose.run(argv=args)
         if not success:
             exit(1)
@@ -45,7 +43,7 @@ class TestRunner(Command):
 
 setup(
     name='metarelate',
-    version='0.8',
+    version='1.0',
     description='Python packages for working with MetaRelate data',
     url='http://metarelate.net',
     package_dir={'': 'lib'},
