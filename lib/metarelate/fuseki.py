@@ -110,7 +110,7 @@ class FusekiServer(object):
     an Apache Jena triple store database and Fuseki SPARQL server.
     
     """
-    def __init__(self, host='localhost', test=False, update=True):
+    def __init__(self, host='localhost', test=False, update=True, port=None):
 
         self.update=update
 
@@ -137,11 +137,13 @@ class FusekiServer(object):
         self._fuseki_dataset = metarelate.site_config['fuseki_dataset']
         if test:
             self._fuseki_dataset = 'test'
-
-        port_key = 'port'
-        if test:
-            port_key = 'test_{}'.format(port_key)
-        self.port = metarelate.site_config[port_key]
+        if port is None:
+            port_key = 'port'
+            if test:
+                port_key = 'test_{}'.format(port_key)
+            self.port = metarelate.site_config[port_key]
+        else:
+            self.port = port
 
         self.host = host
         self.test = test
@@ -442,9 +444,9 @@ class FusekiServer(object):
             metarelate.careful_update(failures, res)
         return failures
 
-    def search(self, statements):#, additive):
+    def search(self, statements):
         results = {}
-        query_string = mapping_search(statements)#, additive)
+        query_string = mapping_search(statements)
         results['search results'] = self.run_query(query_string)
         return results
 
@@ -455,25 +457,38 @@ class FusekiServer(object):
         
         """
         pref = prefixes.Prefixes().sparql
-        baseurl = "http://{}:{}/{}/".format(self.host, self.port,
+        port = self.port
+        if port:
+            port = ':{}'.format(self.port)
+
+        baseurl = "http://{}{}/{}".format(self.host, port,
                                            self._fuseki_dataset)
-        if update:
-            action='update'
-            qparams={'update': pref+query_string}
-            url = baseurl + action
-            results = requests.post(url, proxies={'http':''},
-                                    data=qparams)
-        else:
-            action = 'query'
-            qparams={'query': pref+query_string, 'output': 'json'}
-            url = baseurl + action
-            results = requests.get(url, proxies={'http':''},
-                                   params=qparams)
+
+        def run_this_query(baseurl):
+            if self.host != 'localhost':
+                qparams={'query': pref+query_string, 'output': 'json'}
+                results = requests.get(baseurl, params=qparams)
+            elif update:
+                action='update'
+                qparams={'update': pref+query_string}
+                url = baseurl + '/' + action
+                results = requests.post(url, proxies={'http':''},
+                                        data=qparams)
+            else:
+                action = 'query'
+                qparams={'query': pref+query_string, 'output': 'json'}
+                url = baseurl + '/' + action
+                results = requests.get(url, proxies={'http':''},
+                                       params=qparams)
+            return results
+        results = run_this_query(baseurl)
+        if results.status_code != 200:
+            results = run_this_query(baseurl)
         if results.status_code != 200:
             msg = ('Error connection to Fuseki server on {}.\n'
                   ' server returned {}\n'
                   '{}\n{}')
-            msg = msg.format(url, results.status_code,
+            msg = msg.format(baseurl, results.status_code,
                              pref, query_string)
             raise RuntimeError(msg)
         if output == 'json':
@@ -861,7 +876,7 @@ def multiple_mappings(test_source=None, graph=None):
     return qstr
 
 
-def mapping_search(statements=None):#, additive=False):
+def mapping_search(statements=None):
     """"""
     if statements is None:
         statements = []
