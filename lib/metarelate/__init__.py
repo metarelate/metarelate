@@ -33,7 +33,7 @@ from requests.exceptions import ConnectionError
 from metarelate.config import update
 import metarelate.prefixes as prefixes
 
-__version__ = '1.0'
+__version__ = '1.1'
 
 site_config = {
     'root_dir': os.path.abspath(os.path.dirname(__file__)),
