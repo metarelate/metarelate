@@ -196,7 +196,7 @@ class FusekiServer(object):
 
             
         """
-        if self.alive():
+        if self.alive() and self._process is not None:
             pid = self._process.pid
             self._process.terminate()
             for attempt in xrange(metarelate.site_config['timeout_attempts']):

@@ -1029,47 +1029,43 @@ class StatementProperty(Property):
     def get_identifiers(self, fuseki_process):
         """Returns a dictionary of key value pairs, providing a pattern
         of skos:notations which match the component explicitly"""
-        qstr = ('SELECT ?key ?value'
-                ' WHERE {'
-                '  {SELECT ?key ?value'
-                '   WHERE {'
-                '    {SERVICE %(ps)s '
-                '     {SELECT ?key ?value WHERE {'
-                '      %(p)s skos:notation ?key .'
-                '    }}}'
-                '    {SERVICE %(os)s '
-                '     {SELECT ?value WHERE {'
-                '      %(o)s skos:notation ?value'
-                '    }}}'
-                '       }}'
-                ' UNION '
-                '  {SELECT ?key ?value'
-                '   WHERE {'
-                '    {SERVICE %(ps)s '
-                '     {SELECT ?key ?value WHERE {'
-                '      %(p)s skos:notation ?key .'
-                '      FILTER(isLiteral(%(o)s))'
-                '      BIND(%(o)s as ?value)'
-                '    }}}'
-                '       }}'
-                ' UNION '
-                '  {SELECT ?key ?value'
-                '   WHERE {'
-                '    {SERVICE %(os)s '
-                '     {SELECT ?key ?value ?idr ?rdfobj ?rdfobjnot WHERE {'
-                '      %(o)s <http://metarelate.net/vocabulary/index.html#identifier> ?idr ;'
-                '       ?idr ?rdfobj .'
-                '      OPTIONAL {?idr skos:notation ?key . }'
-                '      OPTIONAL {?rdfobj skos:notation ?rdfobjnot}'
-                '      {SERVICE %(ps)s'
-                '       {SELECT ?idr ?key ?rdfobj ?rdfobjnot WHERE {'
-                '        OPTIONAL {?idr skos:notation ?key . }'
-                '        OPTIONAL {?rdfobj skos:notation ?rdfobjnot}'
-                '       }}}'
-                '      BIND((IF(isURI(?rdfobj), ?rdfobjnot, ?rdfobj)) AS ?value)'
-                '     }}'
-                '    }'
-                '  }}'
+        qstr = ('SELECT ?key ?value\n'
+                ' WHERE {\n'
+                '  {SELECT ?key ?value\n'
+                '   WHERE {\n'
+                '    {SERVICE %(ps)s \n'
+                '     {SELECT ?key WHERE {\n'
+                '      %(p)s skos:notation ?key .\n'
+                '    }}}\n'
+                '    {SERVICE %(os)s \n'
+                '     {SELECT ?value WHERE {\n'
+                '      %(o)s skos:notation ?value\n'
+                '    }}}\n'
+                '       }}\n'
+                ' UNION \n'
+                '  {SELECT ?key ?value\n'
+                '   WHERE {\n'
+                '    {SERVICE %(ps)s \n'
+                '     {SELECT ?key ?value WHERE {\n'
+                '      %(p)s skos:notation ?key .\n'
+                '      FILTER(isLiteral(%(o)s))\n'
+                '      BIND(%(o)s as ?value)\n'
+                '    }}}\n'
+                '       }}\n'
+                ' UNION \n'
+                '  {SELECT ?key ?value\n'
+                '   WHERE {\n'
+                '    {SERVICE %(os)s \n'
+                '     {SELECT ?key ?value ?idr ?rdfobj ?rdfobjnot WHERE {\n'
+                '      %(o)s <http://metarelate.net/vocabulary/index.html#identifier> ?idr ;\n'
+                '       ?idr ?rdfobj .\n'
+                '      OPTIONAL {?idr skos:notation ?key . }\n'
+                '      OPTIONAL {?rdfobj skos:notation ?rdfobjnot}\n'
+                '      %(ssc)s\n'
+                '      BIND((IF(isURI(?rdfobj), ?rdfobjnot, ?rdfobj)) AS ?value)\n'
+                '     }}\n'
+                '    }\n'
+                '  }}\n'
                 '}')
         predicate = self.predicate.data
         psplit = urlparse.urlsplit(predicate.strip('<>'))
@@ -1089,15 +1085,25 @@ class StatementProperty(Property):
         else:
             rospq = pspq
 
-        aqstr = qstr % {'p':predicate, 'o':rdfobject, 'ps':pspq, 'os':rospq}
+        subservicecall = ''
+        if rospq != pspq:
+            subservicecall = ('{SERVICE %(ps)s \n'
+                              '\t\t{SELECT ?idr ?rdfobj ?rdfobjnot ?key WHERE {\n'
+                              '\t\tOPTIONAL {?idr skos:notation ?key .} \n'
+                              '\t\tOPTIONAL {?rdfobj skos:notation ?rdfobjnot .}\n'
+                              '\t}}}') % {'ps':pspq}
+
+        aqstr = qstr % {'p':predicate, 'o':rdfobject, 'ps':pspq, 'os':rospq,
+                        'ssc':subservicecall}
+
         results = fuseki_process.run_query(aqstr)
         identifiers = {}
         for item in results:
-            key = item.get('key').strip('"')
-            value = item.get('value').strip('"')
+            key = item.get('key', '').strip('"')
+            value = item.get('value', '').strip('"')
             if isinstance(value, unicode):
                 value=str(value)
-            if not (key is not None and value is not None):
+            if not (key and value):
                 raise ValueError('key and value required, but not present\n'
                                  '{}'.format(item))
             else:
