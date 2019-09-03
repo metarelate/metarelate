@@ -316,6 +316,8 @@ class Mapping(_DotMixin):
     def contributors(self, somecontributors):
         if somecontributors is None:
             somecontributors = []
+        elif isinstance(somecontributors, basestring):
+            somecontributors = [somecontributors]
         self._contributors = [Item(c) for c in somecontributors]
 
     def __repr__(self):

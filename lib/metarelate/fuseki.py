@@ -442,6 +442,8 @@ class FusekiServer(object):
             print(vtest)
             res = metarelate_metocean.validation.__dict__[vtest].__call__(self, graph)
             metarelate.careful_update(failures, res)
+        duplicate_str = ('The following mappings are duplicates')
+        failures[duplicate_str] = self.run_query(duplicate_mappings(graph=graph))
         return failures
 
     def search(self, statements):
@@ -809,6 +811,65 @@ def process_data(jsondata):
         if tmpdict != {}:
             resultslist.append(tmpdict)
     return resultslist
+
+def duplicate_mappings(test_source=None, graph=None):
+    """
+    returns all the mappings which map the same source to a different target
+    where the targets are the same format
+    filter to a single test mapping with test_map
+    
+    """
+    gstr = ''
+    if graph:
+        gstr = ('FROM <http://metarelate.net/{}mappings.ttl>'
+                'FROM <http://metarelate.net/{}concepts.ttl>'
+                ''.format(graph, graph))
+    tm_filter = ''
+    if test_source:
+        pattern = '<http.*>'
+        pattern = re.compile(pattern)
+        if pattern.match(test_source):
+            tm_filter = '\n\tFILTER(?asource = {})'.format(test_source)
+    qstr = ('SELECT ?amap ?asource ?atarget ?bmap ?bsource ?btarget\n'
+            '(GROUP_CONCAT(DISTINCT(?valuemap); SEPARATOR="&") AS ?valuemaps)\n'
+            '(CONCAT(str(?amap), ": ", str(?bmap)) AS ?signature)\n'
+            'FROM <http://metarelate.net/mappings.ttl>\n'
+            'FROM <http://metarelate.net/concepts.ttl>\n'
+            '%(gs)s\n'
+            'WHERE {{\n'
+            '?amap mr:source ?asource ;\n'
+            'mr:target ?atarget . } \n'
+            'UNION \n'
+            '{\n'
+            '?amap mr:invertible "True" ;\n'
+            'mr:target ?asource ;\n'
+            'mr:source ?atarget . } \n'
+            'MINUS {?amap ^dc:replaces+ ?anothermap} \n'
+            '%(tm)s\n'
+            '{\n'
+            '?bmap mr:source ?bsource ;\n'
+            'mr:target ?btarget . } \n'
+            'UNION  \n'
+            '{ \n'
+            '?bmap mr:invertible "True" ;\n'
+            'mr:target ?bsource ;\n'
+            'mr:source ?btarget . } \n'
+            'MINUS {?bmap ^dc:replaces+ ?bnothermap}\n'
+            'filter (?bmap != ?amap)\n'
+            'filter (?bsource = ?asource)\n'
+            'filter (?btarget = ?atarget)\n'
+            '?asource rdf:type ?asourceformat .\n'
+            '?bsource rdf:type ?bsourceformat .\n'
+            '?atarget rdf:type ?atargetformat .\n'
+            '?btarget rdf:type ?btargetformat .\n'
+            'filter (?asourceformat != <http://www.metarelate.net/nulltype>)\n'
+            'filter (?asourceformat != <http://www.metarelate.net/vocabulary/index.html#Component>)\n'
+            '}\n'
+            'GROUP BY ?amap ?asource ?atarget ?bmap ?bsource ?btarget\n'
+            'ORDER BY ?asource\n'
+            '' % ({'gs':gstr, 'tm':tm_filter}))
+    return qstr
+  
 
 def multiple_mappings(test_source=None, graph=None):
     """

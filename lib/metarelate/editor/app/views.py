@@ -267,7 +267,7 @@ def _open_ticket(request, branch):
                       headers=myheaders)
     if r.status_code == 200:
         results = r.json()
-        aurl = 'https://beta.metarelate.net/metOcean/controlpanel/?{}'
+        aurl = 'https://www.metarelate.net/metOcean/controlpanel/?{}'
         urlbranch = urllib.urlencode({'branch':branch})
         aurl = aurl.format(urlbranch)
         urls = []
@@ -443,6 +443,7 @@ def list_mappings(request, validate):
     requestor = json.loads(requestor_path)
     if validate:
         results = fuseki_process.validate(requestor)
+        logger.info('validation: {}'.format(results))
     else:
         results = fuseki_process.search(requestor)
     mapping_links = []

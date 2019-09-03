@@ -38,7 +38,6 @@ from metarelate.editor.settings import fuseki_process
 
 DS = metarelate.site_config['fuseki_dataset']
 
-
 class MappingMetadata(forms.Form):
     readonly=True
     _uri = forms.CharField(required=False,
@@ -50,7 +49,9 @@ class MappingMetadata(forms.Form):
     note = forms.CharField(required=False,
                           widget=forms.TextInput(attrs={'readonly':readonly, 'size':'100%'}))
     _replaces = forms.CharField(required=False,
-                          widget=forms.TextInput(attrs={'readonly':readonly, 'size':'100%'}))
+                          # widget=forms.TextInput(attrs={'readonly':readonly, 'size':'100%'}))
+                          widget=URLwidget(attrs={'readonly':readonly, 'size':'100%'}))
+    
     _valuemaps = forms.CharField(required=False,
                           widget=forms.TextInput(attrs={'readonly':readonly, 'size':'100%'}))
     _rights = forms.CharField(required=False,
@@ -75,7 +76,7 @@ class SelectWithPop(forms.Select):
         html = super(SelectWithPop, self).render(name, *args, **kwargs)
         popupplus = render_to_string("popupplus.html", {'field': name})
         return html+popupplus        
-        
+
 
 class URLwidget(forms.TextInput):
     """helper widget"""
@@ -83,8 +84,10 @@ class URLwidget(forms.TextInput):
         if value in ('None', None):
             tpl = value
         else:
-            tpl = u'<a href="%s">%s</a>' % (reverse('mapdisplay', 
-                kwargs={'hashval' : value}), "go to replaces")
+            # tpl = u'<a href="%s">%s</a>' % (reverse('mapdisplay',
+            #     kwargs={'hashval' : value}), "go to replaces")
+
+            tpl = u'<a href="{u}">{u}</a>'.format(u=value.data.rstrip('>').lstrip('<'))
         return mark_safe(tpl)
 
     def clean(self):
